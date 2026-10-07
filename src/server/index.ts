@@ -5,6 +5,12 @@ import { WebSocketServer, WebSocket } from "ws";
 
 process.env.NODE_ENV ??= "development";
 process.env.DYAD_HEADLESS_HTTP = "1";
+// node-pty is a native module built for Electron's ABI and cannot load under
+// the plain Node runtime here; the shim's spawn is inert, which made every
+// pty-based command (runCommand, e.g. the managed pnpm install) hang until its
+// timeout. DYAD_DISABLE_PTY=1 routes pty_command_runner through a real
+// child_process with the same result contract.
+process.env.DYAD_DISABLE_PTY ??= "1";
 
 import { ensureRuntimeGitEnvironment } from "../main/git_path";
 
