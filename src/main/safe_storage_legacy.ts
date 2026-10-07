@@ -4,7 +4,12 @@ import { createRequire } from "node:module";
 import log from "electron-log";
 
 const logger = log.scope("safe_storage_recovery");
-const require = createRequire(import.meta.url);
+const localRequire =
+  typeof module !== "undefined" &&
+  module &&
+  typeof module.require === "function"
+    ? module.require.bind(module)
+    : createRequire(import.meta.url);
 
 /**
  * Recovery for Bug #3837: on macOS, Electron `safeStorage` ciphertext can
@@ -118,7 +123,7 @@ type KeychainReaderBindingLoader = () => KeychainReaderBinding;
 let inProcessBinding: KeychainReaderBinding | null | undefined;
 let inProcessBindingLoadFailureLogged = false;
 let inProcessBindingLoader: KeychainReaderBindingLoader = () =>
-  require("dyad-keychain-reader") as KeychainReaderBinding;
+  localRequire("dyad-keychain-reader") as KeychainReaderBinding;
 let interactionNeededIdentities = new Set<string>();
 let unlockPromptAttempted = false;
 

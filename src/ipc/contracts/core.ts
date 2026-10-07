@@ -187,6 +187,51 @@ export type EventChannel<T> = T extends EventContract<infer C, any> ? C : never;
 // =============================================================================
 
 const IPC_ENVELOPE_MARKER = "dyad-ipc-envelope-v1";
+const IPC_DATE_TAG = "__dyadDate";
+
+/**
+ * Encode Date instances for a JSON transport (browser mode). Electron IPC uses
+ * structured clone, which preserves Dates; JSON does not, so we tag them so the
+ * browser bridge can revive them without guessing from ISO strings.
+ */
+export function encodeIpcDates(value: unknown): unknown {
+  if (value instanceof Date) {
+    return { [IPC_DATE_TAG]: value.toISOString() };
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => encodeIpcDates(item));
+  }
+  if (value !== null && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value)) {
+      out[key] = encodeIpcDates(item);
+    }
+    return out;
+  }
+  return value;
+}
+
+/** Revive tagged Dates produced by encodeIpcDates on a JSON transport. */
+export function reviveIpcDates(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => reviveIpcDates(item));
+  }
+  if (value !== null && typeof value === "object") {
+    const tag = (value as Record<string, unknown>)[IPC_DATE_TAG];
+    if (
+      typeof tag === "string" &&
+      Object.keys(value as Record<string, unknown>).length === 1
+    ) {
+      return new Date(tag);
+    }
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value)) {
+      out[key] = reviveIpcDates(item);
+    }
+    return out;
+  }
+  return value;
+}
 
 export interface SerializedIpcError {
   name?: string;
@@ -300,6 +345,161 @@ export function unwrapIpcEnvelope<T>(response: IpcInvokeEnvelope<T>): T {
   throw deserializeIpcError(response.error);
 }
 
+export function createBrowserIpcBridge(options?: {
+  baseUrl?: string;
+  wsUrl?: string;
+}) {
+  const getOrigin = () => {
+    if (typeof window === "undefined") {
+      return "http://127.0.0.1";
+    }
+    return options?.baseUrl ?? `${window.location.origin}`;
+  };
+
+  const getWsOrigin = () => {
+    if (typeof window === "undefined") {
+      return "ws://127.0.0.1";
+    }
+    return options?.wsUrl ?? `${window.location.origin.replace(/^http/, "ws")}`;
+  };
+
+  const listeners = new Map<string, Set<(payload: unknown) => void>>();
+  let socket: WebSocket | null = null;
+  let reconnectTimer: number | undefined;
+
+  const ensureSocket = () => {
+    if (typeof window === "undefined") {
+      return null;
+    }
+    if (
+      socket &&
+      (socket.readyState === WebSocket.OPEN ||
+        socket.readyState === WebSocket.CONNECTING)
+    ) {
+      return socket;
+    }
+
+    const wsUrl = `${getWsOrigin()}/ws`;
+    socket = new WebSocket(wsUrl);
+    socket.addEventListener("message", (event) => {
+      try {
+        const message = JSON.parse(String(event.data));
+        if (!message || typeof message !== "object") {
+          return;
+        }
+        const channel =
+          typeof message.channel === "string" ? message.channel : null;
+        const payload = (message as { payload?: unknown }).payload;
+        if (!channel) {
+          return;
+        }
+        const channelListeners = listeners.get(channel);
+        if (!channelListeners) {
+          return;
+        }
+        for (const listener of Array.from(channelListeners)) {
+          listener(reviveIpcDates(payload));
+        }
+      } catch {
+        // Ignore malformed browser event frames; they are not valid Dyad events.
+      }
+    });
+
+    socket.addEventListener("close", () => {
+      if (reconnectTimer !== undefined) {
+        window.clearTimeout(reconnectTimer);
+      }
+      reconnectTimer = window.setTimeout(() => {
+        reconnectTimer = undefined;
+        ensureSocket();
+      }, 1000);
+    });
+
+    return socket;
+  };
+
+  const invokeRaw = async (channel: string, input: unknown) => {
+    const response = await fetch(
+      `${getOrigin()}/rpc/${encodeURIComponent(channel)}`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: input === undefined ? undefined : JSON.stringify(input),
+      },
+    );
+
+    if (!response.ok) {
+      let payload: unknown = null;
+      try {
+        payload = await response.json();
+      } catch {
+        payload = null;
+      }
+      const message =
+        payload && typeof payload === "object" && "error" in payload
+          ? ((payload as { error?: { message?: string } }).error?.message ??
+            response.statusText)
+          : response.statusText || "Request failed.";
+      throw new Error(message);
+    }
+
+    return reviveIpcDates(await response.json());
+  };
+
+  return {
+    invoke: async (channel: string, input: unknown) => {
+      const response = await invokeRaw(channel, input);
+      return isIpcInvokeEnvelope(response)
+        ? unwrapIpcEnvelope(response)
+        : response;
+    },
+    invokeEnvelope: async (channel: string, input: unknown) => {
+      return await invokeRaw(channel, input);
+    },
+    send: async (channel: string, input?: unknown) => {
+      try {
+        await fetch(`${getOrigin()}/rpc/${encodeURIComponent(channel)}`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: input === undefined ? undefined : JSON.stringify(input),
+        });
+      } catch {
+        // Best-effort send only; the browser transport is designed for the renderer
+        // event stream and invoke path, not a desktop-style fire-and-forget queue.
+      }
+    },
+    on: (channel: string, listener: (payload: unknown) => void) => {
+      const set = listeners.get(channel) ?? new Set();
+      set.add(listener);
+      listeners.set(channel, set);
+      ensureSocket();
+      return () => {
+        const next = listeners.get(channel);
+        if (!next) return;
+        next.delete(listener);
+        if (next.size === 0) {
+          listeners.delete(channel);
+        }
+      };
+    },
+    removeAllListeners: (channel: string) => {
+      listeners.delete(channel);
+    },
+    removeListener: (channel: string, listener: (payload: unknown) => void) => {
+      const next = listeners.get(channel);
+      if (!next) return;
+      next.delete(listener);
+      if (next.size === 0) {
+        listeners.delete(channel);
+      }
+    },
+  };
+}
+
 /** Type to convert contracts object to client methods */
 type ClientFromContracts<
   T extends Record<string, IpcContract<string, z.ZodType, z.ZodType>>,
@@ -324,8 +524,24 @@ type ClientFromContracts<
 export function createClient<
   T extends Record<string, IpcContract<string, z.ZodType, z.ZodType>>,
 >(contracts: T): ClientFromContracts<T> {
-  // Access ipcRenderer from the window.electron exposed by preload
-  const getIpcRenderer = () => (window as any).electron?.ipcRenderer;
+  const getIpcRenderer = () => {
+    const maybeElectron = (window as any).electron?.ipcRenderer;
+    if (maybeElectron) {
+      return maybeElectron;
+    }
+    if (typeof window !== "undefined") {
+      const enableBrowser =
+        (typeof import.meta !== "undefined" &&
+          (import.meta as any).env?.VITE_BROWSER_IPC === "1") ||
+        new URLSearchParams(window.location.search).get("browserIPC") === "1";
+      if (enableBrowser) {
+        const browserBridge = createBrowserIpcBridge();
+        (window as any).electron = { ipcRenderer: browserBridge };
+        return browserBridge;
+      }
+    }
+    return undefined;
+  };
 
   const client = {} as ClientFromContracts<T>;
   for (const [methodName, contract] of Object.entries(contracts)) {
@@ -415,7 +631,24 @@ type EventClientFromContracts<
 export function createEventClient<
   T extends Record<string, EventContract<string, z.ZodType>>,
 >(events: T): EventClientFromContracts<T> {
-  const getIpcRenderer = () => (window as any).electron?.ipcRenderer;
+  const getIpcRenderer = () => {
+    const maybeElectron = (window as any).electron?.ipcRenderer;
+    if (maybeElectron) {
+      return maybeElectron;
+    }
+    if (typeof window !== "undefined") {
+      const enableBrowser =
+        (typeof import.meta !== "undefined" &&
+          (import.meta as any).env?.VITE_BROWSER_IPC === "1") ||
+        new URLSearchParams(window.location.search).get("browserIPC") === "1";
+      if (enableBrowser) {
+        const browserBridge = createBrowserIpcBridge();
+        (window as any).electron = { ipcRenderer: browserBridge };
+        return browserBridge;
+      }
+    }
+    return undefined;
+  };
 
   const client = {} as EventClientFromContracts<T>;
 
@@ -476,7 +709,24 @@ export function createStreamClient<
   TEnd extends z.ZodType,
   TError extends z.ZodType,
 >(contract: StreamContract<TChannel, TInput, TKey, TChunk, TEnd, TError>) {
-  const getIpcRenderer = () => (window as any).electron?.ipcRenderer;
+  const getIpcRenderer = () => {
+    const maybeElectron = (window as any).electron?.ipcRenderer;
+    if (maybeElectron) {
+      return maybeElectron;
+    }
+    if (typeof window !== "undefined") {
+      const enableBrowser =
+        (typeof import.meta !== "undefined" &&
+          (import.meta as any).env?.VITE_BROWSER_IPC === "1") ||
+        new URLSearchParams(window.location.search).get("browserIPC") === "1";
+      if (enableBrowser) {
+        const browserBridge = createBrowserIpcBridge();
+        (window as any).electron = { ipcRenderer: browserBridge };
+        return browserBridge;
+      }
+    }
+    return undefined;
+  };
 
   type Input = z.infer<TInput>;
   // Use string | number for KeyValue to support common key types while

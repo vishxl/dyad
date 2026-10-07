@@ -9,6 +9,8 @@ import {
   defineContract,
   defineStream,
   deserializeIpcError,
+  encodeIpcDates,
+  reviveIpcDates,
   serializeIpcError,
 } from "./core";
 
@@ -481,5 +483,46 @@ describe("IPC stream callback cleanup", () => {
       expect.objectContaining({ value: "stale" }),
     );
     expect(local).toHaveBeenCalledOnce();
+  });
+});
+
+describe("IPC JSON Date transport (browser mode)", () => {
+  it("round-trips Dates through encode/revive", () => {
+    const date = new Date("2026-10-07T09:10:44.000Z");
+    const input = {
+      createdAt: date,
+      nested: { updatedAt: date, list: [date], count: 3, name: "app" },
+    };
+
+    const encoded = encodeIpcDates(input) as Record<string, unknown>;
+    // JSON.stringify/parse to simulate the wire
+    const wire = JSON.parse(JSON.stringify(encoded));
+    const revived = reviveIpcDates(wire) as typeof input;
+
+    expect(revived.createdAt).toBeInstanceOf(Date);
+    expect(revived.createdAt.toISOString()).toBe("2026-10-07T09:10:44.000Z");
+    expect(revived.nested.updatedAt).toBeInstanceOf(Date);
+    expect(revived.nested.list[0]).toBeInstanceOf(Date);
+    expect(revived.nested.count).toBe(3);
+    expect(revived.nested.name).toBe("app");
+  });
+
+  it("does not corrupt plain strings that look like dates", () => {
+    const input = { content: "2026-10-07T09:10:44.000Z", ok: true };
+    const revived = reviveIpcDates(
+      JSON.parse(JSON.stringify(encodeIpcDates(input))),
+    ) as typeof input;
+    expect(revived.content).toBe("2026-10-07T09:10:44.000Z");
+    expect(typeof revived.content).toBe("string");
+  });
+
+  it("revives only single-key tagged objects", () => {
+    const notATag = { __dyadDate: "2026-10-07T09:10:44.000Z", extra: 1 };
+    const revived = reviveIpcDates(notATag) as {
+      __dyadDate: string;
+      extra: number;
+    };
+    expect(revived.__dyadDate).toBe("2026-10-07T09:10:44.000Z");
+    expect(revived.extra).toBe(1);
   });
 });

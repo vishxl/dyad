@@ -107,6 +107,7 @@ import { scrubGithubTokenFromRemotes } from "./ipc/utils/git_remote_token_scrub"
 import { encryptStoredMcpSecrets } from "./ipc/utils/mcp_secret_encryption";
 import fs from "fs";
 import { gitAddSafeDirectory } from "./ipc/utils/git_utils";
+import { ensureRuntimeGitEnvironment } from "./main/git_path";
 import {
   getDyadAppsBaseDirectory,
   getDyadAppPath,
@@ -391,21 +392,13 @@ dotenv.config();
 // Register IPC handlers before app is ready
 registerIpcHandlers();
 
-// Decide the git directory depending on environment
-function resolveLocalGitDirectory() {
-  if (!app.isPackaged) {
-    // Dev: app.getAppPath() is the project root
-    return path.join(app.getAppPath(), "node_modules/dugite/git");
-  }
-
-  // Packaged app: git is bundled via extraResource
-  return path.join(process.resourcesPath, "git");
-}
-
-const gitDir = resolveLocalGitDirectory();
-if (fs.existsSync(gitDir)) {
-  process.env.LOCAL_GIT_DIRECTORY = gitDir;
-}
+// Decide the git directory depending on environment. Falls back to the system Git
+// when the embedded Dugite bundle has not been downloaded in a dev install or a
+// partial packaging/layout is present.
+ensureRuntimeGitEnvironment({
+  appPath: app.getAppPath(),
+  resourcesPath: process.resourcesPath,
+});
 
 // https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app#main-process-mainjs
 if (process.defaultApp) {

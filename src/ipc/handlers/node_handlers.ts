@@ -6,7 +6,7 @@ import { readRefreshedWindowsPath } from "../utils/windows_env_path";
 import log from "electron-log";
 import { existsSync } from "fs";
 import fs from "fs/promises";
-import { delimiter, join } from "path";
+import { delimiter, dirname, join } from "path";
 import { readSettings, writeSettings } from "../../main/settings";
 import { createTypedHandler } from "./base";
 import { registerTrustedIpcHandler } from "./trusted_handle";
@@ -65,6 +65,12 @@ async function reloadNodePath() {
   } else {
     fixPath();
   }
+
+  const runtimeBinDir = dirname(process.execPath);
+  process.env[pathKey] = [
+    runtimeBinDir,
+    ...(process.env[pathKey] ?? "").split(delimiter).filter(Boolean),
+  ].join(delimiter);
 
   const settings = readSettings();
   const customNode = await getCustomNodeInfo(settings.customNodePath);

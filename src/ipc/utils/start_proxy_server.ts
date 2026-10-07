@@ -1,5 +1,6 @@
 // startProxy.js – helper to launch proxy.js as a worker
 
+import { existsSync } from "node:fs";
 import { Worker } from "worker_threads";
 import path from "path";
 import log from "electron-log";
@@ -10,6 +11,34 @@ import {
 } from "../../../shared/ports";
 
 const logger = log.scope("start_proxy_server");
+
+export function resolveProxyWorkerPath(): string {
+  const candidates = [
+    path.resolve(__dirname, "..", "worker", "proxy_server.js"),
+    path.resolve(__dirname, "..", "..", "worker", "proxy_server.js"),
+    path.resolve(__dirname, "..", "..", "..", "worker", "proxy_server.js"),
+    path.resolve(
+      __dirname,
+      "..",
+      "..",
+      "..",
+      "..",
+      "worker",
+      "proxy_server.js",
+    ),
+    path.resolve(process.cwd(), "worker", "proxy_server.js"),
+  ];
+
+  const found = candidates.find((candidate) => existsSync(candidate));
+  if (found) {
+    return found;
+  }
+
+  const fallback =
+    candidates[0] ?? path.resolve(process.cwd(), "worker", "proxy_server.js");
+  logger.warn("Preview proxy worker not found; checked:", candidates);
+  return fallback;
+}
 
 export async function startProxy(
   targetOrigin: string,
@@ -30,22 +59,29 @@ export async function startProxy(
     );
   const { port, onStarted, onError, fixedHeaders, authBootstrapToken } = opts;
   const fallbackPortStart = getProxyFallbackPortStart();
-  logger.info("Starting proxy on port", port);
+  const workerPath = resolveProxyWorkerPath();
+  logger.info("Starting proxy on port", port, "using worker", workerPath);
 
-  const worker = new Worker(
-    path.resolve(__dirname, "..", "..", "worker", "proxy_server.js"),
-    {
-      workerData: {
-        targetOrigin,
-        hostname: opts.hostname,
-        port,
-        fallbackPortStart,
-        maxPortAttempts: PROXY_FALLBACK_MAX_ATTEMPTS,
-        fixedHeaders,
-        authBootstrapToken,
-      },
+  if (!existsSync(workerPath)) {
+    const error = new DyadError(
+      `Preview proxy worker not found at ${workerPath}. Looked for worker/proxy_server.js in the current app and several repo-relative paths.`,
+      DyadErrorKind.External,
+    );
+    onError?.(error);
+    throw error;
+  }
+
+  const worker = new Worker(workerPath, {
+    workerData: {
+      targetOrigin,
+      hostname: opts.hostname,
+      port,
+      fallbackPortStart,
+      maxPortAttempts: PROXY_FALLBACK_MAX_ATTEMPTS,
+      fixedHeaders,
+      authBootstrapToken,
     },
-  );
+  });
 
   let started = false;
   let reportedError = false;

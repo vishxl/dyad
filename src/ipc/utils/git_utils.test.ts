@@ -691,6 +691,10 @@ describe("getGitUncommittedFiles", () => {
       path.join(repoDir, ".dyad", "screenshot.png"),
       "generated",
     );
+    await fs.promises.writeFile(
+      path.join(repoDir, "package-lock.json"),
+      '{"lockfileVersion": 3}\n',
+    );
     await fs.promises.writeFile(path.join(repoDir, "src.ts"), "user change");
 
     await expect(getGitUncommittedFiles({ path: repoDir })).resolves.toEqual([

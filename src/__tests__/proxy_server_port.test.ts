@@ -3,6 +3,7 @@ import path from "node:path";
 import { Worker } from "node:worker_threads";
 
 import { afterEach, describe, expect, it } from "vitest";
+import { resolveProxyWorkerPath } from "@/ipc/utils/start_proxy_server";
 
 const WORKER_PATH = path.resolve(
   __dirname,
@@ -40,6 +41,14 @@ function close(server: net.Server): Promise<void> {
 
 describe("proxy worker port fallback", () => {
   const cleanup: Array<() => Promise<void>> = [];
+
+  it("resolves the proxy worker from the repo regardless of runtime location", () => {
+    const workerPath = resolveProxyWorkerPath();
+    expect(workerPath).toBeTruthy();
+    expect(path.basename(workerPath)).toBe("proxy_server.js");
+    expect(workerPath).toContain(`${path.sep}worker${path.sep}proxy_server.js`);
+    expect(require("node:fs").existsSync(workerPath)).toBe(true);
+  });
 
   afterEach(async () => {
     for (const fn of cleanup.splice(0)) {

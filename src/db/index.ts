@@ -13,6 +13,24 @@ import log from "electron-log";
 
 const logger = log.scope("db");
 
+function resolveMigrationsFolder(): string {
+  const candidates = [
+    path.resolve(process.cwd(), "drizzle"),
+    path.resolve(__dirname, "..", "drizzle"),
+    path.resolve(__dirname, "..", "..", "drizzle"),
+    path.resolve(__dirname, "..", "..", "..", "drizzle"),
+  ];
+
+  const existing = candidates.find((candidate) => fs.existsSync(candidate));
+  if (!existing) {
+    throw new Error(
+      `Migrations folder not found. Tried: ${candidates.join(", ")}`,
+    );
+  }
+
+  return existing;
+}
+
 // Database connection factory
 let _db: ReturnType<typeof drizzle> | null = null;
 
@@ -69,10 +87,7 @@ export function initializeDatabase(): BetterSQLite3Database<typeof schema> & {
   _db = drizzle(sqlite, { schema });
 
   try {
-    const migrationsFolder = path.join(__dirname, "..", "..", "drizzle");
-    if (!fs.existsSync(migrationsFolder)) {
-      throw new Error(`Migrations folder not found: ${migrationsFolder}`);
-    }
+    const migrationsFolder = resolveMigrationsFolder();
     logger.log("Running migrations from:", migrationsFolder);
     migrate(_db, { migrationsFolder });
   } catch (error) {
