@@ -39,8 +39,18 @@ export const addDependencyTool: ToolDefinition<
     result.startsWith("Successfully installed or updated"),
 
   buildXml: (args, _isComplete) => {
-    if (!args.packages || args.packages.length === 0) return undefined;
-    return `<dyad-add-dependency packages="${escapeXmlAttr(args.packages.join(" "))}"></dyad-add-dependency>`;
+    // buildXml runs on partial, unvalidated args mid-stream; `packages` may
+    // not be an array yet (or may arrive as a plain string), so guard before
+    // joining — same pattern as get_mcp_tool_schema. An unguarded throw here
+    // kills the whole agent turn from inside the streaming callback.
+    const rawPackages: unknown = args.packages;
+    const packages = Array.isArray(rawPackages)
+      ? rawPackages
+      : typeof rawPackages === "string"
+        ? rawPackages.split(/\s+/).filter(Boolean)
+        : [];
+    if (packages.length === 0) return undefined;
+    return `<dyad-add-dependency packages="${escapeXmlAttr(packages.join(" "))}"></dyad-add-dependency>`;
   },
 
   execute: async (args, ctx: AgentContext) => {
