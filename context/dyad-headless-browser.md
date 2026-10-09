@@ -334,3 +334,43 @@ New chat in "Headless Git Test" → prompt → `planning_questionnaire` (3 quest
 - **Verification flow proven end-to-end (probe + screenshots)**: pin → address box fills → analysis auto-runs → Snapshot/Competition/Catchment populate → Location Report renders full data → Compare Locations renders A-vs-B table. Real-city analyze returns 40 competitors / 20 POIs / 60 matrix elements / 4 isochrones for Chennai.
 - **Ops findings**: (a) chat 8 permanently dead at ~278k tokens > 262k model limit — "Upstream idle timeout exceeded" + context-length errors; user opened new chats (chat 9 was accidentally created on a stray app 7 "wandering-otter-dart" from a mis-scoped probe). (b) OpenRouter free quota dead ~01:30–02:30; user added credits → minimax/minimax-m3 works. (c) The agent DID land the API rewrite + input-sync + auto-analyze dedupe in a later turn — but app restarts never came back up by themselves (dev server stayed down after package installs; user saw "2 hours stuck"; recurring pnpm "added N" lines are local relinking, `downloaded 0`).
 - **Process note (user's explicit complaint)**: "backward fixing is clearly not working — go through each UI element and fix it, or redesign". Element-by-element audit after the redesign was the thing that finally worked; per-layer "fixed" claims without user-flow verification were perceived as fraud. Always verify the USER'S flow end-to-end with screenshots before claiming success.
+
+---
+
+## 12. Capability gaps in browser mode (audit 2026-10-09)
+
+Comparison of the Electron feature surface (IPC handlers in `src/ipc/handlers/`, main-process APIs in `src/main*.ts`) against the shim (`src/server/electron-shim.ts`). Shim coverage governs what works headless.
+
+### A. Silently no-op (shim fakes success — UI enables features that can never complete)
+
+| Shim API | Behavior | Broken user features |
+| --- | --- | --- |
+| `dialog.showOpenDialog/showSaveDialog` | always `canceled: true` | App import (`src/ipc/handlers/import_handlers.ts`), custom apps-folder picker (`custom_apps_folder_handlers.ts`), export/backup save dialogs, Node path picker (`node_handlers.ts`) |
+| `shell.openExternal/openPath/showItemInFolder` | no-op | OAuth connect flows that open the system browser (Neon/Supabase/GitHub/Dyad Pro sign-in), "open app folder"/"open in editor", opening media/screenshots |
+| `dyad://` deep-link OAuth return | protocol never registered | OAuth callbacks can't return to the app even if openExternal worked (`src/main.ts` deep-link queue; `linux_protocol_registration`). Manual token paste still works |
+| `clipboard` (main), `Notification`, `nativeTheme` (frozen), `screen` (fake bounds), `app.requestSingleInstanceLock`/login-item/relaunch | stubs | Native clipboard-from-main, OS notifications, OS theme sync, window positioning — minor |
+
+### B. Broken / degraded subsystems
+
+- **Terminal panel**: `terminal_handlers.ts` → `pty_session_manager`; `node-pty` shim is inert and `DYAD_DISABLE_PTY=1` routes pty commands through plain `child_process`. Non-interactive command execution works (managed pnpm installs verified); an interactive terminal session in the UI does not.
+- **`utilityProcess.fork` shim is inert** → workers spawned via utilityProcess (session recording / debug-bundle paths in `recording_handlers.ts`, heavy compute per `rules/electron-workers.md`) silently do nothing.
+- **Multi-window**: shim exposes one virtual window; OAuth popup windows, secondary preview windows, and `window_handlers.ts` window controls (zoom/minimize) are gone. Preview-in-iframe works (verified).
+- **safeStorage is fake encryption** (`encryptString` = raw Buffer): provider API keys are stored **unencrypted on disk** instead of the OS keychain (`dyad-keychain-reader` path bypassed). Works, but a real security downgrade vs desktop.
+- **Auto-update**: `autoUpdater` stub — expected for a dev harness, no updates.
+- **PostHog telemetry phones home** headless (browser + server); consider a headless default-off.
+
+### C. Transport-layer gaps (HTTP/WS vs structured-clone IPC)
+
+- Dates fixed via tagged-Date encode/revive (§11). Remaining theoretical risk: structured-clone types JSON can't carry (TypedArray/Map) would degrade the same way — none found in active contract use.
+- No event replay after page reload: blueprint/plan atoms populate only from live WS events — reloading mid-blueprint leaves "Blueprint data is unavailable" until a fresh event arrives (same registry semantics as desktop, more visible here).
+- `appBlueprintStore` is in-memory: restarting the headless server mid-blueprint-flow wipes it.
+- Agent turns frequently leave the generated app's dev server down; manual `POST /rpc/restart-app` (object body `{"appId":N}`) + page reload restores it.
+
+### D. Security posture (fine for single-user localhost; do not expose beyond it)
+
+- The HTTP server has **no CORS/Origin check and no auth token**: any page open in any browser on the same machine can `POST http://127.0.0.1:3000/rpc/*` and drive Dyad (create apps, run commands, read/write data, execute package installs). `renderer_security.configureTrustedRenderer` trusts a fake URL. Cheap mitigations if needed: Origin allowlist for `http://127.0.0.1:4173`, or a per-launch random token the renderer appends to `/rpc` calls.
+- The Electron sandbox model (context isolation, trusted renderer frames) does not exist here.
+
+### E. Verified working (for balance)
+
+App creation + git, chat/agent loop (blueprint, questionnaire, proposals, step-limit/Continue), previews + proxy worker, managed pnpm/npm installs, tests panel, screenshot capture, live WS event streaming (`chat:response:chunk`, `app-blueprint:update`, `user-input:requested`, etc.) — see §11.

@@ -1,0 +1,47 @@
+Build "Groundwork" — a location-intelligence tool for small retail businesses (café, pharmacy, salon, bakery, restaurant, grocery, gym, custom) comparing up to 3 candidate store locations (A, B, C) on factual, API-measured geography. NO invented metrics: never show fake 0-100 scores, footfall, revenue or demand predictions — only counts, route distances, travel times, catchment areas, and density = competitors ÷ km² (displayed with its formula).
+
+STACK
+- React 19 + TypeScript + Tailwind, maplibre-gl (add `optimizeDeps: { exclude: ["maplibre-gl"] }` to Vite config or workers break).
+- Server routes (Nitro/h3 style, `server/routes/api/*.ts`) validated with zod.
+- Server-only NextBillion wrappers in `src/lib/nextbillion/client.server.ts`.
+
+NEXTBILLION.AI API CONTRACT — these exact endpoints/shapes are verified live; do not invent others. Base: https://api.nextbillion.io, key always passed as `key` query param. Place endpoints return `{ items: [{ id, title, address: { label }, position: { lat, lng } }] }`.
+- Reverse geocode:  GET /revgeocode?at=LAT,LNG
+- Autosuggest:      GET /autosuggest?q=Q&at=LAT,LNG&limit=5
+- Forward geocode:  GET /geocode?q=Q&at=LAT,LNG
+- POI search:       GET /discover?q=Q&at=LAT,LNG&radius=3000&limit=20
+- Distance matrix:  GET /distancematrix/json?origins=lat,lng&destinations=lat,lng|lat,lng&mode=car
+  ^ multiple destinations are separated by `|` (pipe). `;` returns 400. Response rows[].elements[] = { duration: { value: seconds }, distance: { value: meters } }.
+- Directions:       GET /directions/json?origin=lat,lng&destination=lat,lng&mode=car → { routes: [{ geometry, distance, duration, legs }] }
+- Isochrone:        GET /isochrone/json?coordinates=lat,lng&contours_minutes=5,10,15,20&mode=car
+  ^ params are `coordinates` + `contours_minutes` (max 4, max 40). NOT `locations`/`range`. Returns GeoJSON FeatureCollection.
+- Map style:        GET /maps/gateway/style/json?style=light&key=KEY (fallback basemap: https://basemaps.cartocdn.com/gl/positron-gl-style/style.json when no key or style fails to load)
+
+API KEY: header field in the UI (password-masked input with show/hide eye toggle + Save button + "Saved" confirmation). Saved in localStorage `nextbillionApiKey`, sent in each request body/query to our server routes; server falls back to env NEXTBILLION_API_KEY. Zod schemas: query params are strings → use z.coerce.number(); JSON clients send `apiKey: null` when unset → use .nullish(), NOT .optional() (null otherwise 400s every keyless request).
+
+STATE ARCHITECTURE (non-negotiable)
+- ONE `useGroundworkState()` hook mounted ONCE inside a `GroundworkProvider` (React Context) at the app root; every component reads it via `useGroundwork()`. Never call a plain useState-based hook directly in multiple components — each call creates disconnected state and the UI stops syncing (pin drops invisible, panels stale).
+- Pin flow: map click → temp red marker (1.5 s) → reverse geocode → `updateAddress(activeKey, address)` + `updateCoordinates(activeKey, lat, lng)` → an effect auto-runs analysis per candidate, deduped by signature `address|lat|lng` so switching time-of-day/mode re-runs but identical locations don't.
+- The map click handler is registered once on map init and closes over first-render state. Read the active candidate from a ref mirrored by a useEffect (`activeKeyRef.current`), never from the captured variable — otherwise every pin lands on slot A forever.
+- Do NOT pass data via the JSX `key` prop (`<LocationInput key={x}>` strips it) — use a named prop (`locationKey`).
+- Reverse-geocode failure or empty result must still register the pin with fallback address `"lat, lng"` — never silently drop it.
+
+UI (all wired, no dead elements — every button does something)
+- Header: app name + tagline, masked API-key field w/ Save, buttons: Compare Locations, Location Report, Reset All.
+- Left sidebar: per-candidate LocationInput with debounced autosuggest (selecting a suggestion fills address + coords + triggers analysis), business-type dropdown (presets: coffee_shop→"coffee OR cafe", pharmacy→"pharmacy OR chemist OR drugstore", bakery→"bakery OR pastry", salon→"salon OR barber OR spa", restaurant→"restaurant OR eatery", grocery→"grocery OR supermarket OR convenience", fitness→"gym OR fitness OR yoga", custom→free-text query), map-visibility toggle, and AnalysisPanel sections: Snapshot (coords), Competition (counts within 3 km / 1 km, nearest competitor route distance + time), Catchment (area km², competitors inside, density with formula shown), Underserved (km² of 400 m grid cells inside catchment with no competitor within 1 km — computed client-side via ray-casting point-in-polygon + Haversine, 0 extra API calls), Accessibility (POIs reachable within 5/10/15 min from distance matrix). Show clear loading and error text per candidate — never an empty silent panel.
+- Controls row: time-of-day chips (Now, 9 AM, 1 PM, 6 PM → next-occurrence local hour as Unix departure_time on matrix + isochrone; relabel results "9 AM traffic, driving"), travel-mode switch (car, motorbike, walk, bicycle), Add Location button (activates first empty slot B/C).
+- Map: full-height, fit-to-candidate on load, colored candidate markers (Gold #f5b13d / Blue #4fb3e8 / Green #8fd97a), orange competitors, cyan POIs, isochrone fill, gray underserved cells (#cbd5e1, opacity 0.16), click popups (name, address, distance, duration), map legend, "◎ My Location" button (navigator.geolocation → flyTo → same pin flow). Keep basemap layers in sync via a single manageMapLayer/removeMapLayer helper keyed by source+layer IDs.
+- Compare modal: A-vs-B-vs-C table of the factual metrics above (only candidates with successful analysis).
+- Report modal: printable factual narrative per candidate (competition, nearby places, accessibility, catchment/underserved, comparison table when >1) ending with the disclaimer: "All figures come from NextBillion.ai geocoding, places, distance matrix, and isochrone responses. This report contains no estimates of revenue, footfall, population, demand, or business performance."
+- Guard: if isochrone polygon < 0.5 km² (degenerate), suppress stats and show "The catchment polygon returned for this point is too small to analyse — try a different time band, travel mode, or nearby point." If distance matrix returns no route times, fall back to straight-line distances with a visible note.
+- Empty states: with no API key, prompt to enter it in the header before searching.
+
+FILE LAYOUT
+src/lib/nextbillion/{client.server.ts,types.ts}; src/lib/{business-types.ts,catchment-analysis.ts,map-layers.ts,format.ts}; src/components/map/MapView.tsx; src/components/groundwork/{types.ts,useGroundwork.ts (state + Provider),LocationInput.tsx,AnalysisPanel.tsx,panel-ui.tsx,WorkspaceParts.tsx,ComparisonTable.tsx,LocationReport.tsx}; src/routes/index.tsx (root wraps <GroundworkProvider>); server/routes/api/{analyze-location.post.ts,reverse-geocode.get.ts}.
+
+ACCEPTANCE
+1. Enter key → search/pin an address → address box fills, analysis auto-runs, all panels populate with real API data.
+2. Pin while candidate B is active targets B.
+3. Changing time-of-day/mode re-runs and relabels everything.
+4. Two analyzed candidates → Compare table shows both; Report renders.
+5. Zero invented metrics anywhere; every number traces to an API response or the client-side geometry described above.
