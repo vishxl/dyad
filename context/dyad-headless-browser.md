@@ -96,9 +96,8 @@ Open: `http://127.0.0.1:4173/`
 ### 3.5 Test an RPC endpoint with curl
 
 ```bash
-curl -X POST http://127.0.0.1:3000/rpc/get-apps \
-  -H "Content-Type: application/json" \
-  -d '{}'
+curl -X POST http://127.0.0.1:3000/rpc/list-apps \
+  -H "Content-Type: application/json"
 ```
 
 Any registered IPC channel can be called this way.
@@ -220,7 +219,7 @@ To get real nextbillion.ai content, either:
 - [ ] `export DYAD_DATA_DIR="/tmp/dyad-headless-browser"`
 - [ ] `npm run headless:browser`
 - [ ] Open `http://127.0.0.1:4173/`
-- [ ] Verify RPC: `curl -X POST http://127.0.0.1:3000/rpc/get-apps -H "Content-Type: application/json" -d '{}'`
+- [ ] Verify RPC: `curl -X POST http://127.0.0.1:3000/rpc/list-apps -H "Content-Type: application/json"` (add `-H "x-dyad-rpc-token: <token>"` when the server runs with one)
 
 ---
 
