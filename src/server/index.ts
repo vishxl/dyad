@@ -1,5 +1,6 @@
 import fs from "node:fs";
 import http from "node:http";
+import type { IncomingHttpHeaders } from "node:http";
 import path from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
 
@@ -44,6 +45,31 @@ import { encodeIpcDates } from "../ipc/contracts/core";
 import { ipcMain } from "./electron-shim";
 import { applyManagedNodeToProcessPath } from "../ipc/utils/managed_node";
 import { configureTrustedRenderer } from "../ipc/utils/renderer_security";
+import { getAllowedRpcOrigins, isRpcRequestAllowed } from "./rpc_access";
+
+const allowedRpcOrigins = getAllowedRpcOrigins();
+const expectedRpcToken = process.env.DYAD_RPC_TOKEN?.trim() || undefined;
+
+function checkRpcAccess(
+  origin: string | undefined,
+  presentedToken: string | undefined,
+): boolean {
+  return isRpcRequestAllowed({
+    origin,
+    presentedToken,
+    expectedToken: expectedRpcToken,
+    allowedOrigins: allowedRpcOrigins,
+  });
+}
+
+function presentedTokenFrom(
+  headers: IncomingHttpHeaders,
+  url: URL,
+): string | undefined {
+  const headerToken = headers["x-dyad-rpc-token"];
+  const normalized = Array.isArray(headerToken) ? headerToken[0] : headerToken;
+  return normalized ?? url.searchParams.get("token") ?? undefined;
+}
 
 const trustedRendererFrame = {
   url: "file:///headless/index.html",
@@ -154,6 +180,24 @@ const server = http.createServer(async (request, response) => {
 
   const channel = decodeURIComponent(url.pathname.slice("/rpc/".length));
 
+  if (
+    !checkRpcAccess(
+      request.headers.origin,
+      presentedTokenFrom(request.headers, url),
+    )
+  ) {
+    response.statusCode = 403;
+    response.setHeader("Content-Type", "application/json");
+    response.end(
+      JSON.stringify({
+        __dyadIpcEnvelope: "dyad-ipc-envelope-v1",
+        ok: false,
+        error: { message: "Forbidden." },
+      }),
+    );
+    return;
+  }
+
   try {
     const input = await readJsonBody(request);
     const handler = ipcMain.getHandler(channel);
@@ -189,9 +233,33 @@ const server = http.createServer(async (request, response) => {
   }
 });
 
-const websocketServer = new WebSocketServer({
-  server,
-  path: "/ws",
+const websocketServer = new WebSocketServer({ noServer: true });
+
+// Manual upgrade handling so the same origin/token gate applies to the
+// WebSocket channel; ws's built-in { server, path } wiring would accept any
+// origin. Vite's /ws proxy forwards the browser's original headers.
+server.on("upgrade", (request, socket, head) => {
+  const url = new URL(request.url ?? "/", "http://127.0.0.1");
+  const reject = () => {
+    socket.write("HTTP/1.1 403 Forbidden\r\n\r\n");
+    socket.destroy();
+  };
+  if (url.pathname !== "/ws") {
+    reject();
+    return;
+  }
+  if (
+    !checkRpcAccess(
+      request.headers.origin,
+      presentedTokenFrom(request.headers, url),
+    )
+  ) {
+    reject();
+    return;
+  }
+  websocketServer.handleUpgrade(request, socket, head, (ws) => {
+    websocketServer.emit("connection", ws, request);
+  });
 });
 
 websocketServer.on("connection", (socket) => {
@@ -209,4 +277,14 @@ server.listen(3000, "127.0.0.1", () => {
   console.log(`Headless Dyad IPC server listening on http://127.0.0.1:3000`);
   console.log(`WebSocket endpoint available at ws://127.0.0.1:3000/ws`);
   console.log(`Data directory: ${process.env.DYAD_DEV_USER_DATA_DIR}`);
+  console.log(
+    `RPC origin allowlist: ${Array.from(allowedRpcOrigins).join(", ")}`,
+  );
+  if (expectedRpcToken) {
+    // Localhost-only dev harness: the operator needs the token for curl/CLI
+    // probes, and stdout is their own terminal.
+    console.log(
+      `RPC token required: pass -H "x-dyad-rpc-token: ${expectedRpcToken}" on /rpc, ?token=${expectedRpcToken} on /ws.`,
+    );
+  }
 });

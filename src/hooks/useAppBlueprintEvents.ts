@@ -3,6 +3,7 @@ import { useSetAtom } from "jotai";
 import { appBlueprintStateAtom } from "@/atoms/appBlueprintAtoms";
 import {
   appBlueprintEventClient,
+  appBlueprintClient,
   type AppBlueprintUpdatePayload,
   type AppBlueprintVisualsUpdatePayload,
   type AppBlueprintApprovedPayload,
@@ -15,6 +16,37 @@ import {
  */
 export function useAppBlueprintEvents() {
   const setAppBlueprintState = useSetAtom(appBlueprintStateAtom);
+
+  useEffect(() => {
+    // Rehydrate blueprints that already exist in the main-process store. The
+    // live events below only populate state from the moment of subscription,
+    // so after a page reload every pending blueprint card would otherwise sit
+    // empty ("Blueprint data is unavailable") until the agent re-emits one.
+    // Only fill gaps — a live event may have arrived while this fetch was in
+    // flight, and the fresher event data must win.
+    void appBlueprintClient.getState().then((entries) => {
+      if (!entries.length) return;
+      setAppBlueprintState((prev) => {
+        const nextPlans = new Map(prev.plansByChatId);
+        const nextApproved = new Set(prev.approvedChatIds);
+        for (const entry of entries) {
+          if (!nextPlans.has(entry.chatId)) {
+            nextPlans.set(entry.chatId, entry.data);
+          }
+          if (entry.approved) {
+            nextApproved.add(entry.chatId);
+          } else {
+            nextApproved.delete(entry.chatId);
+          }
+        }
+        return {
+          ...prev,
+          plansByChatId: nextPlans,
+          approvedChatIds: nextApproved,
+        };
+      });
+    });
+  }, [setAppBlueprintState]);
 
   useEffect(() => {
     const unsubscribeUpdate = appBlueprintEventClient.onUpdate(

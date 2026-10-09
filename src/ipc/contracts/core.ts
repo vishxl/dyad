@@ -349,6 +349,23 @@ export function createBrowserIpcBridge(options?: {
   baseUrl?: string;
   wsUrl?: string;
 }) {
+  // Optional shared secret for the headless RPC surface. The launcher passes
+  // the same value to the server (DYAD_RPC_TOKEN) and to Vite
+  // (VITE_RPC_TOKEN); when set, every /rpc request and /ws connection must
+  // present it. Defensive access to import.meta.env keeps non-Vite consumers
+  // of this module working.
+  const rpcToken = (() => {
+    try {
+      const env = (import.meta as { env?: Record<string, string | undefined> })
+        .env;
+      return env?.VITE_RPC_TOKEN || undefined;
+    } catch {
+      return undefined;
+    }
+  })();
+
+  const rpcHeaders = rpcToken ? { "x-dyad-rpc-token": rpcToken } : undefined;
+
   const getOrigin = () => {
     if (typeof window === "undefined") {
       return "http://127.0.0.1";
@@ -379,7 +396,9 @@ export function createBrowserIpcBridge(options?: {
       return socket;
     }
 
-    const wsUrl = `${getWsOrigin()}/ws`;
+    const wsUrl = `${getWsOrigin()}/ws${
+      rpcToken ? `?token=${encodeURIComponent(rpcToken)}` : ""
+    }`;
     socket = new WebSocket(wsUrl);
     socket.addEventListener("message", (event) => {
       try {
@@ -425,6 +444,7 @@ export function createBrowserIpcBridge(options?: {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
+          ...rpcHeaders,
         },
         body: input === undefined ? undefined : JSON.stringify(input),
       },
@@ -464,6 +484,7 @@ export function createBrowserIpcBridge(options?: {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
+            ...rpcHeaders,
           },
           body: input === undefined ? undefined : JSON.stringify(input),
         });

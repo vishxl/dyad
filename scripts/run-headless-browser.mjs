@@ -1,4 +1,5 @@
 import { spawn, spawnSync } from "node:child_process";
+import crypto from "node:crypto";
 import path from "node:path";
 import fs from "node:fs";
 
@@ -37,12 +38,20 @@ ensureHeadlessServerBuilt();
 launch();
 
 function launch() {
+  // Per-launch shared secret guarding /rpc and /ws: the server requires it,
+  // Vite exposes it to the renderer bridge as VITE_RPC_TOKEN. Override with
+  // DYAD_RPC_TOKEN; unset DYAD_RPC_TOKEN entirely in the server's env to
+  // disable token checks (origin allowlist stays active).
+  const rpcToken =
+    process.env.DYAD_RPC_TOKEN || crypto.randomUUID().replace(/-/g, "");
+
   const server = spawn(process.execPath, [serverEntry], {
     cwd,
     env: {
       ...process.env,
       NODE_ENV: process.env.NODE_ENV || "development",
       DYAD_DATA_DIR: process.env.DYAD_DATA_DIR || path.join(cwd, "userData"),
+      DYAD_RPC_TOKEN: rpcToken,
     },
     stdio: "inherit",
   });
@@ -64,6 +73,7 @@ function launch() {
         ...process.env,
         NODE_ENV: process.env.NODE_ENV || "development",
         VITE_BROWSER_IPC: "1",
+        VITE_RPC_TOKEN: rpcToken,
         DYAD_DATA_DIR: process.env.DYAD_DATA_DIR || path.join(cwd, "userData"),
       },
       stdio: "inherit",

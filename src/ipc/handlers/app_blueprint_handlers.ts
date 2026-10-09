@@ -43,6 +43,12 @@ export function updateAppBlueprintVisuals(
 }
 
 export function registerAppBlueprintHandlers() {
+  createTypedHandler(appBlueprintContracts.getState, async () => {
+    return Array.from(appBlueprintStore.entries()).map(
+      ([chatId, { approved, ...data }]) => ({ chatId, data, approved }),
+    );
+  });
+
   createTypedHandler(appBlueprintContracts.approve, async (event, params) => {
     const plan = appBlueprintStore.get(params.chatId);
     if (!plan) {

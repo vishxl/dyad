@@ -156,6 +156,16 @@ export type AppBlueprintTimeoutPayload = z.infer<
   typeof AppBlueprintTimeoutSchema
 >;
 
+export const AppBlueprintStateEntrySchema = z.object({
+  chatId: z.number(),
+  data: AppBlueprintDataSchema,
+  approved: z.boolean(),
+});
+
+export type AppBlueprintStateEntry = z.infer<
+  typeof AppBlueprintStateEntrySchema
+>;
+
 // =============================================================================
 // App Blueprint Events (Main -> Renderer)
 // =============================================================================
@@ -187,6 +197,16 @@ export const appBlueprintEvents = {
 // =============================================================================
 
 export const appBlueprintContracts = {
+  // Rehydration: the blueprint store is in-memory on the main side, so a
+  // renderer that reloads (or connects later) sees an empty atom until a new
+  // `app-blueprint:update` event arrives. This returns the store's current
+  // pending/approved blueprints so the card can restore after a reload.
+  getState: defineContract({
+    channel: "app-blueprint:get-state",
+    input: z.void(),
+    output: z.array(AppBlueprintStateEntrySchema),
+  }),
+
   approve: defineContract({
     channel: "app-blueprint:approve",
     input: AppBlueprintApproveSchema,
