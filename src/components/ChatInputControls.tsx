@@ -1,6 +1,7 @@
 import { ModelPicker } from "./ModelPicker";
 import { ProModeSelector } from "./ProModeSelector";
 import { ChatModeSelector } from "./ChatModeSelector";
+import { ContextPackSelector } from "@/prompts/context_packs/ContextPackSelector";
 
 export function ChatInputControls() {
   return (
@@ -9,6 +10,7 @@ export function ChatInputControls() {
       <div className="w-1.5"></div>
       <ModelPicker />
       <ProModeSelector />
+      <ContextPackSelector />
     </div>
   );
 }

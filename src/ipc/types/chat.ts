@@ -24,6 +24,10 @@ import {
   validateSerializedChatAttachments,
 } from "../../shared/chatAttachmentLimits";
 import type { ChatStreamInvocationRef } from "@/chat_stream/invocation";
+import {
+  CONTEXT_PACK_IDS,
+  MAX_CONTEXT_PACKS,
+} from "../../prompts/context_packs/registry";
 
 // =============================================================================
 // Chat Schemas
@@ -182,6 +186,11 @@ export const ChatStreamParamsSchema = z
       .max(MAX_CHAT_COMPONENT_SELECTIONS)
       .optional(),
     requestedChatMode: ChatModeSchema.nullable().optional(),
+    /** Vendor context packs toggled on for this stream (injected into the system prompt). */
+    contextPacks: z
+      .array(z.enum(CONTEXT_PACK_IDS))
+      .max(MAX_CONTEXT_PACKS)
+      .optional(),
     userInputRequestId: z.string().max(MAX_CHAT_WIRE_ID_CHARS).optional(),
     planAcceptInNewChat: z.boolean().optional(),
   })
