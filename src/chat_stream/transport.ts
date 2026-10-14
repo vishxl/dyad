@@ -99,7 +99,6 @@ export const ChatQueueEntrySchema = z
     redo: z.boolean().optional(),
     appId: z.number().int().positive().optional(),
     requestedChatMode: ChatStreamParamsSchema.shape.requestedChatMode,
-    contextPacks: ChatStreamParamsSchema.shape.contextPacks,
     persistence: z.enum(["durable", "main-session"]),
     editable: z.boolean(),
     removable: z.boolean(),

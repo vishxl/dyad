@@ -557,7 +557,6 @@ export class ChatStreamRemoteManager {
         attachments,
         selectedComponents: request.selectedComponents ?? [],
         requestedChatMode: request.requestedChatMode,
-        contextPacks: request.contextPacks,
         userInputRequestId: request.owner?.requestId,
         planAcceptInNewChat: request.planAcceptInNewChat,
         owner: request.owner,

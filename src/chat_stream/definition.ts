@@ -275,7 +275,6 @@ function createCommandRunner(
               attachments: command.intent.attachments,
               selectedComponents: command.intent.selectedComponents,
               requestedChatMode: command.intent.requestedChatMode,
-              contextPacks: command.intent.contextPacks,
               planAcceptInNewChat: command.intent.planAcceptInNewChat,
               userInputRequestId:
                 command.intent.owner?.kind === "user-input-follow-up"

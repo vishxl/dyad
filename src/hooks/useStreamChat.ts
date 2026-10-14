@@ -18,8 +18,6 @@ import {
 } from "@/shared/chatAttachmentLimits";
 import { convertFileAttachmentsToChatAttachments } from "@/lib/chatAttachmentConversion";
 import { chatAttachmentToFileAttachment } from "@/lib/attachment_conversion";
-import { contextPacksAtom } from "@/atoms/chatAtoms";
-import { useAtomValue } from "jotai";
 
 /**
  * Chat streaming facade for React components.
@@ -33,7 +31,6 @@ export function useStreamChat({
   hasChatId = true,
 }: { hasChatId?: boolean } = {}) {
   const chatStreamManager = useChatStreamManager();
-  const contextPacks = useAtomValue(contextPacksAtom);
 
   let chatId: number | undefined;
   if (hasChatId) {
@@ -126,7 +123,6 @@ export function useStreamChat({
           attachments,
           selectedComponents,
           requestedChatMode,
-          contextPacks,
           planAcceptInNewChat,
           showOptimisticMessage,
           optimisticDisplayContent,
@@ -138,7 +134,7 @@ export function useStreamChat({
       });
       return true;
     },
-    [chatStreamManager, contextPacks],
+    [chatStreamManager],
   );
 
   const cancelStream = useCallback(() => {

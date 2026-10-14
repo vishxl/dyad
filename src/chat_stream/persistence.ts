@@ -130,7 +130,6 @@ export function toQueueEntry(
     redo: intent.redo,
     appId: intent.appId,
     requestedChatMode: intent.requestedChatMode,
-    contextPacks: intent.contextPacks,
     persistence: intent.owner === undefined ? "durable" : "main-session",
     editable: intent.owner === undefined,
     removable:
