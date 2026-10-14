@@ -479,3 +479,44 @@ Generated app 13 (RouteRush) threw `Address search failed (404)` when the user p
 **Verified:** after restart, `POST /api/geocode` on both the dev port (32113) and preview proxy (42113) returns a proper JSON 401 `Missing or invalid NextBillion.ai API key` with a dummy key (handler validates `^[a-zA-Z0-9]{32}$` then proxies to `api.nextbillion.io/geocode?key=...`). With the user's real key the flow should now succeed — the 404 was purely the route-mounting bug.
 
 **Lesson for the context pack / future generated apps:** the pack documents NextBillion APIs, but agent-made mistakes in the *generated app's own framework* (Nitro's server-dir conventions) are outside the pack's scope. **Update (2026-10-13):** a "Wiring pattern (app backend)" section was added to the pack itself (`src/prompts/context_packs/nextbillion/index.md` after the "Which API when" table): handlers go in `server/api/` (never `server/routes/api/`), client passes the user's key per-request in a header (`x-nb-key`) and the handler forwards it as `key=`, upstream JSON is returned as-is so real API errors surface, and a 404 on a new endpoint means restart the dev server (Nitro doesn't rescan moved handler dirs on hot reload). The headless server bundle was rebuilt and the running server relaunched (commit `858a7197`, pushed to `vishxl/dyad` branch `headless-web-port` — origin is upstream `dyad-sh/dyad` where the local account has no write access, so the push went to the fork).
+
+---
+
+## 15. Session log (2026-10-14): context packs re-implemented on OpenViking
+
+### Why
+
+The static pack (§14) compiled the full distilled cheat-sheet into the bundle. It works but can't scale: every message pays ~21k tokens, content is frozen at build time, and a new vendor requires authoring a distillation + rebuild. The user wants the toggle UX unchanged but the context served by **OpenViking** (https://github.com/volcengine/OpenViking — Volcengine's "context database": docs/memories/skills stored as a `viking://` virtual filesystem with L0 abstract / L1 overview / L2 full-content layers).
+
+**Decision (hybrid):** keep a *small* static block (framing + "Which API when" routing table + wiring pattern, ~3KB) compiled in — it guarantees API *selection* and carries the "don't research Mapbox/Google" policy, which no retrieval can guarantee since it isn't in the docs. Per message, retrieve relevant corpus chunks from OpenViking (semantic find scoped to the vendor's `viking://` URI) — that's the *details*, from the full 284-file corpus without distillation loss. New vendor = ingest docs + one registry line, no rebuild.
+
+### What was done
+
+1. `git revert 858a7197` (resolved the session-log conflict by keeping §14), then re-applied all toggle plumbing from that commit via `git apply --3way` patches: schema/queue/persistence/intent/atom/hook/chip/injection sites — identical wire format (`contextPacks` on `chat:stream`).
+2. `src/prompts/context_packs/` re-created with:
+   - `nextbillion/index.md` — now ONLY framing + routing table + Nitro wiring pattern (~3KB; the 21k cheat-sheet is retired — full corpus lives in OpenViking).
+   - `registry.ts` — adds `vikingUri` per pack (`viking://resources/nextbillion-docs`).
+   - `content.ts` — static `getContextPackPromptBlock` (same as before).
+   - `openviking.ts` (new) — `getContextPackRetrievalBlock(packs, userPrompt)`: `POST $DYAD_OPENVIKING_URL/api/v1/search/find {query: userPrompt, target_uri: <vikingUri>, limit: 6, read_content: true}`, 10s timeout, wraps hits as `<context-retrieval vendor="...">` blocks (each hit ≤2000 chars). **Fail-open**: any error → log + "".
+   - `ContextPackSelector.tsx` — unchanged UX.
+   - Injection sites (~2390/2793/2853 in chat_stream_handlers.ts): `systemPrompt += static; systemPrompt += await retrievalBlock(req.contextPacks, req.prompt)`.
+3. Tests: registry (3), content (3), openviking (4 — mocked fetch: hits wrap / HTTP 500 fail-open / throw fail-open / empty cases). 10/10 pass; fmt/lint/ts clean.
+
+### OpenViking setup runbook (this machine)
+
+- Install: `brew install uv` → `uv tool install openviking` (gives `openviking-server`, `ov`, etc.; needs Python ≥3.10 — uv manages its own 3.13).
+- Config `~/.openviking/ov.conf` (JSON, chmod 600): `embedding.dense` + `vlm` both `provider: "openai"` with `api_base: "https://openrouter.ai/api/v1"` and the OpenRouter key; embedding `openai/text-embedding-3-small` dim 1536, VLM `google/gemini-2.5-flash`. `openviking-server doctor` → all PASS.
+- Run: `openviking-server` (dev mode, binds 127.0.0.1:1933, no auth). Log: /tmp/openviking-server.log. `GET /health` / `/ready` always open.
+- Ingest: `scripts/openviking-ingest.sh <dir> <viking-uri>` — zips dir (local dirs must be zipped; HTTP API rejects host paths), `POST /api/v1/resources/temp_upload` → `POST /api/v1/resources {temp_file_id, to, wait: true, timeout: 1800}`. 283 NextBillion files embedded through OpenRouter.
+- Gotchas: macOS `mktemp` doesn't expand XXXXX with a suffix; `zip -q` fails "structure invalid" into a pre-existing (zero-byte) file — create fresh; bash 3.2 `"${AUTH[@]}"` under `set -u` errors on empty arrays (`${AUTH[@]+...}` workaround).
+- Env knobs in the app: `DYAD_OPENVIKING_URL` (default http://127.0.0.1:1933), `DYAD_OPENVIKING_API_KEY` (optional; dev mode needs none).
+
+### Adding another vendor
+
+1. `scripts/openviking-ingest.sh <docs-dir> viking://resources/<id>-docs`
+2. Registry line: `<id>: { name: "<Vendor>", vikingUri: "viking://resources/<id>-docs" }` (+ `index.md` routing table + content.ts import for the static part; omit `vikingUri` to run retrieval-less).
+
+### Status
+
+- Code committed (`39e31432`, `26f9e9e1` gitignore) and pushed to `vishxl/dyad` branch `headless-web-port`.
+- Headless server rebuilt + relaunched with the OpenViking integration. E2E check pending ingest completion: toggle on → chat → expect log `context pack injected ... (static N + retrieved M chars)`.
