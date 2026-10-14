@@ -15,6 +15,7 @@ import {
 } from "@/atoms/chatAnnotationAtoms";
 import { planAcceptInNewChatByChatIdAtom } from "@/atoms/planAtoms";
 import { createChatTabSessionStorage } from "@/window_infrastructure/chat_tab_session_storage";
+import type { ContextPackId } from "@/prompts/context_packs/registry";
 
 // Per-chat atoms implemented with maps keyed by chatId
 export const chatMessagesByIdAtom = atom<Map<number, Message[]>>(new Map());
@@ -125,6 +126,12 @@ export const chatTabSessionStorageAtom = atomWithStorage<ChatTabSession>(
   EMPTY_CHAT_TAB_SESSION,
   chatTabSessionStorage,
   { getOnInit: true },
+);
+
+/** Vendor context packs toggled on globally; injected into every new stream's system prompt. */
+export const contextPacksAtom = atomWithStorage<ContextPackId[]>(
+  "dyad-context-packs",
+  [],
 );
 
 export const initializeChatTabSessionStorageAtom = atom(null, (_get, set) => {

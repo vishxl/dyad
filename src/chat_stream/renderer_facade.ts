@@ -1,4 +1,5 @@
 import type { Chat, ComponentSelection, FileAttachment } from "@/ipc/types";
+import type { ContextPackId } from "@/prompts/context_packs/registry";
 import type { UserInputFollowUpQueueOwner } from "@/state_machines/handoff_types";
 
 export interface StreamSettledResult {
@@ -19,6 +20,7 @@ export interface StreamRequest {
   attachments?: FileAttachment[];
   selectedComponents?: ComponentSelection[];
   requestedChatMode?: Chat["chatMode"] | null;
+  contextPacks?: ContextPackId[];
   planAcceptInNewChat?: boolean;
   owner?: UserInputFollowUpQueueOwner;
   /** Show composer submissions immediately, without changing durable history. */

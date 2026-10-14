@@ -60,6 +60,8 @@ import {
   getNeonEmailVerificationEnabled,
 } from "../../neon_admin/neon_prompt_context";
 import { NEON_DISCONNECTED_SYSTEM_PROMPT } from "../../prompts/neon_prompt";
+import { getContextPackPromptBlock } from "../../prompts/context_packs/content";
+import { getContextPackRetrievalBlock } from "../../prompts/context_packs/openviking";
 import { getDyadAppPath } from "../../paths/paths";
 import { buildDyadMediaUrl } from "../../lib/dyadMediaUrl";
 import type { ChatStreamParams } from "@/ipc/types";
@@ -2386,6 +2388,18 @@ ${componentSnippet}
           }
         }
 
+        const contextPackBlock = getContextPackPromptBlock(req.contextPacks);
+        const contextRetrievalBlock = await getContextPackRetrievalBlock(
+          req.contextPacks,
+          req.prompt,
+        );
+        systemPrompt += contextPackBlock + contextRetrievalBlock;
+        if (contextPackBlock || contextRetrievalBlock) {
+          logger.info(
+            `context pack injected for chat ${req.chatId}: ${(req.contextPacks ?? []).join(",")} (static ${contextPackBlock.length} + retrieved ${contextRetrievalBlock.length} chars)`,
+          );
+        }
+
         const rootDatabasePromptState = resolveRootDatabasePromptState({
           hasSupabaseProject: Boolean(updatedChat.app.supabaseProjectId),
           supabaseCredentialsAvailable: initialSupabaseProviderToolsAvailable,
@@ -2781,6 +2795,11 @@ This conversation includes one or more image attachments. When the user uploads 
             codeExplorerAvailable,
             historyExplorerAvailable,
           });
+          readOnlySystemPrompt += getContextPackPromptBlock(req.contextPacks);
+          readOnlySystemPrompt += await getContextPackRetrievalBlock(
+            req.contextPacks,
+            req.prompt,
+          );
           if (rootDatabasePromptState === "supabase-disconnected") {
             readOnlySystemPrompt +=
               "\n\n" + SUPABASE_DISCONNECTED_SYSTEM_PROMPT;
@@ -2840,6 +2859,11 @@ This conversation includes one or more image attachments. When the user uploads 
             themePrompt,
             freeModelMode,
           });
+          planModeSystemPrompt += getContextPackPromptBlock(req.contextPacks);
+          planModeSystemPrompt += await getContextPackRetrievalBlock(
+            req.contextPacks,
+            req.prompt,
+          );
           if (rootDatabasePromptState === "supabase-disconnected") {
             planModeSystemPrompt +=
               "\n\n" + SUPABASE_DISCONNECTED_SYSTEM_PROMPT;
