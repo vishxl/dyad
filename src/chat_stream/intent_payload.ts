@@ -14,6 +14,7 @@ export function serializeImmutableChatTurnPayload(
     attachments: intent.attachments,
     selectedComponents: intent.selectedComponents,
     requestedChatMode: intent.requestedChatMode,
+    contextPacks: intent.contextPacks,
     userInputRequestId: intent.userInputRequestId,
     planAcceptInNewChat: intent.planAcceptInNewChat,
     owner: intent.owner,
