@@ -520,3 +520,21 @@ The static pack (§14) compiled the full distilled cheat-sheet into the bundle. 
 
 - Code committed (`39e31432`, `26f9e9e1` gitignore) and pushed to `vishxl/dyad` branch `headless-web-port`.
 - Headless server rebuilt + relaunched with the OpenViking integration. E2E check pending ingest completion: toggle on → chat → expect log `context pack injected ... (static N + retrieved M chars)`.
+
+### Follow-up: RouteRush 2 (app 16) optimizer 404 → working (2026-10-14)
+
+Two bugs, both fixed and verified live:
+1. **Endpoint 404**: app's `optimize.post.ts` posted to upstream `/optimization` — real endpoint is `/optimization/v2` (poll: `/optimization/v2/result?id=`). Path is exactly the kind of fact the routing table / corpus retrieval is for.
+2. **Payload schema**: `buildPayload` in the app's `src/lib/optimizer.ts` built a `fleet.vehicles[].start/end{lat,lng}` + `jobs.deliveries` shape — that's not v2 at all. Correct v2 body: `locations.location` = flat array of `"lat,lng"` strings (dedupe; index 0 = depot), `vehicles[].start_index/end_index` integers into that array, `jobs[].location_index` mandatory, `jobs` is a flat array (not `jobs.deliveries`), quantities as arrays (`delivery: [n]`, `capacity: [n]`), `time_window` single pair for vehicles, `time_windows` 2-D for jobs. Result: `{status:"Ok", result:{routes:[{vehicle, steps:[{type,id,arrival,location:[lat,lng],load,distance}], distance, duration}], unassigned, summary}}` — route uses `vehicle` (not `vehicle_id`), per-route distance/duration are top-level (no `summary` sub-object), step ids are the job ids.
+
+Verified with the user's key via the app's proxy: submit → `{id, "Optimization job created", status:"Ok"}`, poll → code 0, 1 route, both jobs assigned, 0 unassigned.
+
+### Follow-up 2: static (Vite) block removed — policy served from OpenViking (2026-10-15)
+
+User tested a generated app: it rendered CARTO basemaps ("API KEY REQUIRED" tiles) instead of NextBillion's map, and challenged why a Vite-compiled block is still needed given OpenViking supports deterministic read-by-URI.
+
+- **New architecture (single store, two access patterns):** the always-present layer is now a policy doc read by URI each message (`GET /api/v1/content/read?uri=<policyUri>&raw=true` → `<context-policy vendor="...">`), replacing the compiled `?raw` block. Retrieval (search/find → `<context-retrieval>`) unchanged. The distinction that matters is always-present vs query-gated — not static-vs-retrieved — so compilation was removable; deterministic read keeps the guarantee. Verified live: policy read = 5.8k chars incl. style.json + CARTO ban; find = 9.7k chars of relevant optimization docs.
+- `context/nextbillion-policy.md` = repo source-of-truth; written into OpenViking via `POST /api/v1/content/write {uri: "viking://resources/nextbillion-policy/index.md", content, mode: "create", wait: true}` (auto semantic/vector indexing). Delete/re-ingest with mode "replace" after edits.
+- **Map-display rule (the CARTO bug fix)** lives in the policy's "Map display (mandatory)" section: use `maplibre-gl` with `style: "https://api.nextbillion.io/maps/streets/style.json?key=<key>"` (MapLibre-compatible; embeds NB vector tiles `/tiles/v3/...`, same key) — NEVER CARTO/OSM-raster/Mapbox basemaps.
+- Deleted with zero residue: `content.ts`, `content.test.ts`, `context_packs/nextbillion/index.md`. Registry gains `policyUri` per pack; handlers call `getContextPackBlocks(packs, prompt)` → `{policy, retrieval}`; log line now `(policy N + retrieved M chars)`.
+- Tradeoff accepted by user: OpenViking server down → toggled context injects nothing (it runs locally, so this is rare). Fail-open with log.warn, chat still works.

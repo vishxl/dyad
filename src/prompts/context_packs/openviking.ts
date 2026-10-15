@@ -2,10 +2,13 @@ import log from "electron-log";
 import { CONTEXT_PACKS, type ContextPackId } from "./registry";
 
 /**
- * Main-process retrieval of vendor doc details from a local OpenViking server
- * (https://github.com/volcengine/OpenViking). Complements the static routing
- * table in content.ts: per message, semantically retrieve the relevant chunks
- * of the vendor's full documentation corpus.
+ * Main-process context injection from a local OpenViking server
+ * (https://github.com/volcengine/OpenViking). Two access patterns over one
+ * store:
+ * - policy: deterministic read-by-URI every message (routing table + mandatory
+ *   rules that retrieval cannot guarantee, e.g. "never use competitor basemaps"),
+ * - retrieval: per-message semantic find over the vendor's full docs corpus
+ *   (resources + memories + skills hits).
  *
  * Fail-open: any failure (server down, timeout, error) logs and returns "" —
  * a chat must never hang or fail on the context database.
@@ -35,6 +38,11 @@ interface VikingFindResponse {
   error?: { message?: string };
 }
 
+interface VikingReadResponse {
+  status?: string;
+  result?: string;
+}
+
 export async function getContextPackRetrievalBlock(
   packs: readonly (ContextPackId | string)[] | undefined,
   userPrompt: string,
@@ -48,7 +56,69 @@ export async function getContextPackRetrievalBlock(
   return blocks.join("");
 }
 
+/** Deterministic per-message read of each enabled pack's policy doc. */
+export async function getPolicyBlock(
+  packs: readonly (ContextPackId | string)[] | undefined,
+): Promise<string> {
+  if (!packs || packs.length === 0) return "";
+  const blocks = await Promise.all(
+    CONTEXT_PACK_IDS_ORDERED.filter((id) =>
+      (packs as readonly string[]).includes(id),
+    ).map((id) => readPolicyBlock(id)),
+  );
+  return blocks.join("");
+}
+
+/** Both context parts in one call, for the injection sites. */
+export async function getContextPackBlocks(
+  packs: readonly (ContextPackId | string)[] | undefined,
+  userPrompt: string,
+): Promise<{ policy: string; retrieval: string }> {
+  const [policy, retrieval] = await Promise.all([
+    getPolicyBlock(packs),
+    getContextPackRetrievalBlock(packs, userPrompt),
+  ]);
+  return { policy, retrieval };
+}
+
 const CONTEXT_PACK_IDS_ORDERED = Object.keys(CONTEXT_PACKS) as ContextPackId[];
+
+function authHeaders(): Record<string, string> {
+  return {
+    "Content-Type": "application/json",
+    ...(OPENVIKING_API_KEY ? { "X-API-Key": OPENVIKING_API_KEY } : {}),
+  };
+}
+
+async function readPolicyBlock(id: ContextPackId): Promise<string> {
+  const policyUri = CONTEXT_PACKS[id].policyUri;
+  try {
+    const response = await fetch(
+      `${OPENVIKING_URL}/api/v1/content/read?uri=${encodeURIComponent(policyUri)}&raw=true`,
+      {
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
+      },
+    );
+    if (!response.ok) {
+      log.warn(
+        `openviking policy read for ${id} failed: HTTP ${response.status}`,
+      );
+      return "";
+    }
+    const data = (await response.json()) as VikingReadResponse;
+    if (data.status !== "ok" || typeof data.result !== "string") {
+      log.warn(`openviking policy read for ${id} errored`);
+      return "";
+    }
+    const content = data.result.trim();
+    if (!content) return "";
+    return `\n\n<context-policy vendor="${CONTEXT_PACKS[id].name}">\n${content}\n</context-policy>`;
+  } catch (error) {
+    log.warn(`openviking policy read for ${id} failed (fail-open)`, error);
+    return "";
+  }
+}
 
 async function retrievePackBlock(
   id: ContextPackId,
@@ -59,10 +129,7 @@ async function retrievePackBlock(
   try {
     const response = await fetch(`${OPENVIKING_URL}/api/v1/search/find`, {
       method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        ...(OPENVIKING_API_KEY ? { "X-API-Key": OPENVIKING_API_KEY } : {}),
-      },
+      headers: authHeaders(),
       body: JSON.stringify({
         query: userPrompt,
         target_uri: vikingUri,
