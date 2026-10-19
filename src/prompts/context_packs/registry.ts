@@ -15,7 +15,7 @@
  *    viking://resources/<id>-docs),
  * 3. add its id to CONTEXT_PACK_IDS and an entry to CONTEXT_PACKS.
  */
-export const CONTEXT_PACK_IDS = ["nextbillion"] as const;
+export const CONTEXT_PACK_IDS = ["nextbillion", "stripi"] as const;
 
 export type ContextPackId = (typeof CONTEXT_PACK_IDS)[number];
 
@@ -27,6 +27,11 @@ export const CONTEXT_PACKS: Record<
     name: "NextBillion.ai",
     policyUri: "viking://resources/nextbillion-policy/index.md",
     vikingUri: "viking://resources/nextbillion-docs",
+  },
+  stripi: {
+    name: "Stripi Design",
+    policyUri: "viking://resources/stripi-policy/index.md",
+    // no vikingUri — full spec is in the per-message policy; no retrieval
   },
 };
 
