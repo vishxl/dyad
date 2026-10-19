@@ -273,9 +273,10 @@ websocketServer.on("connection", (socket) => {
   });
 });
 
-server.listen(3000, "127.0.0.1", () => {
-  console.log(`Headless Dyad IPC server listening on http://127.0.0.1:3000`);
-  console.log(`WebSocket endpoint available at ws://127.0.0.1:3000/ws`);
+const port = Number(process.env.DYAD_HEADLESS_PORT ?? 3000);
+server.listen(port, "127.0.0.1", () => {
+  console.log(`Headless Dyad IPC server listening on http://127.0.0.1:${port}`);
+  console.log(`WebSocket endpoint available at ws://127.0.0.1:${port}/ws`);
   console.log(`Data directory: ${process.env.DYAD_DEV_USER_DATA_DIR}`);
   console.log(
     `RPC origin allowlist: ${Array.from(allowedRpcOrigins).join(", ")}`,

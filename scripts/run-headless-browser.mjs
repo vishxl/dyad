@@ -45,6 +45,9 @@ function launch() {
   const rpcToken =
     process.env.DYAD_RPC_TOKEN || crypto.randomUUID().replace(/-/g, "");
 
+  const serverPort = Number(process.env.DYAD_HEADLESS_PORT ?? 3000);
+  const vitePort = Number(process.env.DYAD_HEADLESS_VITE_PORT ?? 4173);
+
   const server = spawn(process.execPath, [serverEntry], {
     cwd,
     env: {
@@ -52,6 +55,12 @@ function launch() {
       NODE_ENV: process.env.NODE_ENV || "development",
       DYAD_DATA_DIR: process.env.DYAD_DATA_DIR || path.join(cwd, "userData"),
       DYAD_RPC_TOKEN: rpcToken,
+      DYAD_HEADLESS_PORT: String(serverPort),
+      DYAD_RPC_ALLOWED_ORIGINS:
+        process.env.DYAD_RPC_ALLOWED_ORIGINS ||
+        [`http://127.0.0.1:${vitePort}`, `http://localhost:${vitePort}`].join(
+          ",",
+        ),
     },
     stdio: "inherit",
   });
@@ -65,7 +74,8 @@ function launch() {
       "--host",
       "127.0.0.1",
       "--port",
-      "4173",
+      String(vitePort),
+      "--strictPort",
     ],
     {
       cwd,
