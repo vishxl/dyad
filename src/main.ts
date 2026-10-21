@@ -16,6 +16,7 @@ import { randomUUID } from "node:crypto";
 import { execFile } from "node:child_process";
 import { promisify } from "node:util";
 import { registerIpcHandlers } from "./ipc/ipc_host";
+import { shutdownObservability } from "./observability/langfuse";
 import dotenv from "dotenv";
 import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import log from "electron-log";
@@ -1787,6 +1788,10 @@ app.on("will-quit", () => {
 
   // Stop the chat-search index maintenance timers
   stopChatSearchIndexer();
+
+  // Flush pending observability spans (fire-and-forget; the batch processor's
+  // regular interval flushes cover most spans, this catches the tail).
+  void shutdownObservability();
 });
 
 app.on("quit", (_event, exitCode) => {

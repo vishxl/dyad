@@ -8,6 +8,8 @@ import { streamText, ModelMessage } from "ai";
 import log from "electron-log";
 import { eq } from "drizzle-orm";
 
+import { getTelemetrySettings, withTrace } from "@/observability/langfuse";
+
 import { db } from "@/db";
 import { chats, messages } from "@/db/schema";
 import { readSettings } from "@/main/settings";
@@ -269,30 +271,40 @@ export async function performCompaction(
       },
     ];
 
-    const summaryResult = streamText({
-      output: fastTextOutput(),
-      model: modelClient.model,
-      headers: {
-        ...getAiHeaders({
-          builtinProviderId: modelClient.builtinProviderId,
-        }),
-        [DYAD_INTERNAL_REQUEST_ID_HEADER]: dyadRequestId,
+    const summaryResult = withTrace(
+      settings,
+      {
+        sessionId: String(chatId),
+        traceName: "compaction",
+        metadata: { dyadRequestId },
       },
-      providerOptions: getProviderOptions({
-        dyadAppId: 0,
-        dyadRequestId,
-        dyadDisableFiles: true,
-        files: [],
-        mentionedAppsCodebases: [],
-        builtinProviderId: modelClient.builtinProviderId,
-        reasoningEffortProviderId: modelClient.reasoningEffortProviderId,
-        modelSelection: compactionModel,
-      }),
-      system: COMPACTION_SYSTEM_PROMPT,
-      messages: summaryMessages,
-      maxRetries: 2,
-      abortSignal,
-    });
+      () =>
+        streamText({
+          output: fastTextOutput(),
+          model: modelClient.model,
+          headers: {
+            ...getAiHeaders({
+              builtinProviderId: modelClient.builtinProviderId,
+            }),
+            [DYAD_INTERNAL_REQUEST_ID_HEADER]: dyadRequestId,
+          },
+          providerOptions: getProviderOptions({
+            dyadAppId: 0,
+            dyadRequestId,
+            dyadDisableFiles: true,
+            files: [],
+            mentionedAppsCodebases: [],
+            builtinProviderId: modelClient.builtinProviderId,
+            reasoningEffortProviderId: modelClient.reasoningEffortProviderId,
+            modelSelection: compactionModel,
+          }),
+          system: COMPACTION_SYSTEM_PROMPT,
+          messages: summaryMessages,
+          maxRetries: 2,
+          abortSignal,
+          experimental_telemetry: getTelemetrySettings("compaction", settings),
+        }),
+    );
 
     // Read .textStream now (not lazily) so the SDK's tee runs
     // synchronously, then cancel the orphaned branch before any chunks

@@ -47,6 +47,7 @@ export const SETTING_IDS = {
   enableCodeExplorer: "setting-enable-code-explorer",
   runTypeScriptForWholeProject: "setting-run-typescript-for-whole-project",
   enableMultiWindow: "setting-enable-multi-window",
+  observability: "setting-observability",
   enableClaudeCodeSubscription: "setting-enable-claude-code-subscription",
   enableAppPreviewDomains: "setting-enable-app-preview-domains",
   enableExplorerSubagent: "setting-enable-explorer-subagent",
@@ -313,6 +314,16 @@ export const SETTINGS_SEARCH_INDEX: SearchableSettingItem[] = [
       "privacy",
       "tracking",
     ],
+    sectionId: SECTION_IDS.telemetry,
+    sectionLabel: "Telemetry",
+  },
+
+  // Observability
+  {
+    id: SETTING_IDS.observability,
+    label: "Observability",
+    description: "Enable or disable LLM observability (tracing)",
+    keywords: ["observability", "tracing", "langfuse", "otel", "logging"],
     sectionId: SECTION_IDS.telemetry,
     sectionLabel: "Telemetry",
   },

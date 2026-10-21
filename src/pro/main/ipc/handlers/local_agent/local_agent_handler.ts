@@ -24,6 +24,8 @@ import {
 } from "ai";
 import log from "electron-log";
 
+import { getTelemetrySettings, withTrace } from "@/observability/langfuse";
+
 import { db } from "@/db";
 import { chats, messages, type AiMessagesJsonV6 } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -1426,315 +1428,334 @@ export async function handleLocalAgentStream(
 
         try {
           stallWatchdog.setPhase("waiting for model response");
-          const streamResult = streamText({
-            output: fastTextOutput(),
-            model: modelClient.model,
-            headers: {
-              ...getAiHeaders({
-                builtinProviderId: modelClient.builtinProviderId,
-              }),
-              [DYAD_INTERNAL_REQUEST_ID_HEADER]: dyadRequestId,
+          const streamResult = withTrace(
+            settings,
+            {
+              sessionId: String(chat.id),
+              traceName: "local-agent-turn",
+              metadata: { dyadRequestId },
             },
-            providerOptions: getProviderOptions({
-              dyadAppId: chat.app.id,
-              dyadRequestId,
-              dyadDisableFiles: true, // Local agent uses tools, not file injection
-              files: [],
-              mentionedAppsCodebases: [],
-              builtinProviderId: modelClient.builtinProviderId,
-              reasoningEffortProviderId: modelClient.reasoningEffortProviderId,
-              modelSelection: selectedModel,
-            }),
-            maxOutputTokens,
-            temperature,
-            maxRetries: 2,
-            system: systemPrompt,
-            messages: sanitizedAttemptMessages,
-            tools: allTools,
-            stopWhen: [
-              stepCountIs(maxToolCallSteps),
-              // Stop after the integration tool so the next stream is started
-              // with a freshly built system prompt that includes the new
-              // Supabase/Neon context. The frontend auto-triggers a hidden
-              // continuation message once the user clicks Continue.
-              hasToolCall(addIntegrationTool.name),
-              // End the turn only after the blueprint was persisted. A rejected
-              // initial call (for example, before a successful questionnaire)
-              // must leave room for the model to correct itself. After success,
-              // approval may rename the app folder, so the renderer starts a
-              // fresh turn with a refreshed ctx.
-              () => shouldStopAfterAppBlueprintWrite(ctx),
-              // In plan mode, also stop after writing a plan or exiting plan mode.
-              ...(planModeOnly
-                ? [
-                    hasToolCall(writePlanTool.name),
-                    hasToolCall(exitPlanTool.name),
-                  ]
-                : []),
-            ],
-            abortSignal: abortController.signal,
-            // Inject pending user messages (e.g., images from web_crawl) between steps
-            // We must re-inject all accumulated messages each step because the AI SDK
-            // doesn't persist dynamically injected messages in its internal state.
-            // We track the insertion index so messages appear at the same position each step.
-            prepareStep: async (options) => {
-              let stepOptions = options;
-
-              if (
-                !messageOverride &&
-                compactBeforeNextStep &&
-                !compactedMidTurn &&
-                settings.enableContextCompaction !== false
-              ) {
-                compactBeforeNextStep = false;
-                const compacted = await maybePerformPendingCompaction({
-                  showOnTopOfCurrentResponse: true,
-                  force: true,
-                });
-
-                if (compacted) {
-                  compactedMidTurn = true;
-                  // Preserve only messages generated after this compaction boundary.
-                  postMidTurnCompactionStartStep = options.stepNumber;
-                  const compactedMessageHistory = buildChatMessageHistory(
-                    chat.messages,
-                    {
-                      // Keep the structured in-flight assistant/tool messages from
-                      // the current stream instead of the placeholder DB content.
-                      excludeMessageIds: new Set([placeholderMessageId]),
-                      inferenceSource: currentInferenceSource() ?? undefined,
-                    },
-                  );
-                  // The referenced-apps reminder lives only in-memory on the
-                  // latest user message and is not persisted, so rebuilding
-                  // history from the DB drops it. Re-inject so post-compaction
-                  // tool steps keep the explicit app_name allow-list.
-                  if (referencedApps.length > 0) {
-                    injectReferencedAppsReminder(
-                      compactedMessageHistory,
-                      referencedApps,
-                      {
-                        codeExplorerAvailable:
-                          agentTools.spawn_agent != undefined,
-                        registeredToolNames,
-                      },
-                    );
-                  }
-                  if (persistedTodoNotice && hasIncompleteTodos(ctx.todos)) {
-                    const userIndex = compactedMessageHistory.findIndex(
-                      (message) => message.role === "user",
-                    );
-                    compactedMessageHistory.splice(
-                      Math.max(0, userIndex),
-                      0,
-                      persistedTodoNotice,
-                    );
-                  }
-                  compactedMessageHistory.push(...turnOnlyBaseMessages);
-                  compactedBaseMessages = needsContinuationInstruction
+            () =>
+              streamText({
+                output: fastTextOutput(),
+                model: modelClient.model,
+                headers: {
+                  ...getAiHeaders({
+                    builtinProviderId: modelClient.builtinProviderId,
+                  }),
+                  [DYAD_INTERNAL_REQUEST_ID_HEADER]: dyadRequestId,
+                },
+                providerOptions: getProviderOptions({
+                  dyadAppId: chat.app.id,
+                  dyadRequestId,
+                  dyadDisableFiles: true, // Local agent uses tools, not file injection
+                  files: [],
+                  mentionedAppsCodebases: [],
+                  builtinProviderId: modelClient.builtinProviderId,
+                  reasoningEffortProviderId:
+                    modelClient.reasoningEffortProviderId,
+                  modelSelection: selectedModel,
+                }),
+                maxOutputTokens,
+                temperature,
+                maxRetries: 2,
+                system: systemPrompt,
+                messages: sanitizedAttemptMessages,
+                tools: allTools,
+                stopWhen: [
+                  stepCountIs(maxToolCallSteps),
+                  // Stop after the integration tool so the next stream is started
+                  // with a freshly built system prompt that includes the new
+                  // Supabase/Neon context. The frontend auto-triggers a hidden
+                  // continuation message once the user clicks Continue.
+                  hasToolCall(addIntegrationTool.name),
+                  // End the turn only after the blueprint was persisted. A rejected
+                  // initial call (for example, before a successful questionnaire)
+                  // must leave room for the model to correct itself. After success,
+                  // approval may rename the app folder, so the renderer starts a
+                  // fresh turn with a refreshed ctx.
+                  () => shouldStopAfterAppBlueprintWrite(ctx),
+                  // In plan mode, also stop after writing a plan or exiting plan mode.
+                  ...(planModeOnly
                     ? [
-                        ...compactedMessageHistory,
-                        buildTerminatedRetryContinuationInstruction(),
+                        hasToolCall(writePlanTool.name),
+                        hasToolCall(exitPlanTool.name),
                       ]
-                    : compactedMessageHistory;
-                  // The SDK response tail is unchanged within this attempt.
-                  // Shift existing screenshots/context by only the base delta.
-                  const injectionBaseDelta =
-                    compactedBaseMessages.length - attemptBaseMessageCount;
-                  for (const injection of allInjectedMessages) {
-                    injection.insertAtIndex += injectionBaseDelta;
-                  }
-                  // Later passes/retries must start from the same compacted base.
-                  // Earlier passes are represented by the persisted summary.
-                  currentMessageHistory = compactedMessageHistory;
-                  accumulatedAiMessages.length = 0;
-                  retryReplayEvents.length = 0;
-                  injectionBaseMessageCount = compactedBaseMessages.length;
-                  // Keep a durable marker now and the displayed post-compaction
-                  // remainder on every exit that cannot save SDK history.
-                  postCompactionContentStart = fullResponse.length;
-                  savedFinalAiMessages = false;
-                  await persistCompactionFallback();
-                } else {
-                  // Prevent repeated compaction attempts if the first one fails.
-                  compactionFailedMidTurn = true;
-                }
-              }
+                    : []),
+                ],
+                abortSignal: abortController.signal,
+                // Inject pending user messages (e.g., images from web_crawl) between steps
+                // We must re-inject all accumulated messages each step because the AI SDK
+                // doesn't persist dynamically injected messages in its internal state.
+                // We track the insertion index so messages appear at the same position each step.
+                prepareStep: async (options) => {
+                  let stepOptions = options;
 
-              if (compactedBaseMessages) {
-                stepOptions = {
-                  ...options,
-                  messages: [
-                    ...compactedBaseMessages,
-                    ...options.messages.slice(attemptBaseMessageCount),
-                  ],
-                };
-              }
+                  if (
+                    !messageOverride &&
+                    compactBeforeNextStep &&
+                    !compactedMidTurn &&
+                    settings.enableContextCompaction !== false
+                  ) {
+                    compactBeforeNextStep = false;
+                    const compacted = await maybePerformPendingCompaction({
+                      showOnTopOfCurrentResponse: true,
+                      force: true,
+                    });
 
-              const previousInjectionCount = allInjectedMessages.length;
-              const preparedStep = prepareStepMessages(
-                stepOptions,
-                pendingUserMessages,
-                allInjectedMessages,
-              );
-              // Capture context at the point the model first receives it. Replay
-              // message counts differ from SDK responses (e.g. text coalescing),
-              // so replay events, rather than SDK indexes, preserve chronology.
-              for (const injection of allInjectedMessages.slice(
-                previousInjectionCount,
-              )) {
-                retryReplayEvents.push({
-                  type: "injected-user-message",
-                  message: injection.message,
-                });
-              }
-
-              // prepareStepMessages returns undefined when it has no additional
-              // injections/cleanups to apply. If we already replaced the base
-              // message history (e.g., after mid-turn compaction), we still need
-              // to return the updated options.
-              let result =
-                preparedStep ??
-                (stepOptions === options ? undefined : stepOptions);
-
-              // Defensive: ensure injected user messages and split tool result
-              // messages don't break tool_use/tool_result pairing. This also
-              // runs when prepareStepMessages had no other changes to apply.
-              const normalizedStep = sanitizeStepMessages(
-                result?.messages ?? stepOptions.messages,
-              );
-              if (normalizedStep.changed) {
-                logger.warn(
-                  `Normalized local-agent tool-call transcript before step for chat ${req.chatId}`,
-                );
-                result = {
-                  ...(result ?? stepOptions),
-                  messages: normalizedStep.messages,
-                };
-              }
-
-              const targetMessages = result?.messages ?? stepOptions.messages;
-              const normalizedTargetMessages =
-                normalizeToolCallIdsForTarget(targetMessages);
-              if (normalizedTargetMessages !== targetMessages) {
-                result = {
-                  ...(result ?? stepOptions),
-                  messages: normalizedTargetMessages,
-                };
-              }
-
-              return result;
-            },
-            onStepFinish: async (step) => {
-              const actualModel =
-                modelClient.getRuntimeModel?.() ?? runtimeModel;
-              await db
-                .update(messages)
-                .set({
-                  inferenceSource: currentInferenceSource(),
-                  ...(actualModel.connection === "subscription" &&
-                  actualModel.provider !== "claude-code"
-                    ? {
-                        model: `ChatGPT subscription (${step.response.modelId || actualModel.name})`,
+                    if (compacted) {
+                      compactedMidTurn = true;
+                      // Preserve only messages generated after this compaction boundary.
+                      postMidTurnCompactionStartStep = options.stepNumber;
+                      const compactedMessageHistory = buildChatMessageHistory(
+                        chat.messages,
+                        {
+                          // Keep the structured in-flight assistant/tool messages from
+                          // the current stream instead of the placeholder DB content.
+                          excludeMessageIds: new Set([placeholderMessageId]),
+                          inferenceSource:
+                            currentInferenceSource() ?? undefined,
+                        },
+                      );
+                      // The referenced-apps reminder lives only in-memory on the
+                      // latest user message and is not persisted, so rebuilding
+                      // history from the DB drops it. Re-inject so post-compaction
+                      // tool steps keep the explicit app_name allow-list.
+                      if (referencedApps.length > 0) {
+                        injectReferencedAppsReminder(
+                          compactedMessageHistory,
+                          referencedApps,
+                          {
+                            codeExplorerAvailable:
+                              agentTools.spawn_agent != undefined,
+                            registeredToolNames,
+                          },
+                        );
                       }
-                    : {}),
-                })
-                .where(eq(messages.id, placeholderMessageId));
-              if (!hasInjectedPlanningQuestionnaireReflection) {
-                const questionnaireError =
-                  getPlanningQuestionnaireErrorFromStep(step);
-                if (questionnaireError) {
-                  pendingUserMessages.push([
-                    {
-                      type: "text",
-                      text: buildPlanningQuestionnaireReflectionMessage(
-                        questionnaireError,
-                        planModeOnly,
-                      ),
-                    },
-                  ]);
-                  hasInjectedPlanningQuestionnaireReflection = true;
-                  logger.info(
-                    `Injected synthetic planning_questionnaire reflection message for chat ${req.chatId}`,
+                      if (
+                        persistedTodoNotice &&
+                        hasIncompleteTodos(ctx.todos)
+                      ) {
+                        const userIndex = compactedMessageHistory.findIndex(
+                          (message) => message.role === "user",
+                        );
+                        compactedMessageHistory.splice(
+                          Math.max(0, userIndex),
+                          0,
+                          persistedTodoNotice,
+                        );
+                      }
+                      compactedMessageHistory.push(...turnOnlyBaseMessages);
+                      compactedBaseMessages = needsContinuationInstruction
+                        ? [
+                            ...compactedMessageHistory,
+                            buildTerminatedRetryContinuationInstruction(),
+                          ]
+                        : compactedMessageHistory;
+                      // The SDK response tail is unchanged within this attempt.
+                      // Shift existing screenshots/context by only the base delta.
+                      const injectionBaseDelta =
+                        compactedBaseMessages.length - attemptBaseMessageCount;
+                      for (const injection of allInjectedMessages) {
+                        injection.insertAtIndex += injectionBaseDelta;
+                      }
+                      // Later passes/retries must start from the same compacted base.
+                      // Earlier passes are represented by the persisted summary.
+                      currentMessageHistory = compactedMessageHistory;
+                      accumulatedAiMessages.length = 0;
+                      retryReplayEvents.length = 0;
+                      injectionBaseMessageCount = compactedBaseMessages.length;
+                      // Keep a durable marker now and the displayed post-compaction
+                      // remainder on every exit that cannot save SDK history.
+                      postCompactionContentStart = fullResponse.length;
+                      savedFinalAiMessages = false;
+                      await persistCompactionFallback();
+                    } else {
+                      // Prevent repeated compaction attempts if the first one fails.
+                      compactionFailedMidTurn = true;
+                    }
+                  }
+
+                  if (compactedBaseMessages) {
+                    stepOptions = {
+                      ...options,
+                      messages: [
+                        ...compactedBaseMessages,
+                        ...options.messages.slice(attemptBaseMessageCount),
+                      ],
+                    };
+                  }
+
+                  const previousInjectionCount = allInjectedMessages.length;
+                  const preparedStep = prepareStepMessages(
+                    stepOptions,
+                    pendingUserMessages,
+                    allInjectedMessages,
                   );
-                }
-              }
+                  // Capture context at the point the model first receives it. Replay
+                  // message counts differ from SDK responses (e.g. text coalescing),
+                  // so replay events, rather than SDK indexes, preserve chronology.
+                  for (const injection of allInjectedMessages.slice(
+                    previousInjectionCount,
+                  )) {
+                    retryReplayEvents.push({
+                      type: "injected-user-message",
+                      message: injection.message,
+                    });
+                  }
 
-              if (
-                selectedModel.provider === "claude-code" ||
-                settings.enableContextCompaction === false ||
-                compactedMidTurn ||
-                typeof step.usage.totalTokens !== "number"
-              ) {
-                return;
-              }
+                  // prepareStepMessages returns undefined when it has no additional
+                  // injections/cleanups to apply. If we already replaced the base
+                  // message history (e.g., after mid-turn compaction), we still need
+                  // to return the updated options.
+                  let result =
+                    preparedStep ??
+                    (stepOptions === options ? undefined : stepOptions);
 
-              const toolErrors = (step.content ?? []).filter(
-                (part) => part.type === "tool-error",
-              );
-              const toolResultTokens = estimateToolResultTokens(
-                step.toolResults ?? [],
-                toolErrors,
-              );
-              const projectedNextRequestTokens =
-                step.usage.totalTokens + toolResultTokens;
-              const shouldCompact = await checkAndMarkForCompaction(
-                req.chatId,
-                projectedNextRequestTokens,
-              );
-
-              if (toolResultTokens > 0) {
-                logger.info(
-                  `Projected next request for chat ${req.chatId}: ${projectedNextRequestTokens} tokens (${step.usage.totalTokens} engine-reported + ${toolResultTokens} estimated tool-result tokens)`,
-                );
-              }
-
-              // If this step triggered tool calls, compact before the next step
-              // in this same user turn instead of waiting for the next message.
-              // Only attempt mid-turn compaction once per turn.
-              if (
-                shouldCompact &&
-                step.toolCalls.length > 0 &&
-                !compactionFailedMidTurn
-              ) {
-                compactBeforeNextStep = true;
-              }
-            },
-            onFinish: async (response) => {
-              const totalTokens = response.usage?.totalTokens;
-              const inputTokens = response.usage?.inputTokens;
-              const cachedInputTokens = response.usage?.cachedInputTokens;
-              logger.log(
-                "Total tokens used:",
-                totalTokens,
-                "Input tokens:",
-                inputTokens,
-                "Cached input tokens:",
-                cachedInputTokens,
-                "Cache hit ratio:",
-                cachedInputTokens
-                  ? (cachedInputTokens ?? 0) / (inputTokens ?? 0)
-                  : 0,
-              );
-              if (typeof totalTokens === "number") {
-                await db
-                  .update(messages)
-                  .set({ maxTokensUsed: totalTokens })
-                  .where(eq(messages.id, placeholderMessageId))
-                  .catch((err) =>
-                    logger.error("Failed to save token count", err),
+                  // Defensive: ensure injected user messages and split tool result
+                  // messages don't break tool_use/tool_result pairing. This also
+                  // runs when prepareStepMessages had no other changes to apply.
+                  const normalizedStep = sanitizeStepMessages(
+                    result?.messages ?? stepOptions.messages,
                   );
-              }
-            },
-            onError: (error: any) => {
-              const normalizedError = unwrapStreamError(error);
-              streamErrorFromCallback = normalizedError;
-              logger.error(
-                "Local agent stream error:",
-                getErrorMessage(normalizedError),
-              );
-            },
-          });
+                  if (normalizedStep.changed) {
+                    logger.warn(
+                      `Normalized local-agent tool-call transcript before step for chat ${req.chatId}`,
+                    );
+                    result = {
+                      ...(result ?? stepOptions),
+                      messages: normalizedStep.messages,
+                    };
+                  }
+
+                  const targetMessages =
+                    result?.messages ?? stepOptions.messages;
+                  const normalizedTargetMessages =
+                    normalizeToolCallIdsForTarget(targetMessages);
+                  if (normalizedTargetMessages !== targetMessages) {
+                    result = {
+                      ...(result ?? stepOptions),
+                      messages: normalizedTargetMessages,
+                    };
+                  }
+
+                  return result;
+                },
+                onStepFinish: async (step) => {
+                  const actualModel =
+                    modelClient.getRuntimeModel?.() ?? runtimeModel;
+                  await db
+                    .update(messages)
+                    .set({
+                      inferenceSource: currentInferenceSource(),
+                      ...(actualModel.connection === "subscription" &&
+                      actualModel.provider !== "claude-code"
+                        ? {
+                            model: `ChatGPT subscription (${step.response.modelId || actualModel.name})`,
+                          }
+                        : {}),
+                    })
+                    .where(eq(messages.id, placeholderMessageId));
+                  if (!hasInjectedPlanningQuestionnaireReflection) {
+                    const questionnaireError =
+                      getPlanningQuestionnaireErrorFromStep(step);
+                    if (questionnaireError) {
+                      pendingUserMessages.push([
+                        {
+                          type: "text",
+                          text: buildPlanningQuestionnaireReflectionMessage(
+                            questionnaireError,
+                            planModeOnly,
+                          ),
+                        },
+                      ]);
+                      hasInjectedPlanningQuestionnaireReflection = true;
+                      logger.info(
+                        `Injected synthetic planning_questionnaire reflection message for chat ${req.chatId}`,
+                      );
+                    }
+                  }
+
+                  if (
+                    selectedModel.provider === "claude-code" ||
+                    settings.enableContextCompaction === false ||
+                    compactedMidTurn ||
+                    typeof step.usage.totalTokens !== "number"
+                  ) {
+                    return;
+                  }
+
+                  const toolErrors = (step.content ?? []).filter(
+                    (part) => part.type === "tool-error",
+                  );
+                  const toolResultTokens = estimateToolResultTokens(
+                    step.toolResults ?? [],
+                    toolErrors,
+                  );
+                  const projectedNextRequestTokens =
+                    step.usage.totalTokens + toolResultTokens;
+                  const shouldCompact = await checkAndMarkForCompaction(
+                    req.chatId,
+                    projectedNextRequestTokens,
+                  );
+
+                  if (toolResultTokens > 0) {
+                    logger.info(
+                      `Projected next request for chat ${req.chatId}: ${projectedNextRequestTokens} tokens (${step.usage.totalTokens} engine-reported + ${toolResultTokens} estimated tool-result tokens)`,
+                    );
+                  }
+
+                  // If this step triggered tool calls, compact before the next step
+                  // in this same user turn instead of waiting for the next message.
+                  // Only attempt mid-turn compaction once per turn.
+                  if (
+                    shouldCompact &&
+                    step.toolCalls.length > 0 &&
+                    !compactionFailedMidTurn
+                  ) {
+                    compactBeforeNextStep = true;
+                  }
+                },
+                onFinish: async (response) => {
+                  const totalTokens = response.usage?.totalTokens;
+                  const inputTokens = response.usage?.inputTokens;
+                  const cachedInputTokens = response.usage?.cachedInputTokens;
+                  logger.log(
+                    "Total tokens used:",
+                    totalTokens,
+                    "Input tokens:",
+                    inputTokens,
+                    "Cached input tokens:",
+                    cachedInputTokens,
+                    "Cache hit ratio:",
+                    cachedInputTokens
+                      ? (cachedInputTokens ?? 0) / (inputTokens ?? 0)
+                      : 0,
+                  );
+                  if (typeof totalTokens === "number") {
+                    await db
+                      .update(messages)
+                      .set({ maxTokensUsed: totalTokens })
+                      .where(eq(messages.id, placeholderMessageId))
+                      .catch((err) =>
+                        logger.error("Failed to save token count", err),
+                      );
+                  }
+                },
+                onError: (error: any) => {
+                  const normalizedError = unwrapStreamError(error);
+                  streamErrorFromCallback = normalizedError;
+                  logger.error(
+                    "Local agent stream error:",
+                    getErrorMessage(normalizedError),
+                  );
+                },
+                experimental_telemetry: getTelemetrySettings(
+                  "local-agent-turn",
+                  settings,
+                ),
+              }),
+          );
 
           // Read .fullStream now (not lazily) so the SDK's `teeStream()`
           // runs synchronously, then cancel the orphaned tee branch

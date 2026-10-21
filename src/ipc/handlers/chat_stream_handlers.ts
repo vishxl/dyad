@@ -98,6 +98,7 @@ import {
 } from "../utils/model_effort";
 import log from "electron-log";
 import { sendTelemetryEvent } from "../utils/telemetry";
+import { getTelemetrySettings, withTrace } from "@/observability/langfuse";
 import {
   getSupabaseContext,
   getSupabaseClientCode,
@@ -2648,77 +2649,90 @@ This conversation includes one or more image attachments. When the user uploads 
             modelSelection: selectedModel,
           });
 
-          const streamResult = streamText({
-            headers: getAiHeaders({
-              builtinProviderId: modelClient.builtinProviderId,
-              dyadRequestId,
-            }),
-            maxOutputTokens: await getMaxTokens(settings.selectedModel),
-            temperature: await getTemperature(settings.selectedModel),
-            maxRetries: 2,
-            model: modelClient.model,
-            stopWhen: [stepCountIs(20), hasToolCall("edit-code")],
-            // Avoids the SDK's O(n^2) per-chunk JSON.stringify of the full
-            // accumulated text (see fastTextOutput). We read fullStream parts
-            // directly and never consume partialOutput.
-            output: fastTextOutput(),
-            providerOptions,
-            system: systemPromptOverride,
-            tools,
-            messages: chatMessages.filter((m) => m.content),
-            onFinish: async (response) => {
-              const totalTokens = response.usage?.totalTokens;
+          const streamResult = withTrace(
+            settings,
+            {
+              sessionId: String(updatedChat.id),
+              traceName: "chat-stream",
+              metadata: { dyadRequestId },
+            },
+            () =>
+              streamText({
+                headers: getAiHeaders({
+                  builtinProviderId: modelClient.builtinProviderId,
+                  dyadRequestId,
+                }),
+                maxOutputTokens: await getMaxTokens(settings.selectedModel),
+                temperature: await getTemperature(settings.selectedModel),
+                maxRetries: 2,
+                model: modelClient.model,
+                stopWhen: [stepCountIs(20), hasToolCall("edit-code")],
+                // Avoids the SDK's O(n^2) per-chunk JSON.stringify of the full
+                // accumulated text (see fastTextOutput). We read fullStream parts
+                // directly and never consume partialOutput.
+                output: fastTextOutput(),
+                providerOptions,
+                system: systemPromptOverride,
+                tools,
+                messages: chatMessages.filter((m) => m.content),
+                experimental_telemetry: getTelemetrySettings(
+                  "chat-stream",
+                  settings,
+                ),
+                onFinish: async (response) => {
+                  const totalTokens = response.usage?.totalTokens;
 
-              if (typeof totalTokens === "number") {
-                // We use the highest total tokens used (we are *not* accumulating)
-                // since we're trying to figure it out if we're near the context limit.
-                maxTokensUsed = Math.max(maxTokensUsed ?? 0, totalTokens);
+                  if (typeof totalTokens === "number") {
+                    // We use the highest total tokens used (we are *not* accumulating)
+                    // since we're trying to figure it out if we're near the context limit.
+                    maxTokensUsed = Math.max(maxTokensUsed ?? 0, totalTokens);
 
-                // Persist the aggregated token usage on the placeholder assistant message
-                await db
-                  .update(messages)
-                  .set({ maxTokensUsed: maxTokensUsed })
-                  .where(eq(messages.id, placeholderAssistantMessage.id))
-                  .catch((error) => {
-                    logger.error(
-                      "Failed to save total tokens for assistant message",
-                      error,
+                    // Persist the aggregated token usage on the placeholder assistant message
+                    await db
+                      .update(messages)
+                      .set({ maxTokensUsed: maxTokensUsed })
+                      .where(eq(messages.id, placeholderAssistantMessage.id))
+                      .catch((error) => {
+                        logger.error(
+                          "Failed to save total tokens for assistant message",
+                          error,
+                        );
+                      });
+
+                    logger.log(
+                      `Total tokens used (aggregated for message ${placeholderAssistantMessage.id}): ${maxTokensUsed}`,
                     );
-                  });
-
-                logger.log(
-                  `Total tokens used (aggregated for message ${placeholderAssistantMessage.id}): ${maxTokensUsed}`,
-                );
-              } else {
-                logger.log("Total tokens used: unknown");
-              }
-            },
-            onError: (error: any) => {
-              let errorMessage = (error as any)?.error?.message;
-              const responseBody = error?.error?.responseBody;
-              if (errorMessage && responseBody) {
-                errorMessage += "\n\nDetails: " + responseBody;
-              }
-              const message = errorMessage || JSON.stringify(error);
-              const requestIdPrefix = isEngineEnabled
-                ? `[Request ID: ${dyadRequestId}] `
-                : "";
-              logger.error(
-                `AI stream text error for request: ${requestIdPrefix} errorMessage=${errorMessage} error=`,
-                error,
-              );
-              event.sender.send("chat:response:error", {
-                chatId: req.chatId,
-                invocationRef: req.invocationRef,
-                streamId: req.streamId,
-                error:
-                  error?.error instanceof SubscriptionBillingError
-                    ? error.error.serialize()
-                    : `${AI_STREAMING_ERROR_MESSAGE_PREFIX}${requestIdPrefix}${message}`,
-              } satisfies ChatStreamErrorPayload);
-            },
-            abortSignal: abortController.signal,
-          });
+                  } else {
+                    logger.log("Total tokens used: unknown");
+                  }
+                },
+                onError: (error: any) => {
+                  let errorMessage = (error as any)?.error?.message;
+                  const responseBody = error?.error?.responseBody;
+                  if (errorMessage && responseBody) {
+                    errorMessage += "\n\nDetails: " + responseBody;
+                  }
+                  const message = errorMessage || JSON.stringify(error);
+                  const requestIdPrefix = isEngineEnabled
+                    ? `[Request ID: ${dyadRequestId}] `
+                    : "";
+                  logger.error(
+                    `AI stream text error for request: ${requestIdPrefix} errorMessage=${errorMessage} error=`,
+                    error,
+                  );
+                  event.sender.send("chat:response:error", {
+                    chatId: req.chatId,
+                    invocationRef: req.invocationRef,
+                    streamId: req.streamId,
+                    error:
+                      error?.error instanceof SubscriptionBillingError
+                        ? error.error.serialize()
+                        : `${AI_STREAMING_ERROR_MESSAGE_PREFIX}${requestIdPrefix}${message}`,
+                  } satisfies ChatStreamErrorPayload);
+                },
+                abortSignal: abortController.signal,
+              }),
+          );
           // Read .fullStream now (not lazily) so the SDK's `teeStream()`
           // runs synchronously, then cancel the orphaned tee branch
           // before any chunks are pumped. See `cancelOrphanedBaseStream`

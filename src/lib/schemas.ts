@@ -588,6 +588,7 @@ const BaseUserSettingsFields = {
   lastKnownPerformance: LastKnownPerformanceSchema.optional(),
   enableContextCompaction: z.boolean().optional(),
   skipNotificationBanner: z.boolean().optional(),
+  observabilityEnabled: z.boolean().optional(),
   previewIdleTimeoutPolicy: z.enum(["default", "never"]).optional(),
 };
 

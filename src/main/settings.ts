@@ -84,6 +84,7 @@ export const DEFAULT_SETTINGS: UserSettings = {
   disableSandboxedE2eTests: false,
   enableContextCompaction: true,
   enablePnpmMinimumReleaseAgeWarning: true,
+  observabilityEnabled: true,
   previewIdleTimeoutPolicy: "default",
   nodeRuntimePreference: "system",
   disablePreviewNodeAutoInstall: false,

@@ -6,6 +6,7 @@ import ConfirmationDialog from "@/components/ConfirmationDialog";
 import { ipc } from "@/ipc/types";
 import { showSuccess, showError } from "@/lib/toast";
 import { TelemetrySwitch } from "@/components/TelemetrySwitch";
+import { ObservabilitySwitch } from "@/components/ObservabilitySwitch";
 import { MaxToolCallStepsSelector } from "@/components/MaxToolCallStepsSelector";
 import { useSettings } from "@/hooks/useSettings";
 import { useAppVersion } from "@/hooks/useAppVersion";
@@ -151,12 +152,16 @@ export default function SettingsPage() {
           <SettingsSection
             id={SECTION_IDS.telemetry}
             title="Telemetry"
-            description="Anonymous usage data that helps improve Dyad."
+            description="Usage data and LLM observability configuration."
           >
             <div id={SETTING_IDS.telemetry} className="space-y-1.5">
               <TelemetrySwitch />
               <p className={hint}>
                 This records anonymous usage data to improve the product.
+              </p>
+              <ObservabilitySwitch />
+              <p className={hint}>
+                Enables LLM request and tool call tracing for observability.
               </p>
             </div>
 
