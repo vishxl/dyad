@@ -1,0 +1,52 @@
+# Dyad hosted deployment — Caddy reverse proxy (see context/dyad-web-deployment.md)
+#
+# Replace <HOST> with the public hostname (e.g. 123-45-67-89.sslip.io).
+# Caddy obtains Let's Encrypt certificates automatically for the hostname.
+# All upstreams stay on loopback; only 80/443 are open in the VM firewall.
+
+{
+	# sslip.io hostnames hit Let's Encrypt rate limits occasionally; keep the
+	# default ACME CA and let retries happen.
+	email your-email@example.com
+}
+
+<HOST> {
+	# ── Auth gate: oauth2-proxy (Google, restricted to @nextbillion.ai) ──────
+	# Every route except /oauth2/* must carry a valid oauth2-proxy session.
+	# X-Forwarded-Email/-User are the phase-2 per-user identity plumbing.
+	@authable not path /oauth2/*
+	forward_auth @authable 127.0.0.1:4180 {
+		uri /oauth2/auth
+		copy_headers X-Forwarded-Email X-Forwarded-User
+	}
+
+	# ── oauth2-proxy itself ──────────────────────────────────────────────────
+	handle /oauth2/* {
+		reverse_proxy 127.0.0.1:4180
+	}
+
+	# ── Dyad headless server: RPC + WS ───────────────────────────────────────
+	handle /rpc/* {
+		reverse_proxy 127.0.0.1:3000
+	}
+	handle /ws {
+		reverse_proxy 127.0.0.1:3000
+	}
+
+	# ── Generated-app previews: /preview/<port>/* → 127.0.0.1:<port> ─────────
+	# Placeholder upstreams require Caddy >= 2.7 (verify with `caddy version`).
+	# If unsupported, use the Node fallback router (deploy/preview-router.mjs)
+	# and point this block at 127.0.0.1:8788 instead.
+	@pv path_regexp pv ^/preview/(\d+)(/.*)?$
+	handle @pv {
+		rewrite {re.pv.2}
+		reverse_proxy 127.0.0.1:{re.pv.1} {
+			header_up Host "localhost:{re.pv.1}"
+		}
+	}
+
+	# ── Everything else: Vite-rendered Dyad UI ───────────────────────────────
+	handle {
+		reverse_proxy 127.0.0.1:4173
+	}
+}

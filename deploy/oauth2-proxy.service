@@ -1,0 +1,22 @@
+# systemd unit for oauth2-proxy (auth gate; see context/dyad-web-deployment.md)
+# Install as /etc/systemd/system/oauth2-proxy.service.
+# oauth2-proxy binary: download from github.com/oauth2-proxy/oauth2-proxy/releases
+# and put at /usr/local/bin/oauth2-proxy.
+
+[Unit]
+Description=oauth2-proxy (Google SSO gate for Dyad web)
+After=network-online.target
+
+[Service]
+Type=simple
+User=dyad
+Group=dyad
+WorkingDirectory=/opt/dyad/app/deploy
+# Merge the generated cookie secret into the config at start (keeps secrets out
+# of the committed cfg). Requires oauth2-cookie-secret.inc from setup-secrets.sh.
+ExecStart=/bin/bash -c 'sed -e "s|^cookie_secret.*|$(grep -v "^#" oauth2-cookie-secret.inc | tr -d "\n")|" oauth2-proxy.cfg | sed "s|HOST|$(grep DYAD_PUBLIC_HOSTNAME env | cut -d= -f2)|g" | /usr/local/bin/oauth2-proxy --config /dev/stdin'
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

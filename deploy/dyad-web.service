@@ -1,0 +1,26 @@
+# systemd unit for the Dyad headless web server (see context/dyad-web-deployment.md)
+# Install as /etc/systemd/system/dyad-web.service, then:
+#   sudo systemctl daemon-reload && sudo systemctl enable --now dyad-web
+# Requires Node 24 at /usr/local/bin/node (or adjust ExecStart PATH).
+
+[Unit]
+Description=Dyad headless web server (RPC + Vite renderer)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=dyad
+Group=dyad
+WorkingDirectory=/opt/dyad/app
+EnvironmentFile=/opt/dyad/app/deploy/env
+# headless:browser builds the bundle if stale, then runs server + Vite.
+# Both die together when one exits (run-headless-browser.mjs), so Restart covers all.
+ExecStart=/bin/bash -lc 'export PATH="/usr/local/bin:$HOME/.nvm/versions/node/v24/bin:$PATH"; npm run headless:browser'
+Restart=always
+RestartSec=5
+# Generated apps may hold lots of file watchers / memory.
+LimitNOFILE=65535
+
+[Install]
+WantedBy=multi-user.target

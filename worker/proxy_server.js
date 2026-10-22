@@ -28,6 +28,67 @@ if (
 let previewOrigin;
 let rememberedOrigin = null; // e.g. "http://localhost:5173"
 let rememberedBaseUrl = null;
+
+/* ---------- hosted-deployment public base path (see context/dyad-web-deployment.md) ---- */
+/* When DYAD_PREVIEW_PUBLIC_URL_BASE is set (e.g. "https://<host>/preview"), teammates'
+ * browsers reach this worker through a reverse proxy at <base>/<boundPort>/... instead
+ * of http://<PREVIEW_HOSTNAME>:<boundPort>/. We strip that prefix inbound, rewrite
+ * redirects and the injected service-worker registration outbound. Unset (default,
+ * desktop/dev): every behavior below is identical to before. */
+let publicUrlBase = null; // e.g. "https://host/preview"
+let publicBasePath = null; // e.g. "/preview" — path-only
+let publicPrefix = null; // e.g. "https://host/preview/42113" — full URL, for outbound rewriting
+let publicPrefixPath = null; // e.g. "/preview/42113" — path-only, for inbound matching
+{
+  const raw = process.env.DYAD_PREVIEW_PUBLIC_URL_BASE;
+  if (raw) {
+    try {
+      const parsed = new URL(raw);
+      publicUrlBase = parsed.origin + parsed.pathname.replace(/\/$/, "");
+      publicBasePath = parsed.pathname.replace(/\/$/, "");
+    } catch {
+      throw new Error(
+        `Invalid DYAD_PREVIEW_PUBLIC_URL_BASE "${raw}". Must be an absolute http/https URL.`,
+      );
+    }
+  }
+}
+
+function computePublicPrefix(boundPort) {
+  if (!publicUrlBase) return null;
+  publicPrefixPath = `${publicBasePath}/${boundPort}`;
+  return `${publicUrlBase}/${boundPort}`;
+}
+
+/* Strip the public /preview/<port> prefix from an inbound request path.
+ * Returns null when the path is outside the public prefix. */
+function stripPublicPrefix(reqPath) {
+  if (!publicPrefixPath) return reqPath;
+  if (reqPath === publicPrefixPath || reqPath === publicPrefixPath + "/") {
+    return "/";
+  }
+  if (reqPath.startsWith(`${publicPrefixPath}/`)) {
+    return reqPath.slice(publicPrefixPath.length) || "/";
+  }
+  return null;
+}
+
+function isPublicOrigin(originHeader) {
+  if (!publicUrlBase) return false;
+  return originHeader === new URL(publicUrlBase).origin;
+}
+
+/* Hosted mode only: reject dot-segments so /preview/<port>/../x can never
+ * escape the prefix and reach upstream paths outside this app. */
+function publicPathEscapes(reqPath) {
+  if (!publicPrefixPath) return false;
+  try {
+    const decoded = decodeURIComponent(reqPath);
+    return decoded.split("/").some((seg) => seg === ".." || seg === ".");
+  } catch {
+    return true;
+  }
+}
 const fixedHeaders = workerData?.fixedHeaders || {};
 const authBootstrapToken = workerData?.authBootstrapToken;
 
@@ -216,6 +277,23 @@ try {
   );
 }
 
+if (publicUrlBase) {
+  // Hosted mode: the register script uses scope "/" at the public origin, which
+  // would let this app's service worker intercept the Dyad UI's paths (all
+  // previews share one public origin). Rewrite to register under the app's
+  // public prefix; the bound port is appended once known (see injectHTML).
+  // ponytail: prefix is port-dependent, so the scope string is patched per-response
+  // in injectHTML via swRegisterScopeForPrefix rather than at load.
+}
+
+function swRegisterContentForPrefix() {
+  if (!publicPrefix || !dyadSwRegisterContent) return dyadSwRegisterContent;
+  return dyadSwRegisterContent.replace(
+    /register\(\s*["']\/dyad-sw\.js["']\s*,\s*\{\s*scope:\s*["']\/["']\s*\}\s*\)/,
+    `register("${publicPrefix}/dyad-sw.js", { scope: "${publicPrefix}/" })`,
+  );
+}
+
 /* ---------------------- helper: need to inject? ------------------------ */
 function needsInjection(pathname) {
   // Inject for routes without a file extension (e.g., "/foo", "/foo/bar", "/")
@@ -317,8 +395,8 @@ function injectHTML(buf) {
       '<script>console.warn("[proxy-worker] dyad_logs.js was not injected.");</script>',
     );
   }
-  if (dyadSwRegisterContent) {
-    scripts.push(`<script>${dyadSwRegisterContent}</script>`);
+  if (swRegisterContentForPrefix()) {
+    scripts.push(`<script>${swRegisterContentForPrefix()}</script>`);
   } else {
     scripts.push(
       '<script>console.warn("[proxy-worker] dyad-sw-register.js was not injected.");</script>',
@@ -346,6 +424,12 @@ function buildTargetURL(clientReq) {
   const incomingUrl = new URL(clientReq.url, rememberedOrigin);
   const basePath = rememberedBaseUrl.pathname.replace(/\/$/, "");
   let incomingPath = incomingUrl.pathname;
+
+  // Hosted mode: requests arrive as <publicPrefix>/... — drop the prefix first.
+  const stripped = stripPublicPrefix(incomingPath);
+  if (stripped !== null) {
+    incomingPath = stripped;
+  }
 
   if (
     basePath &&
@@ -454,11 +538,16 @@ const server = http.createServer((clientReq, clientRes) => {
     return;
   }
   // Special handling for Service Worker file
-  if (clientReq.url === "/dyad-sw.js") {
+  const swPath = stripPublicPrefix(clientReq.url);
+  if (swPath !== null && swPath === "/dyad-sw.js") {
     if (dyadSwContent) {
       clientRes.writeHead(200, {
         "content-type": "application/javascript",
-        "service-worker-allowed": "/",
+        // Scoped to the public prefix when hosted so this app's SW can never
+        // intercept the Dyad UI origin's paths.
+        "service-worker-allowed": publicPrefixPath
+          ? `${publicPrefixPath}/`
+          : "/",
         "cache-control": "no-cache",
       });
       clientRes.end(dyadSwContent);
@@ -468,6 +557,16 @@ const server = http.createServer((clientReq, clientRes) => {
       clientRes.end("Service Worker file not found");
       return;
     }
+  }
+  if (publicPrefix && swPath === null) {
+    clientRes.writeHead(404, { "content-type": "text/plain" });
+    clientRes.end("Not found under public preview path");
+    return;
+  }
+  if (publicPathEscapes(clientReq.url)) {
+    clientRes.writeHead(400, { "content-type": "text/plain" });
+    clientRes.end("Bad request");
+    return;
   }
 
   let target;
@@ -593,9 +692,22 @@ server.on("upgrade", (req, socket, _head) => {
   }
   // Browser WebSockets carry cookies without CORS preflight. Never turn a
   // foreign Origin into a trusted upstream Origin. Non-browser clients may
-  // omit Origin, but browsers (including HMR) must use this preview's origin.
-  if (req.headers.origin && req.headers.origin !== previewOrigin) {
+  // omit Origin, but browsers (including HMR) must use this preview's origin —
+  // or, in hosted mode, the public reverse-proxy origin.
+  if (
+    req.headers.origin &&
+    req.headers.origin !== previewOrigin &&
+    !isPublicOrigin(req.headers.origin)
+  ) {
     socket.end("HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n");
+    return;
+  }
+  if (publicPrefix && stripPublicPrefix(req.url.split("?")[0]) === null) {
+    socket.end("HTTP/1.1 404 Not Found\r\nConnection: close\r\n\r\n");
+    return;
+  }
+  if (publicPathEscapes(req.url)) {
+    socket.end("HTTP/1.1 400 Bad Request\r\nConnection: close\r\n\r\n");
     return;
   }
   let target;
@@ -673,6 +785,10 @@ function listenWithFallback(port, nextFallback, attemptsLeft) {
     server.removeListener("error", onError);
     const boundPort = server.address()?.port ?? port;
     previewOrigin = `http://${PREVIEW_HOSTNAME}:${boundPort}`;
+    publicPrefix = computePublicPrefix(boundPort);
+    if (publicPrefix) {
+      parentPort?.postMessage(`proxy-server-start public-url=${publicPrefix}/`);
+    }
     parentPort?.postMessage(`proxy-server-start url=${previewOrigin}`);
   });
 }
@@ -702,8 +818,10 @@ function rewriteRedirect(headers) {
   try {
     const location = new URL(headers.location, rememberedOrigin);
     if (location.origin === rememberedOrigin) {
-      headers.location =
-        previewOrigin + location.pathname + location.search + location.hash;
+      // Hosted mode: point the browser back through the public proxy path.
+      headers.location = publicPrefix
+        ? `${publicPrefix}${location.pathname}${location.search}${location.hash}`
+        : previewOrigin + location.pathname + location.search + location.hash;
     }
   } catch {
     // Leave malformed upstream redirects to the browser.

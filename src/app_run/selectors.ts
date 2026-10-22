@@ -1,6 +1,7 @@
 import type { RuntimeMode2 } from "@/lib/schemas";
 import type { AppRunRemoteSnapshot } from "./transport";
 import type { PreviewAuthStatus } from "./state";
+import { toPublicPreviewUrl } from "./public_preview_url";
 
 export interface AppExit {
   appId: number;
@@ -39,7 +40,7 @@ export function selectRemoteAppUrl(state: AppRunRemoteSnapshot): AppUrlState {
     return EMPTY_APP_URL;
   }
   return {
-    appUrl: state.url.appUrl,
+    appUrl: toPublicPreviewUrl(state.url.appUrl),
     ...(state.url.previewAuth ? { previewAuth: state.url.previewAuth } : {}),
     appId: state.appId,
     originalUrl: state.url.originalUrl,

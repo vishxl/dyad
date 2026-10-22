@@ -1,0 +1,22 @@
+# systemd unit for OpenViking (context-pack policy + retrieval; context packs)
+# Install as /etc/systemd/system/openviking.service.
+# Install: brew→Linux equivalent: pipx/uv tool install openviking; binary on PATH.
+# Config: /opt/dyad/.openviking/ov.conf (chmod 600) — copy from the machine that
+# already runs OpenViking (see context/dyad-headless-browser.md §15 runbook).
+# Binds 127.0.0.1:1933 by default in dev mode; teammates never reach it directly.
+
+[Unit]
+Description=OpenViking context server (localhost only)
+After=network-online.target
+
+[Service]
+Type=simple
+User=dyad
+Group=dyad
+Environment=OPENVIKING_HOME=/opt/dyad/.openviking
+ExecStart=/usr/local/bin/openviking-server
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

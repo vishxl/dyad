@@ -23,6 +23,12 @@ export default defineConfig({
   server: {
     host: "127.0.0.1",
     port: Number(process.env.DYAD_HEADLESS_VITE_PORT ?? 4173),
+    // Hosted deployments reach Vite through a reverse proxy that forwards the
+    // public Host header (see context/dyad-web-deployment.md). Vite's default
+    // allowedHosts check blocks unknown Host headers — allowlist ours.
+    allowedHosts: process.env.DYAD_VITE_ALLOWED_HOSTS?.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean),
     proxy: {
       "/rpc": {
         target: `http://127.0.0.1:${process.env.DYAD_HEADLESS_PORT ?? 3000}`,
