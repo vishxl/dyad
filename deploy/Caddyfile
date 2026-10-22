@@ -35,11 +35,13 @@
 
 	# ── Generated-app previews: /preview/<port>/* → 127.0.0.1:<port> ─────────
 	# Placeholder upstreams require Caddy >= 2.7 (verify with `caddy version`).
-	# If unsupported, use the Node fallback router (deploy/preview-router.mjs)
-	# and point this block at 127.0.0.1:8788 instead.
+	# The path is forwarded AS-IS (no rewrite): worker/proxy_server.js strips
+	# the /preview/<port> prefix itself when DYAD_PREVIEW_PUBLIC_URL_BASE is
+	# set — one source of truth for the prefix.
+	# If placeholder upstreams are unsupported, use the Node fallback router
+	# (deploy/preview-router.mjs) and point this block at 127.0.0.1:8788.
 	@pv path_regexp pv ^/preview/(\d+)(/.*)?$
 	handle @pv {
-		rewrite {re.pv.2}
 		reverse_proxy 127.0.0.1:{re.pv.1} {
 			header_up Host "localhost:{re.pv.1}"
 		}

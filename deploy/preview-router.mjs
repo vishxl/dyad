@@ -3,8 +3,10 @@
  *
  * Used only if the installed Caddy doesn't support placeholder upstreams
  * (`reverse_proxy 127.0.0.1:{re.pv.1}`). Caddy then proxies /preview/* here and
- * this router forwards HTTP + WebSocket upgrades to 127.0.0.1:<port>, rewriting
- * Host to localhost:<port> so worker/proxy_server.js's authority check passes.
+ * this router forwards HTTP + WebSocket upgrades to 127.0.0.1:<port> with
+ * Host rewritten to localhost:<port> so worker/proxy_server.js's authority
+ * check passes. Like the Caddy primary path, the /preview/<port> prefix is
+ * forwarded as-is — the worker strips it itself (single source of truth).
  *
  * Zero dependencies. Run: node deploy/preview-router.mjs (listens 127.0.0.1:8788).
  */
@@ -27,7 +29,7 @@ const server = http.createServer((req, res) => {
     {
       hostname: "127.0.0.1",
       port,
-      path: m[2] || "/",
+      path: req.url, // full /preview/<port>/... — the worker strips the prefix
       method: req.method,
       headers,
     },
@@ -54,7 +56,7 @@ server.on("upgrade", (req, socket, head) => {
   const up = http.request({
     hostname: "127.0.0.1",
     port,
-    path: m[2] || "/",
+    path: req.url, // full /preview/<port>/... — the worker strips the prefix
     method: "GET",
     headers,
   });

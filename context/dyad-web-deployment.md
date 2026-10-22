@@ -39,7 +39,7 @@ All Dyad processes keep their hardcoded 127.0.0.1 binds — zero bind changes. O
 |---|---|
 | `src/app_run/public_preview_url.ts` (new) | `toPublicPreviewUrl(appUrl)`: when `VITE_PREVIEW_URL_TEMPLATE` set, rewrite `http://localhost:<port>`/`http://app-N.localhost:<port>` origins to the template with `{port}` filled. Reads `process.env` first (so `vi.stubEnv` works in tests), falls back to `import.meta.env` in the browser. |
 | `src/app_run/selectors.ts` | `selectRemoteAppUrl` wraps the returned `appUrl` with `toPublicPreviewUrl` — single choke point covering iframe src, address bar, recorder. `originalUrl` untouched (cosmetic "open externally" gap, below). |
-| `worker/proxy_server.js` | Behind `DYAD_PREVIEW_PUBLIC_URL_BASE`: strip inbound `/preview/<port>` prefix before `buildTargetURL`; accept WS Origin = public origin (HMR); rewrite same-origin redirects to the public prefix; scope injected service worker to the public prefix (`service-worker-allowed` header + rewritten `register()` call) so an app's SW can't hijack the UI origin; reject dot-segment path escapes with 400. Host check unchanged (Caddy sends `Host localhost:<port>`). |
+| `worker/proxy_server.js` | Behind `DYAD_PREVIEW_PUBLIC_URL_BASE`: accept inbound `/preview/<port>/...` paths (prefix stripped before `buildTargetURL` — the reverse proxy forwards the full path unrewritten, making the worker the single source of truth for the prefix); accept WS Origin = public origin (HMR); rewrite same-origin redirects to the public prefix; scope injected service worker to the public prefix (`service-worker-allowed` header + rewritten `register()` call) so an app's SW can't hijack the UI origin; reject dot-segment path escapes with 400. Host check unchanged (Caddy sends `Host localhost:<port>`). |
 | `vite.renderer.config.mts` | `allowedHosts` from `DYAD_VITE_ALLOWED_HOSTS` (Vite blocks unknown Host headers by default). |
 | `deploy/*` (new) | Caddyfile, oauth2-proxy.cfg + unit, dyad-web.service, openviking.service, env.template, setup-secrets.sh, provision-vm.sh, preview-router.mjs (fallback router), run-local-test.sh. |
 
@@ -70,6 +70,13 @@ Share one URL: `https://<ip-with-dashes>.sslip.io`. Each teammate:
 - `src/app_run/selectors.test.ts` — 5/5 (passthrough when template unset; localhost/app-N.localhost/127.0.0.1 rewrite when set; non-localhost untouched).
 - `.claude/tmp/smoke-proxy.js` — 9/9: legacy mode (plain path + previewOrigin redirect) AND hosted mode (prefix strip, prefix-root, redirect→public prefix, traversal→400, SW under prefix, SW-register rewritten to prefixed scope, WS upgrade with public Origin accepted).
 - `caddy validate` on both the production template and local test Caddyfile, incl. placeholder-upstream routing (Caddy ≥2.7 confirmed: v2.11.7).
+
+**Live local rehearsal (full topology through Caddy, no TLS/SSO) — verified 2026-10-22:**
+- RPC direct +token → 200; without token → 403 (gate enforced); via Caddy with Origin+token → 200.
+- UI via Caddy → 200 (Vite dev HTML); `VITE_PREVIEW_URL_TEMPLATE` confirmed baked into the served renderer JS.
+- `/ws?token=` via Caddy → 101 Switching Protocols.
+- Real `worker/proxy_server.js` spawned in hosted mode behind Caddy: `/preview/<port>/` routed via placeholder upstream (Host rewritten to `localhost:<port>`), upstream content returned, injected SW register rewritten to the public prefix. Verify script: `.claude/tmp/verify-preview-rewrite.js` (3/3).
+- **Caddy convention:** `/preview/*` is forwarded **unrewritten** (no `rewrite` in the Caddyfile); the worker strips the prefix. The fallback preview-router forwards the full path the same way.
 
 **Manual (run on the VM after setup):**
 ```sh
