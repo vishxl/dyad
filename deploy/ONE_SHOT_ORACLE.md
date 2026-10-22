@@ -1,157 +1,173 @@
-# One-Shot Deployment: Dyad + OpenViking + Langfuse on Oracle Free Tier
+# Deploy Dyad + OpenViking + Langfuse on Oracle — step by step
 
-Everything below runs on a fresh Oracle Cloud always-free ARM VM. Do steps in order; each has a verification. Commands assume Ubuntu 24.04 (aarch64).
+Follow top to bottom. Copy-paste the commands. Replace these two things whenever you see them:
+- `123.45.67.89` = your VM's public IP
+- `123-45-67-89.sslip.io` = same IP with **dots → dashes** (this is your URL)
 
-**You'll need ready before starting:**
-- [ ] Oracle account (you have it) + created VM (Step 1)
-- [ ] OpenRouter API key (for OpenViking embeddings/VLM) — openrouter.ai/keys
-- [ ] LLM provider key(s) for Dyad app generation (OpenRouter key works)
-- [ ] A Google account to create the OAuth client (any personal Google account works; the client is what restricts sign-in to `@nextbillion.ai`)
+Get from your Mac: your OpenRouter key (openrouter.ai/keys). That's the only credential you need upfront.
 
 ---
 
-## Step 0 — Create the VM (Oracle Console, ~10 min)
+## PART A — Create the VM (browser, 10 min)
 
-1. Console → **Networking → Virtual Cloud Networks** → pick the default VCN (or create one with the wizard, "auto-assign" everything).
-2. **Compute → Instances → Create Instance**:
-   - Image: **Ubuntu 24.04** (aarch64)
-   - Shape: **VM.Standard.A1.Flex** → 4 OCPU / 24 GB (both are inside the always-free allowance; 2 OCPU/12GB also fine)
-   - Add SSH keys: paste your `~/.ssh/id_ed25519.pub`
-3. After it runs: **Instance details → Subnet → Security List → Add Ingress Rule**: source `0.0.0.0/0`, TCP, destination port **443**. Repeat for **80**. (SSH 22 usually exists already.)
-4. Note the **Public IP**. Everything below calls it `$IP`.
+1. Log in to https://cloud.oracle.com
+2. Top-left menu → **Compute → Instances → Create Instance**
+   - Name: `dyad-web`
+   - Image: click **Change image** → **Ubuntu 24.04** (keep "aarch64" — don't pick x86)
+   - Shape: **VM.Standard.A1.Flex**, set **4 OCPU / 24 GB**
+   - SSH keys: **Paste a public key** → on your Mac run `cat ~/.ssh/id_ed25519.pub`, paste the output. (If no key exists: `ssh-keygen -t ed25519` first.)
+3. Click **Create**. Wait until it shows **RUNNING**.
+4. Open ports — click the instance → click the **Subnet** link → click the **Default Security List** → **Add Ingress Rules**, add BOTH:
+   - Source `0.0.0.0/0`, IP Protocol **TCP**, Destination Port **443**
+   - Source `0.0.0.0/0`, IP Protocol **TCP**, Destination Port **80**
+5. Copy the **Public IP address** from the instance page.
 
-Verify: `ssh ubuntu@$IP` works.
+✅ Check: on your Mac, `ssh ubuntu@123.45.67.89` — you should get in without a password prompt.
 
-## Step 1 — Clone, provision, secrets (on the VM, ~20 min)
+---
 
+## PART B — One script installs Dyad + Caddy + auth (VM, ~20 min, mostly waiting)
+
+6. You're SSH'd in as `ubuntu`. Become root:
 ```bash
-ssh ubuntu@$IP
 sudo -i
-# System deps (provision script also installs most of these)
+```
+7. Install everything with one script:
+```bash
 apt update && apt -y install git curl build-essential python3
-# Clone the deployment branch
 mkdir -p /opt/dyad && cd /opt/dyad
 git clone --branch web-deploy https://github.com/vishxl/dyad.git app
-# Run the provisioner (installs Node 24 + caddy + oauth2-proxy, builds native
-# modules, creates dyad user, generates deploy/env + cookie secret, writes
-# /etc/caddy/Caddyfile, installs systemd units)
-bash /opt/dyad/app/deploy/provision-vm.sh <IP-with-dashes>.sslip.io
-# e.g. IP 123.45.67.89 → 123-45-67-89.sslip.io
+bash app/deploy/provision-vm.sh 123-45-67-89.sslip.io
+```
+This takes ~15 min (installs Node 24, Caddy, oauth2-proxy, builds dependencies). At the end it prints your **RPC token** — copy it somewhere. (It's also in `/opt/dyad/app/deploy/env` if you lose it: `grep DYAD_RPC_TOKEN /opt/dyad/app/deploy/env`.)
+
+---
+
+## PART C — Google sign-in gate (browser + VM, 10 min)
+
+8. In a browser: https://console.cloud.google.com → sign in with any Google account.
+9. Top bar → select/create project `dyad-web`.
+10. Left menu → **APIs & Services → OAuth consent screen** → User type **External** → fill only the required fields (app name: anything) → Save → then click **Publish App**.
+11. **Credentials → Create Credentials → OAuth client ID** → type **Web application**:
+    - Authorized JavaScript origins: `https://123-45-67-89.sslip.io`
+    - Authorized redirect URIs: `https://123-45-67-89.sslip.io/oauth2/callback`
+12. Copy the **Client ID** and **Client secret** that pop up, then on the VM:
+```bash
+cd /opt/dyad/app/deploy
+sed -i "s|REPLACE_WITH_GOOGLE_CLIENT_ID|PASTE_CLIENT_ID|" oauth2-proxy.cfg
+sed -i "s|REPLACE_WITH_GOOGLE_CLIENT_SECRET|PASTE_CLIENT_SECRET|" oauth2-proxy.cfg
 ```
 
-The script prints remaining manual steps. Capture the RPC token it prints:
+✅ Check: `grep -c REPLACE_WITH oauth2-proxy.cfg` prints `0`.
+
+---
+
+## PART D — OpenViking + NextBillion context packs (Mac + VM, ~30 min mostly waiting)
+
+13. On the VM, install OpenViking:
 ```bash
-grep DYAD_RPC_TOKEN /opt/dyad/app/deploy/env   # save for curl probes
+sudo -iu dyad bash -c 'curl -LsSf https://astral.sh/uv/install.sh | sh && ~/.local/bin/uv tool install openviking'
+sudo -iu dyad mkdir -p /opt/dyad/.openviking
+exit
 ```
-
-## Step 2 — Google OAuth client (browser, ~10 min)
-
-1. https://console.cloud.google.com → create project "dyad-web" (free).
-2. **APIs & Services → OAuth consent screen**: User type **External** → app name anything → add your own email as test user. (Scopes: `openid`, `email`, `profile` are defaults.)
-3. **Credentials → Create Credentials → OAuth client ID → Web application**:
-   - Authorized JavaScript origins: `https://<IP-with-dashes>.sslip.io`
-   - Authorized redirect URIs: `https://<IP-with-dashes>.sslip.io/oauth2/callback`
-4. Copy the **Client ID** and **Client Secret** into the config:
+14. On your **Mac**, copy the config and the context corpus up:
 ```bash
-sed -i "s|REPLACE_WITH_GOOGLE_CLIENT_ID|<client-id>|"  /opt/dyad/app/deploy/oauth2-proxy.cfg
-sed -i "s|REPLACE_WITH_GOOGLE_CLIENT_SECRET|<secret>|" /opt/dyad/app/deploy/oauth2-proxy.cfg
+scp ~/.openviking/ov.conf ubuntu@123.45.67.89:/tmp/ov.conf
+scp -r /Users/vishal/openviking_nb ubuntu@123.45.67.89:/tmp/openviking_nb
 ```
-Note: Google may warn the hostname isn't a "real" domain — sslip.io works; click through. If the consent screen blocks it, publish the app (Console → OAuth consent screen → Publish App).
-
-## Step 3 — OpenViking + context packs (~15 min)
-
+15. Back on the VM, put the config in place and register the service:
 ```bash
-# Python env via uv (installs its own Python 3.13)
-sudo -u dyad bash -c 'curl -LsSf https://astral.sh/uv/install.sh | sh && ~/.local/bin/uv tool install openviking'
-```
-
-Config (`/opt/dyad/.openviking/ov.conf`, chmod 600) — same shape as your Mac's:
-```bash
-sudo -u dyad mkdir -p /opt/dyad/.openviking
-sudo -u dyad tee /opt/dyad/.openviking/ov.conf > /dev/null <<'EOF'
-< paste your Mac's ~/.openviking/ov.conf here — same OpenRouter embedding+vlm config >
-EOF
-```
-(Just `scp ubuntu@$IP` it back up, or cat + paste. Keep `api_base: https://openrouter.ai/api/v1` and the same models: `openai/text-embedding-3-small` + `google/gemini-2.5-flash`.)
-
-**Systemd unit** already exists in the repo (`deploy/openviking.service` points at `/usr/local/bin/openviking-server`). Fix the binary path for the uv install:
-```bash
+sudo -iu dyad mv /tmp/ov.conf /opt/dyad/.openviking/ov.conf
+sudo -iu dyad chmod 600 /opt/dyad/.openviking/ov.conf
 sed -i 's|ExecStart=/usr/local/bin/openviking-server|ExecStart=/opt/dyad/.local/bin/openviking-server|' /opt/dyad/app/deploy/openviking.service
 ```
-(User `dyad` has home `/opt/dyad`, so `~/.local/bin` = `/opt/dyad/.local/bin`.)
 
-**Ingest the NextBillion context** (from your Mac, or scp the corpus first):
-```bash
-# On your Mac:
-scp -r /Users/vishal/openviking_nb ubuntu@$IP:/tmp/openviking_nb
-# On the VM (as dyad user, server must be running first):
-systemctl start openviking
-sudo -u dyad bash /opt/dyad/app/scripts/openviking-ingest.sh /tmp/openviking_nb/context/nextbillion-docs viking://resources/nextbillion-docs
-# Policy doc (single write, deterministic read-by-URI):
-sudo -u dyad curl -s -X POST http://127.0.0.1:1933/api/v1/content/write \
-  -H "Content-Type: application/json" \
-  -d "{\"uri\": \"viking://resources/nextbillion-policy/index.md\", \"mode\": \"create\", \"wait\": true, \"content\": $(python3 -c 'import json;print(json.dumps(open("/tmp/openviking_nb/context/nextbillion-policy.md").read()))')}"
-```
-The 284-file corpus takes a while (embeddings via OpenRouter). Watch progress: the ingest script prints `root: ... | contexts: N` when done. Verify:
-```bash
-curl -s "http://127.0.0.1:1933/api/v1/content/read?uri=viking://resources/nextbillion-policy/index.md&raw=true" | head -c 200
-```
+---
 
-## Step 4 — Langfuse (browser, ~5 min, no hosting)
+## PART E — Langfuse (browser + VM, 5 min)
 
-1. https://cloud.langfuse.com → sign up (free tier, 50k units/mo).
-2. Create **Organization → Project "dyad-web" → API Keys**.
-3. Put them in the env file:
+16. Browser: https://cloud.langfuse.com → sign up (free) → create **Project** `dyad-web` → **Settings → API Keys → Create** → copy `pk-lf-...` and `sk-lf-...`
+17. On the VM:
 ```bash
 cat >> /opt/dyad/app/deploy/env <<'EOF'
 LANGFUSE_BASE_URL=https://cloud.langfuse.com
-LANGFUSE_PUBLIC_KEY=pk-lf-...
-LANGFUSE_SECRET_KEY=sk-lf-...
+LANGFUSE_PUBLIC_KEY=pk-lf-PASTE
+LANGFUSE_SECRET_KEY=sk-lf-PASTE
 EOF
 ```
-Tracing then flows automatically (the branch's observability is Langfuse-native; first chat turns show up in the Langfuse UI).
 
-## Step 5 — Boot everything (~2 min)
+---
+
+## PART F — Start everything (VM, 2 min)
 
 ```bash
 systemctl daemon-reload
 systemctl enable --now caddy oauth2-proxy openviking dyad-web
-systemctl status --no-pager dyad-web caddy oauth2-proxy openviking | grep -E "Active:"
 ```
 
-## Step 6 — Verify (each command has its expected result)
-
+✅ Check — all four should say `active (running)`:
 ```bash
-# 1. TLS + auth redirect (expect: HTTP/2 302, location → accounts.google.com)
-curl -sI https://<IP-with-dashes>.sslip.io/ | head -3
-
-# 2. Token gate behind proxy (expect: 403)
-curl -s -X POST https://<IP-with-dashes>.sslip.io/rpc/list-apps | head -c 80
-
-# 3. RPC with token, no Origin (expect: {"__dyadIpcEnvelope":...,"ok":...)
-curl -s -X POST https://<IP-with-dashes>.sslip.io/rpc/list-apps \
-  -H "x-dyad-rpc-token: <token-from-step-1>" -H "Content-Type: application/json" -d '{}' | head -c 120
-
-# 4. OpenViking healthy (expect: 200 ok)
-curl -s http://127.0.0.1:1933/health
-
-# 5. Langfuse wired (first chat after this appears at cloud.langfuse.com)
-grep LANGFUSE /opt/dyad/app/deploy/env
+systemctl is-active caddy oauth2-proxy openviking dyad-web
 ```
 
-Then in a browser: open `https://<IP-with-dashes>.sslip.io` → Google sign-in (only `@nextbillion.ai` accepted) → Dyad UI loads → configure provider keys in Settings (one-time, shared pool) → create an app → confirm the preview iframe URL is `https://<IP-with-dashes>.sslip.io/preview/<port>/...`.
+---
 
-## Troubleshooting quick map
+## PART G — Load the context packs (VM, ~20 min waiting)
 
-| Symptom | Check |
+18. Wait for OpenViking to be healthy:
+```bash
+until curl -sf http://127.0.0.1:1933/health > /dev/null; do sleep 5; done; echo healthy
+```
+19. Ingest the 284-file NextBillion corpus (~15 min, embeddings via OpenRouter):
+```bash
+sudo -iu dyad bash /opt/dyad/app/scripts/openviking-ingest.sh /tmp/openviking_nb/context/nextbillion-docs viking://resources/nextbillion-docs
+```
+Wait for the `root: ... | contexts: N` line.
+20. Ingest the policy doc:
+```bash
+sudo -iu dyad curl -s -X POST http://127.0.0.1:1933/api/v1/content/write \
+  -H "Content-Type: application/json" \
+  -d "{\"uri\": \"viking://resources/nextbillion-policy/index.md\", \"mode\": \"create\", \"wait\": true, \"content\": $(python3 -c 'import json;print(json.dumps(open("/tmp/openviking_nb/context/nextbillion-policy.md").read()))')}"
+```
+✅ Check:
+```bash
+curl -s "http://127.0.0.1:1933/api/v1/content/read?uri=viking://resources/nextbillion-policy/index.md&raw=true" | head -c 200
+```
+(prints the policy markdown = done)
+
+---
+
+## PART H — Verify and hand out the URL
+
+21. On your Mac (browser): open `https://123-45-67-89.sslip.io`
+    - First load: a Google sign-in appears → sign in with an `@nextbillion.ai` account → Dyad UI loads.
+22. In Dyad: **Settings → Providers → add your OpenRouter (or other) API key** — one time, shared by everyone.
+23. Create a test app → prompt it → confirm the preview shows and its iframe URL starts with `https://123-45-67-89.sslip.io/preview/`.
+24. Langfuse check: make one chat → open https://cloud.langfuse.com → your trace appears in the project.
+25. Share with teammates: **just the URL** `https://123-45-67-89.sslip.io`. They sign in with Google (`@nextbillion.ai` only), nothing else to set up.
+
+Final checks (Mac terminal):
+```bash
+curl -sI https://123-45-67-89.sslip.io/ | head -1          # expect: HTTP/2 302
+curl -s -X POST https://123-45-67-89.sslip.io/rpc/list-apps | head -c 40   # expect: 403 (auth required)
+```
+
+---
+
+## If something breaks
+
+| Symptom | Fix |
 |---|---|
-| No TLS cert issued | `journalctl -u caddy -f` — Let's Encrypt rate limits on sslip.io; retry in an hour or use your own domain |
-| 502 on `/` | `systemctl status dyad-web` + `journalctl -u dyad-web -n 50` (most common: native module rebuild missed — rerun `cd /opt/dyad/app && npm rebuild better-sqlite3 dugite electron`) |
-| Sign-in loops | redirect URI in Google console must be **exactly** `https://<host>/oauth2/callback`; cookie secret file present (`/opt/dyad/app/deploy/oauth2-cookie-secret.inc`) |
-| Context pack empty in prompts | `journalctl -u openviking -n 30`; corpus ingestion finished? (`contexts: N` line) |
-| Preview iframe blank | `journalctl -u dyad-web | grep proxy-server-start` — check the public-url line; app dev server may need `restart-app` (chat message "restart the app") |
-| RPC 403 with token | token in `deploy/env` vs header must match exactly; check you're hitting `/rpc/*` not the UI |
+| Can't SSH | Security list missing port 22 rule, or wrong IP |
+| Browser shows certificate error | First visit — wait 1-2 min for Let's Encrypt; check `journalctl -u caddy -n 30` |
+| Browser shows 502 | `systemctl is-active dyad-web` — if failed: `journalctl -u dyad-web -n 50`; most common fix: `cd /opt/dyad/app && npm rebuild better-sqlite3 dugite electron` then `systemctl restart dyad-web` |
+| Google sign-in error `redirect_uri_mismatch` | The redirect URI in Google Console must be **exactly** `https://123-45-67-89.sslip.io/oauth2/callback` |
+| Sign-in says access denied | Account isn't `@nextbillion.ai` — that's the gate working |
+| Chat asks for Mapbox/Google instead of NextBillion | Context pack toggle off in the chat bar, or corpus not ingested (redo Part G) |
+| Preview iframe blank | Send "restart the app" in the chat; if still blank check `journalctl -u dyad-web | grep proxy-server-start` |
+| Everything stopped after VM reboot | They auto-start (`systemctl enable`); if not: `systemctl start caddy oauth2-proxy openviking dyad-web` |
 
-## What's shared vs isolated (phase-1 recap)
+## Two things to know
 
-One workspace, one settings/key store (keys plaintext at `/opt/dyad/deploy-userData/settings.json` — anyone signed in can read them via Settings; keep this in mind with teammates), all live events fan out to every browser, one shared 1000-msg/23h basic-agent quota pool. OAuth restricts *who* (`@nextbillion.ai`), not *what they see*. Phase-2 isolation path is in `context/dyad-web-deployment.md` §9.
+- **Keys are shared**: your LLM API key and every teammate's sign-in share one settings store — anyone signed in can see it in Settings. Fine for a trusted test group; per-user isolation is phase 2.
+- **One shared quota**: free agent mode has a server-wide 1000 messages/23h pool across everyone.
