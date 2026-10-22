@@ -28,7 +28,7 @@ Teammate browser → https://<ip-dashes>.sslip.io (Caddy :443, Let's Encrypt)
                    ├─ /oauth2/*          → 127.0.0.1:4180
                    ├─ /rpc/*  and /ws    → 127.0.0.1:3000 (headless server)
                    ├─ /preview/<port>/*  → 127.0.0.1:<port> (preview proxy workers)
-                   └─ /*                 → 127.0.0.1:4183→(default 4173) (Vite UI)
+                   └─ /*                 → 127.0.0.1:4173 (Vite UI)
 ```
 
 All Dyad processes keep their hardcoded 127.0.0.1 binds — zero bind changes. Only 80/443 open in the Oracle security list + VM firewall.
@@ -41,7 +41,7 @@ All Dyad processes keep their hardcoded 127.0.0.1 binds — zero bind changes. O
 | `src/app_run/selectors.ts` | `selectRemoteAppUrl` wraps the returned `appUrl` with `toPublicPreviewUrl` — single choke point covering iframe src, address bar, recorder. `originalUrl` untouched (cosmetic "open externally" gap, below). |
 | `worker/proxy_server.js` | Behind `DYAD_PREVIEW_PUBLIC_URL_BASE`: accept inbound `/preview/<port>/...` paths (prefix stripped before `buildTargetURL` — the reverse proxy forwards the full path unrewritten, making the worker the single source of truth for the prefix); accept WS Origin = public origin (HMR); rewrite same-origin redirects to the public prefix; scope injected service worker to the public prefix (`service-worker-allowed` header + rewritten `register()` call) so an app's SW can't hijack the UI origin; reject dot-segment path escapes with 400. Host check unchanged (Caddy sends `Host localhost:<port>`). |
 | `vite.renderer.config.mts` | `allowedHosts` from `DYAD_VITE_ALLOWED_HOSTS` (Vite blocks unknown Host headers by default). |
-| `deploy/*` (new) | Caddyfile, oauth2-proxy.cfg + unit, dyad-web.service, openviking.service, env.template, setup-secrets.sh, provision-vm.sh, preview-router.mjs (fallback router), run-local-test.sh. |
+| `deploy/*` (new) | Caddyfile, oauth2-proxy.cfg + unit, dyad-web.service, openviking.service, env.template, setup-secrets.sh, provision-vm.sh, preview-router.mjs (fallback router). |
 
 No changes to `src/server/index.ts`, `rpc_access.ts`, `run-headless-browser.mjs` (pinned token reuse + env passthrough already worked).
 
@@ -89,13 +89,6 @@ curl -s https://<host>/rpc/list-apps | head -1
 # Two browsers simultaneously; sudo reboot → systemd brings all back
 ```
 
-**Local topology rehearsal (no TLS/SSO) — optional but recommended before the VM:**
-```sh
-cd /Users/vishal/dyad-web-deploy
-bash deploy/run-local-test.sh
-# → http://127.0.0.1:8443 (x-dyad-token: testtoken123), preview at /preview/<port>/
-```
-
 ## 8. Known phase-1 limitations
 
 - **Shared everything**: one workspace, one settings/key store (plaintext headless), all WS events fan out to every browser, one server-wide 1000-msg/23h free-agent quota (basic agent mode only). OAuth restricts who, not what they see.
@@ -115,4 +108,3 @@ bash deploy/run-local-test.sh
 
 - Working version stays intact: `headless-web-port` @ `05d5b7a0` in `/Users/vishal/dyad`.
 - On the VM: stop `dyad-web.service`, check out `05d5b7a0`, restart. (The three diffs are env-gated, so even `web-deploy` code without the env vars behaves identically to the rollback point.)
-- Local test stack: `kill <stack-pid> <caddy-pid>` (pids printed by `run-local-test.sh`).
