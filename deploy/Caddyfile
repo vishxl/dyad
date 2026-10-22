@@ -14,10 +14,18 @@
 	# ── Auth gate: oauth2-proxy (Google, restricted to @nextbillion.ai) ──────
 	# Every route except /oauth2/* must carry a valid oauth2-proxy session.
 	# X-Forwarded-Email/-User are the phase-2 per-user identity plumbing.
+	# forward_auth gives the browser oauth2-proxy's bare 401 — intercept it and
+	# bounce to the sign-in page, which redirects to Google preserving ?rd=<uri>.
+	# (handle_errors does NOT fire for forward_auth rejections — verified by probe.)
 	@authable not path /oauth2/*
 	forward_auth @authable 127.0.0.1:4180 {
 		uri /oauth2/auth
 		copy_headers X-Forwarded-Email X-Forwarded-User
+		@unauth status 401
+		handle_response @unauth {
+			header Location "/oauth2/sign_in?rd={http.request.uri}"
+			respond "" 302
+		}
 	}
 
 	# ── oauth2-proxy itself ──────────────────────────────────────────────────
