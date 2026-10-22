@@ -22,8 +22,11 @@ export DYAD_HEADLESS_PORT=3100
 export DYAD_HEADLESS_VITE_PORT=4183
 export DYAD_RPC_ALLOWED_ORIGINS="http://127.0.0.1:8443,http://localhost:8443,http://127.0.0.1:4183,http://localhost:4183"
 export DYAD_VITE_ALLOWED_HOSTS="127.0.0.1:8443,localhost:8443"
-export VITE_PREVIEW_URL_TEMPLATE="http://127.0.0.1:8443/preview/{port}"
-export DYAD_PREVIEW_PUBLIC_URL_BASE="http://127.0.0.1:8443/preview"
+# NOTE: preview URLs MUST use the same host you sign in on (localhost, per
+# redirect_url in the oauth2 cfg) — localhost and 127.0.0.1 are different
+# sites to the browser, so a 127.0.0.1 iframe would not get the session cookie.
+export VITE_PREVIEW_URL_TEMPLATE="http://localhost:8443/preview/{port}"
+export DYAD_PREVIEW_PUBLIC_URL_BASE="http://localhost:8443/preview"
 export DYAD_DATA_DIR="${DYAD_DATA_DIR:-/tmp/dyad-deploy-test}"
 
 echo "Starting headless:browser (server :3100 + Vite :4183), log: /tmp/dyad-deploy-stack.log"
@@ -38,5 +41,5 @@ CADDY_PID=$!
 echo "caddy pid: $CADDY_PID"
 
 echo
-echo "Test entry point: http://127.0.0.1:8443  (x-dyad-rpc-token: testtoken123)"
+echo "Test entry point: http://localhost:8443  (x-dyad-rpc-token: testtoken123)"
 echo "Stop: kill $STACK_PID $CADDY_PID"
