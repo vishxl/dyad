@@ -3,6 +3,10 @@ import http from "node:http";
 import type { IncomingHttpHeaders } from "node:http";
 import path from "node:path";
 import { WebSocketServer, WebSocket } from "ws";
+import dotenv from "dotenv";
+
+// Load the repo .env before anything reads observability/provider env vars.
+dotenv.config();
 
 process.env.NODE_ENV ??= "development";
 process.env.DYAD_HEADLESS_HTTP = "1";
@@ -46,6 +50,7 @@ import { ipcMain } from "./electron-shim";
 import { applyManagedNodeToProcessPath } from "../ipc/utils/managed_node";
 import { configureTrustedRenderer } from "../ipc/utils/renderer_security";
 import { getAllowedRpcOrigins, isRpcRequestAllowed } from "./rpc_access";
+import { shutdownObservability } from "../observability/langfuse";
 
 const allowedRpcOrigins = getAllowedRpcOrigins();
 const expectedRpcToken = process.env.DYAD_RPC_TOKEN?.trim() || undefined;
@@ -274,6 +279,21 @@ websocketServer.on("connection", (socket) => {
 });
 
 const port = Number(process.env.DYAD_HEADLESS_PORT ?? 3000);
+
+// Electron calls shutdownObservability() on will-quit; the headless server has
+// no will-quit, so flush pending telemetry spans on the usual stop signals.
+async function shutdownAndExit(signal: string) {
+  console.log(`headless: ${signal} received, flushing telemetry and exiting`);
+  try {
+    await shutdownObservability();
+  } catch (error) {
+    console.error("headless: telemetry shutdown failed", error);
+  }
+  process.exit(0);
+}
+process.on("SIGINT", () => void shutdownAndExit("SIGINT"));
+process.on("SIGTERM", () => void shutdownAndExit("SIGTERM"));
+
 server.listen(port, "127.0.0.1", () => {
   console.log(`Headless Dyad IPC server listening on http://127.0.0.1:${port}`);
   console.log(`WebSocket endpoint available at ws://127.0.0.1:${port}/ws`);

@@ -26,7 +26,7 @@ export const OBSERVABILITY_CONFIG = {
    * Environment variable names holding backend connection details.
    */
   env: {
-    baseUrl: "LANGFUSE_BASEURL",
+    baseUrl: "LANGFUSE_BASE_URL",
     publicKey: "LANGFUSE_PUBLIC_KEY",
     secretKey: "LANGFUSE_SECRET_KEY",
   },

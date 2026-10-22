@@ -2649,6 +2649,11 @@ This conversation includes one or more image attachments. When the user uploads 
             modelSelection: selectedModel,
           });
 
+          // Hoisted: the streamText args below sit inside a sync arrow passed
+          // to withTrace, so awaits must happen before the wrapper is entered.
+          const maxOutputTokens = await getMaxTokens(settings.selectedModel);
+          const temperature = await getTemperature(settings.selectedModel);
+
           const streamResult = withTrace(
             settings,
             {
@@ -2662,8 +2667,8 @@ This conversation includes one or more image attachments. When the user uploads 
                   builtinProviderId: modelClient.builtinProviderId,
                   dyadRequestId,
                 }),
-                maxOutputTokens: await getMaxTokens(settings.selectedModel),
-                temperature: await getTemperature(settings.selectedModel),
+                maxOutputTokens,
+                temperature,
                 maxRetries: 2,
                 model: modelClient.model,
                 stopWhen: [stepCountIs(20), hasToolCall("edit-code")],
