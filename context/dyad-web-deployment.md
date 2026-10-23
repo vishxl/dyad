@@ -206,4 +206,17 @@ sudo -u dyad git -C /opt/dyad/app checkout FETCH_HEAD -- worker/proxy_server.js 
 
 `dist/headless-server.cjs` is not in git — rebuild it on the VM after checking out `src/` changes (`cd /opt/dyad/app && npm run headless:server:build`), then `sudo systemctl restart dyad-web`.
 
+**Always finish a per-file update with a drift audit** — partial checkouts
+are how the scaffold template (missing `basename`) and the `/ws` hardening
+silently regressed on the VM:
+
+```sh
+sudo -iu dyad git -C /opt/dyad/app diff FETCH_HEAD --stat
+```
+
+Every entry must be either synced (`git checkout FETCH_HEAD -- <file>`) or
+an intentional local config: `deploy/oauth2-proxy.cfg` (Google credentials),
+`deploy/openviking.service` (local binary path). Anything else means the VM
+is running stale code.
+
 After a code update, each app's runtime restarts on its next preview open; force one immediately via `POST /rpc/restart-app {"appId":N}` with the `x-dyad-rpc-token` header and an allowlisted Origin.
