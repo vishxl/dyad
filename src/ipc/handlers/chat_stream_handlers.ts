@@ -2388,6 +2388,12 @@ ${componentSnippet}
           }
         }
 
+        // Always log what the client actually sent: an empty array here is
+        // indistinguishable from "packs failed" without this line, and the
+        // toggle UI reads the same state it sends.
+        logger.info(
+          `chat ${req.chatId} stream contextPacks: [${(req.contextPacks ?? []).join(",")}]`,
+        );
         const packBlocks = await getContextPackBlocks(
           req.contextPacks,
           req.prompt,

@@ -42,6 +42,21 @@
 		reverse_proxy 127.0.0.1:3000
 	}
 
+	# ── Escaped-preview catch-all ─────────────────────────────────────────────
+	# App code that navigates or fetches root-absolute URLs (raw <a href="/">,
+	# window.location assignments, maplibre's Web Worker fetches, Request
+	# objects) escapes /preview/<port>/ and lands on the UI host. Those
+	# requests still carry the preview page's Referer: fold them back into
+	# the right app. 308 preserves method and body.
+	@escaped {
+		not path /preview/*
+		not path /oauth2/*
+		not path /rpc/*
+		not path /ws
+		header_regexp pvref Referer ^https?://[^/]+/preview/(\d+)
+	}
+	redir @escaped /preview/{re.pvref.1}{uri} 308
+
 	# ── Generated-app previews: /preview/<port>/* → 127.0.0.1:<port> ─────────
 	# Placeholder upstreams require Caddy >= 2.7 (verify with `caddy version`).
 	# The path is forwarded AS-IS (no rewrite): worker/proxy_server.js strips
