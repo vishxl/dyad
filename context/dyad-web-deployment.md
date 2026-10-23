@@ -80,6 +80,7 @@ No changes to `src/server/index.ts`, `rpc_access.ts`, `run-headless-browser.mjs`
 Share one URL: `https://<ip-with-dashes>.sslip.io`. Each teammate:
 1. Opens it → redirected to Google sign-in → only `@nextbillion.ai` accepted.
 2. Everything else is identical to desktop Dyad. No hosts edits, no CA installs.
+3. Context packs default ON for every fresh browser in hosted deployments (`VITE_PREVIEW_URL_TEMPLATE` set); desktop defaults OFF. A teammate who toggles packs off keeps that choice in their browser's localStorage (`dyad-context-packs`).
 
 ## 7. Verification (all passing unless noted)
 

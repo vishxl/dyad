@@ -2665,7 +2665,7 @@ This conversation includes one or more image attachments. When the user uploads 
             {
               sessionId: String(updatedChat.id),
               traceName: "chat-stream",
-              metadata: { dyadRequestId },
+              metadata: { dyadRequestId: dyadRequestId ?? "[no-request-id]" },
             },
             () =>
               streamText({
