@@ -20,7 +20,7 @@ fi
 # oauth2-proxy binary
 if ! command -v oauth2-proxy >/dev/null; then
   O2P_VERSION="v7.9.0"
-  curl -fsSL "https://github.com/oauth2-proxy/oauth2-proxy/releases/download/${O2P_VERSION}/oauth2-proxy-linux-arm64.tar.gz" \
+  curl -fsSL "https://github.com/oauth2-proxy/oauth2-proxy/releases/download/${O2P_VERSION}/oauth2-proxy-${O2P_VERSION}.linux-arm64.tar.gz" \
     | tar -xz -C /usr/local/bin --strip-components=1 oauth2-proxy-${O2P_VERSION#v}.linux-arm64/oauth2-proxy \
     || { echo "oauth2-proxy download failed — fetch the arm64 release manually"; exit 1; }
 fi
