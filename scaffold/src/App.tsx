@@ -13,7 +13,10 @@ const App = () => (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
+      {/* basename keeps deep-link routes working when the app is served under
+          a hosted preview prefix (/preview/<port>/): Vite injects that base
+          via import.meta.env.BASE_URL, and it is "/" in desktop/dev. */}
+      <BrowserRouter basename={import.meta.env.BASE_URL}>
         <Routes>
           <Route path="/" element={<Index />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

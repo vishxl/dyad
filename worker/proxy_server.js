@@ -32,9 +32,10 @@ let rememberedBaseUrl = null;
 /* ---------- hosted-deployment public base path (see context/dyad-web-deployment.md) ---- */
 /* When DYAD_PREVIEW_PUBLIC_URL_BASE is set (e.g. "https://<host>/preview"), teammates'
  * browsers reach this worker through a reverse proxy at <base>/<boundPort>/... instead
- * of http://<PREVIEW_HOSTNAME>:<boundPort>/. We strip that prefix inbound, rewrite
- * redirects and the injected service-worker registration outbound. Unset (default,
- * desktop/dev): every behavior below is identical to before. */
+ * of http://<PREVIEW_HOSTNAME>:<boundPort>/. Desktop/dev mode strips that
+ * prefix inbound; hosted mode keeps it (Vite runs with matching --base) and
+ * rewrites redirects and the injected service-worker registration outbound.
+ * Unset (default, desktop/dev): every behavior below is identical to before. */
 let publicUrlBase = null; // e.g. "https://host/preview"
 let publicBasePath = null; // e.g. "/preview" — path-only
 let publicPrefix = null; // e.g. "https://host/preview/42113" — full URL, for outbound rewriting
@@ -447,10 +448,17 @@ function buildTargetURL(clientReq) {
   const basePath = rememberedBaseUrl.pathname.replace(/\/$/, "");
   let incomingPath = incomingUrl.pathname;
 
-  // Hosted mode: requests arrive as <publicPrefix>/... — drop the prefix first.
-  const stripped = stripPublicPrefix(incomingPath);
-  if (stripped !== null) {
-    incomingPath = stripped;
+  // Hosted mode: Vite apps are launched with --base <publicPrefixPath>
+  // (app_runtime_service getViteBaseArg), so the prefix must be KEPT — Vite
+  // rejects requests outside its base ("configured with a public base URL").
+  // Desktop/dev mode strips it so the app keeps its root-relative behavior.
+  // ponytail: hosted previews assume Vite apps; non-Vite apps get no --base
+  // and would need a per-app strip decision if anyone ever runs one hosted.
+  if (!publicUrlBase) {
+    const stripped = stripPublicPrefix(incomingPath);
+    if (stripped !== null) {
+      incomingPath = stripped;
+    }
   }
 
   if (
