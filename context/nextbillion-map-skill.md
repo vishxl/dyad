@@ -45,3 +45,24 @@ Without it, Vite pre-bundles maplibre-gl, rewrites its map worker URL, and the m
 ## Route geometry
 
 Draw optimization results on this map with road-following geometry from the Directions API (per leg), not straight lines.
+
+## URLs that must survive hosted previews (mandatory)
+
+Never build app-server URLs from `window.location.origin` — under a hosted
+preview the page sits under a path prefix (`/preview/<port>/`) and
+`location.origin` points at the host app, not this app.
+
+- **App server routes** (nitro `server/routes/api/*`): fetch with a
+  root-absolute string — `fetch("/api/...")` — or prefix with Vite's base:
+  `` fetch(`${import.meta.env.BASE_URL}api/...`) `` (BASE_URL already ends
+  with `/`). On desktop BASE_URL is `/`, so both forms behave identically.
+- **Map subresources (tiles, sprites, glyphs) are fetched by maplibre's Web
+  Worker**, where no page-level URL patching can reach them. Any URL the
+  worker fetches must already carry the prefix: when rewriting the style
+  JSON's `sources.*.tiles` / `glyphs` / `sprite` into same-origin proxy URLs,
+  use `` `${import.meta.env.BASE_URL}api/<proxy>/...` `` — never
+  `` `${window.location.origin}/api/...` ``. In `transformRequest`, match on
+  the path (`url.includes("/api/<proxy>/")`) rather than on
+  `location.origin`, since maplibre resolves relative URLs to absolute
+  before calling it.
+
