@@ -42,7 +42,7 @@ All Dyad processes keep their hardcoded 127.0.0.1 binds — zero bind changes. O
 | `worker/proxy_server.js` | Behind `DYAD_PREVIEW_PUBLIC_URL_BASE` (hosted mode): **keep** the `/preview/<port>` prefix on the forwarded path (the dev server runs Vite with matching `--base`, so the prefix must reach it), **except for data requests** — `sec-fetch-dest: empty` (fetch/XHR) is stripped, because app server-route middleware (e.g. nitro dev routes) matches unprefixed `/api/*` regardless of Vite's base and its catch-all renders HTML for the prefixed form; non-browser clients (no sec-fetch header) keep the prefix; accept WS Origin = public origin (HMR); rewrite same-origin redirects to the public prefix; rewrite root-absolute asset URLs in HTML to the public prefix; scope injected service worker to the public prefix (`service-worker-allowed` header + rewritten `register()` call) so an app's SW can't hijack the UI origin; reject dot-segment path escapes with 400. Host check unchanged (Caddy sends `Host localhost:<port>`). Desktop/dev (env unset): prefix is stripped as always. |
 | `src/ipc/services/app_runtime_service.ts` | `getViteBaseArg`: when `DYAD_PREVIEW_PUBLIC_URL_BASE` is set and the app has a Vite config, launch the dev server with `--base /preview/<port>/`. This is what makes Vite emit prefix-correct module URLs (`import "/preview/<port>/src/App.tsx"`) so imports inside transformed JS can't escape the prefix. |
 | `scaffold/src/App.tsx` | `<BrowserRouter basename={import.meta.env.BASE_URL}>` — Vite sets BASE_URL to `--base`, so generated-app routes resolve under the hosted preview prefix. Desktop/dev BASE_URL is `/`, behavior unchanged. Apps scaffolded before this change need the same one-line edit. |
-| `worker/dyad-shim.js` | Injected into every preview page. In hosted mode (prefix substituted at injection) it patches `fetch`/`XMLHttpRequest` to re-add the `/preview/<port>` prefix to root-absolute same-origin URLs (`fetch("/api/...")` otherwise lands on the Dyad UI host, which answers with its SPA-fallback HTML at 200 — silently breaking the feature). No-op on desktop/dev (prefix is null). |
+| `worker/dyad-shim.js` | Injected into every preview page. In hosted mode (prefix substituted at injection) it patches `fetch`/`XMLHttpRequest` to re-add the `/preview/<port>` prefix to same-origin URLs (`fetch("/api/...")` and `${location.origin}/api/...` — map libraries like maplibre build absolute URLs — otherwise land on the Dyad UI host, which answers with its SPA-fallback HTML at 200 — silently breaking the feature). No-op on desktop/dev (prefix is null). |
 | `src/server/index.ts` | `/ws` WebSocket server: per-connection + server-level `error` handlers. A malformed client frame (observed: `WS_ERR_EXPECTED_MASK` through the proxy chain) otherwise throws unhandled and crashes the whole headless process, 502-ing every route. |
 | `vite.renderer.config.mts` | `allowedHosts` from `DYAD_VITE_ALLOWED_HOSTS` (Vite blocks unknown Host headers by default). |
 | `deploy/*` (new) | Caddyfile (incl. 308-redirect `/preview/<port>` → `/preview/<port>/`, below), oauth2-proxy.cfg + unit, dyad-web.service, openviking.service, env.template, setup-secrets.sh, provision-vm.sh, preview-router.mjs (fallback router). |
@@ -52,7 +52,7 @@ All Dyad processes keep their hardcoded 127.0.0.1 binds — zero bind changes. O
 2. Vite runs with `--base /preview/<port>/` (hosted mode), so every URL it emits — HTML asset tags *and* imports inside transformed JS — carries the prefix.
 3. In hosted mode the proxy worker forwards the full prefixed path upstream (it must NOT strip, or Vite 404s everything outside its base). Desktop/dev strips as before.
 4. The generated app's router uses `basename={import.meta.env.BASE_URL}`, so in-app routes resolve relative to the prefix.
-5. Root-absolute data calls resolve back into the preview: the injected shim rewrites `fetch("/api/...")` to the prefixed URL, and the worker strips the prefix again for `sec-fetch-dest: empty` requests so app server routes (nitro-style, matched at root) receive them. Assets (scripts/styles/documents) keep the prefix for Vite's `--base`.
+5. Root-absolute data calls resolve back into the preview: the injected shim rewrites both `fetch("/api/...")` and `fetch("https://<host>/api/...")` (same-origin absolute) to the prefixed URL, and the worker strips the prefix again for `sec-fetch-dest: empty` requests so app server routes (nitro-style, matched at root) receive them. Assets (scripts/styles/documents) keep the prefix for Vite's `--base`.
 Non-Vite apps get no `--base` and are not expected in hosted deployments (Dyad apps are Vite).
 
 No changes to `src/server/index.ts`, `rpc_access.ts`, `run-headless-browser.mjs` (pinned token reuse + env passthrough already worked).
@@ -138,6 +138,8 @@ redirect.
   404 "Return to Home" both do this today).
 - `fetch(new Request("/..."))`, URL-object fetches, `EventSource("/...")`,
   app-created `new WebSocket("/...")`, `window.open("/...")`.
+  (Same-origin *string* URLs — both root-absolute and
+  `location.origin`-prefixed — ARE covered by the shim as of v0.8.0.)
 - Static CSS `url(/...)` in files Vite does not transform.
 
 Closing these means patching yet more browser APIs (click interception,

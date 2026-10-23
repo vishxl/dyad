@@ -22,6 +22,22 @@
     if (url.startsWith("/") && !url.startsWith("//")) {
       return publicPrefixPath + url;
     }
+    // Absolute same-origin URLs (window.location.origin-prefixed paths, as
+    // maplibre transformRequest and app code build them) escape the preview
+    // prefix and land on the UI host's SPA fallback — fold them back in.
+    if (/^[a-zA-Z][a-zA-Z0-9+.-]*:\/\//.test(url)) {
+      try {
+        const u = new URL(url);
+        if (
+          u.origin === window.location.origin &&
+          !u.pathname.startsWith(publicPrefixPath)
+        ) {
+          return publicPrefixPath + u.pathname + u.search + u.hash;
+        }
+      } catch {
+        // not a parseable URL — leave it alone
+      }
+    }
     return url;
   }
 
@@ -43,7 +59,7 @@
 })();
 
 (function () {
-  console.debug("dyad-shim.js loaded via proxy v0.7.0");
+  console.debug("dyad-shim.js loaded via proxy v0.8.0");
   const isInsideIframe = window.parent !== window;
   if (!isInsideIframe) return;
 
