@@ -77,6 +77,8 @@ Share one URL: `https://<ip-with-dashes>.sslip.io`. Each teammate:
 - `/ws?token=` via Caddy → 101 Switching Protocols.
 - Real `worker/proxy_server.js` spawned in hosted mode behind Caddy: `/preview/<port>/` routed via placeholder upstream (Host rewritten to `localhost:<port>`), upstream content returned, injected SW register rewritten to the public prefix. Verify script: `.claude/tmp/verify-preview-rewrite.js` (3/3).
 - **Caddy convention:** `/preview/*` is forwarded **unrewritten** (no `rewrite` in the Caddyfile); the worker strips the prefix. The fallback preview-router forwards the full path the same way.
+  **Update (2026-10-23): in hosted mode the worker no longer strips** — when `DYAD_PREVIEW_PUBLIC_URL_BASE` is set the dev server runs Vite with matching `--base /preview/<port>/`, so the prefix must reach Vite. Stripping made Vite reject every request outside its base ("server is configured with a public base URL" 404) and left root-absolute JS module imports (`import "/src/App.tsx"`) escaping the prefix → blank preview. Desktop/dev (env unset) still strips. Related: the scaffold template's `<BrowserRouter>` now uses `basename={import.meta.env.BASE_URL}`, so generated-app routes resolve under the prefix; apps created before this change need the same one-line edit in `src/App.tsx`.
+- **Auth-gate placement:** `forward_auth` subrequests hit oauth2-proxy at a fixed `/oauth2/auth` URI, so oauth2-proxy-side path skips (`skip_auth_regex`/`skip_auth_routes`) never see the original path. To exempt a path from auth, exclude it in the **Caddy matcher** (`@authable not path /oauth2/* /preview/*`).
 
 **Manual (run on the VM after setup):**
 ```sh
