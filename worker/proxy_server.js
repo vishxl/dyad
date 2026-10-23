@@ -313,7 +313,9 @@ function needsInjection(pathname) {
 function rewriteHtmlAssetPaths(txt) {
   if (!publicPrefixPath) return txt;
   txt = String(txt); // injectHTML returns a Buffer
-  const esc = publicPrefixPath.replace(/^\//, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const esc = publicPrefixPath
+    .replace(/^\//, "")
+    .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const re = new RegExp(
     `(\\s(?:src|href|action|poster)\\s*=\\s*["'])/(?!/)(?!${esc}(?:/|["']))`,
     "gi",

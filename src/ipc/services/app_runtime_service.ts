@@ -152,11 +152,12 @@ function getPnpmRunCommand(): string {
 function buildPnpmInstallAndRunCommand(input: {
   promotedPackages: string[];
   port: number;
+  viteBase: string;
 }): string {
   return [
     getPnpmInstallCommand(),
     getBestEffortPnpmRebuildCommand(input.promotedPackages),
-    `${getPnpmRunCommand()} --port ${input.port}`,
+    `${getPnpmRunCommand()} --port ${input.port}${input.viteBase}`,
   ]
     .filter(Boolean)
     .join(" && ");
@@ -164,6 +165,25 @@ function buildPnpmInstallAndRunCommand(input: {
 
 function getNpmInstallCommand(): string {
   return "npm install --legacy-peer-deps";
+}
+
+/* Hosted mode: Vite dev servers emit root-absolute module URLs ("/src/App.tsx",
+ * "/node_modules/.vite/deps/...") that resolve against the origin root. Behind
+ * the /preview/<port> path prefix those route to the Dyad UI instead of the
+ * app, silently killing the module graph — the preview loads blank. Vite's
+ * native --base fixes HTML assets, JS imports, and HMR at once, so it's only
+ * passed to Vite apps (other dev servers reject the unknown flag).
+ * ponytail: JS fetch("/api/...") in app code still resolves root-absolute;
+ * if apps need backend calls, that wants the phase-2 per-preview subdomains. */
+function getViteBaseArg(appPath: string, appId: number): string {
+  if (!process.env.DYAD_PREVIEW_PUBLIC_URL_BASE) return "";
+  const hasVite =
+    fs.existsSync(path.join(appPath, "vite.config.ts")) ||
+    fs.existsSync(path.join(appPath, "vite.config.js")) ||
+    fs.existsSync(path.join(appPath, "vite.config.mts")) ||
+    fs.existsSync(path.join(appPath, "vite.config.mjs"));
+  if (!hasVite) return "";
+  return ` --base /preview/${getAppProxyPort(appId)}/`;
 }
 
 interface AppRuntimeCommand {
@@ -184,6 +204,7 @@ async function getDefaultCommand({
   onPnpmMinimumReleaseAgeWarning?: (message: string) => void;
 }): Promise<AppRuntimeCommand> {
   const port = getAppPort(appId);
+  const viteBase = getViteBaseArg(appPath, appId);
   if (runtimeMode === "docker") {
     const allowBuildsResult = await ensurePnpmAllowBuildsConfigured({
       appPath,
@@ -192,6 +213,7 @@ async function getDefaultCommand({
       command: buildPnpmInstallAndRunCommand({
         promotedPackages: allowBuildsResult.promotedPackages,
         port,
+        viteBase,
       }),
       isCustom: false,
       packageManager: "pnpm",
@@ -218,7 +240,7 @@ async function getDefaultCommand({
 
   if (packageManager === "npm") {
     return {
-      command: `(${getNpmInstallCommand()} && npm run dev -- --port ${port})`,
+      command: `(${getNpmInstallCommand()} && npm run dev -- --port ${port}${viteBase})`,
       isCustom: false,
       packageManager: "npm",
     };
@@ -229,6 +251,7 @@ async function getDefaultCommand({
     command: buildPnpmInstallAndRunCommand({
       promotedPackages: allowBuildsResult.promotedPackages,
       port,
+      viteBase,
     }),
     isCustom: false,
     packageManager: "pnpm",
