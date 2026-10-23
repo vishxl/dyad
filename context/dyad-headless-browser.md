@@ -538,3 +538,7 @@ User tested a generated app: it rendered CARTO basemaps ("API KEY REQUIRED" tile
 - **Map-display rule (the CARTO bug fix)** lives in the policy's "Map display (mandatory)" section: use `maplibre-gl` with `style: "https://api.nextbillion.io/maps/streets/style.json?key=<key>"` (MapLibre-compatible; embeds NB vector tiles `/tiles/v3/...`, same key) — NEVER CARTO/OSM-raster/Mapbox basemaps.
 - Deleted with zero residue: `content.ts`, `content.test.ts`, `context_packs/nextbillion/index.md`. Registry gains `policyUri` per pack; handlers call `getContextPackBlocks(packs, prompt)` → `{policy, retrieval}`; log line now `(policy N + retrieved M chars)`.
 - Tradeoff accepted by user: OpenViking server down → toggled context injects nothing (it runs locally, so this is rare). Fail-open with log.warn, chat still works.
+
+### Follow-up 3: context layer packaged as standalone repo (2026-10-21)
+
+`/Users/vishal/openviking_nb` — everything needed to recreate the layer on a fresh OpenViking install: policy source, 282-file docs corpus + concatenated copy, app-KB source, distilled index, map skill, runbook (`openviking-setup-runbook-commands-prompts.md`), ingest script. Recreate = follow the runbook top to bottom; `ov compile` used exactly once (memory consolidation, step 6). Verified live in OpenViking: policy read returns the strengthened mandatory Map-display section (maplibre-gl + NB style.json, Vite `optimizeDeps: { exclude: ["maplibre-gl"] }`, CARTO/OSM/Mapbox ban).

@@ -8,7 +8,8 @@ import { CONTEXT_PACKS, type ContextPackId } from "./registry";
  * - policy: deterministic read-by-URI every message (routing table + mandatory
  *   rules that retrieval cannot guarantee, e.g. "never use competitor basemaps"),
  * - retrieval: per-message semantic find over the vendor's full docs corpus
- *   (resources + memories + skills hits).
+ *   (resources + memories hits), plus a skills find (/api/v1/skills/find) —
+ *   skills live outside resource URIs so the plain find never surfaces them.
  *
  * Fail-open: any failure (server down, timeout, error) logs and returns "" —
  * a chat must never hang or fail on the context database.
@@ -41,6 +42,19 @@ interface VikingFindResponse {
 interface VikingReadResponse {
   status?: string;
   result?: string;
+}
+
+interface VikingSkillHit {
+  root_uri?: string;
+  skill_md_uri?: string;
+  description?: string;
+  abstract?: string;
+}
+
+interface VikingSkillsFindResponse {
+  status?: string;
+  result?: { skills?: VikingSkillHit[] };
+  error?: { message?: string };
 }
 
 export async function getContextPackRetrievalBlock(
@@ -120,6 +134,46 @@ async function readPolicyBlock(id: ContextPackId): Promise<string> {
   }
 }
 
+/** Skills live outside resource URIs (e.g. viking://user/default/skills), so
+ * the plain search/find never surfaces them — query the skills index directly.
+ * Fail-open independently so a skills hiccup never blocks resource retrieval. */
+async function findSkillHits(
+  id: ContextPackId,
+  userPrompt: string,
+): Promise<VikingFindHit[]> {
+  try {
+    const response = await fetch(`${OPENVIKING_URL}/api/v1/skills/find`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({ query: userPrompt, limit: 3 }),
+      signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      log.warn(
+        `openviking skills find for ${id} failed: HTTP ${response.status}`,
+      );
+      return [];
+    }
+    const data = (await response.json()) as VikingSkillsFindResponse;
+    if (data.status !== "ok") {
+      log.warn(
+        `openviking skills find for ${id} errored: ${data.error?.message ?? "unknown"}`,
+      );
+      return [];
+    }
+    const hits: VikingFindHit[] = [];
+    for (const hit of data.result?.skills ?? []) {
+      const content = (hit.abstract ?? "").trim().slice(0, MAX_HIT_CHARS);
+      if (content)
+        hits.push({ uri: hit.skill_md_uri ?? hit.root_uri, content });
+    }
+    return hits;
+  } catch (error) {
+    log.warn(`openviking skills find for ${id} failed (fail-open)`, error);
+    return [];
+  }
+}
+
 async function retrievePackBlock(
   id: ContextPackId,
   userPrompt: string,
@@ -127,17 +181,20 @@ async function retrievePackBlock(
   const vikingUri = CONTEXT_PACKS[id].vikingUri;
   if (!vikingUri) return "";
   try {
-    const response = await fetch(`${OPENVIKING_URL}/api/v1/search/find`, {
-      method: "POST",
-      headers: authHeaders(),
-      body: JSON.stringify({
-        query: userPrompt,
-        target_uri: vikingUri,
-        limit: HITS_PER_PACK,
-        read_content: true,
+    const [response, skillHits] = await Promise.all([
+      fetch(`${OPENVIKING_URL}/api/v1/search/find`, {
+        method: "POST",
+        headers: authHeaders(),
+        body: JSON.stringify({
+          query: userPrompt,
+          target_uri: vikingUri,
+          limit: HITS_PER_PACK,
+          read_content: true,
+        }),
+        signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
       }),
-      signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
-    });
+      findSkillHits(id, userPrompt),
+    ]);
     if (!response.ok) {
       log.warn(`openviking find for ${id} failed: HTTP ${response.status}`);
       return "";
@@ -150,9 +207,9 @@ async function retrievePackBlock(
       return "";
     }
     const hits = [
+      ...skillHits,
       ...(data.result?.resources ?? []),
       ...(data.result?.memories ?? []),
-      ...(data.result?.skills ?? []),
     ];
     const chunks = hits
       .map((hit) => {
