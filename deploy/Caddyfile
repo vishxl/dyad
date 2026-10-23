@@ -49,6 +49,14 @@
 	# set — one source of truth for the prefix.
 	# If placeholder upstreams are unsupported, use the Node fallback router
 	# (deploy/preview-router.mjs) and point this block at 127.0.0.1:8788.
+	# Redirect the slash-less preview URL to the slashed form: the dev server
+	# runs with Vite --base /preview/<port>/ and the generated app's React
+	# Router uses that as its basename — which only matches URLs that start
+	# with the basename INCLUDING the trailing slash (".../42101" renders a
+	# white page: "does not start with the basename").
+	@pv_noslash path_regexp pv_noslash ^/preview/(\d+)$
+	redir @pv_noslash {path}/ 308
+
 	@pv path_regexp pv ^/preview/(\d+)(/.*)?$
 	handle @pv {
 		reverse_proxy 127.0.0.1:{re.pv.1} {

@@ -269,6 +269,13 @@ server.on("upgrade", (request, socket, head) => {
 
 websocketServer.on("connection", (socket) => {
   browserClients.add(socket);
+  // A malformed frame (e.g. "MASK must be set" through a proxy chain) emits
+  // 'error' on this socket; without a listener Node throws and the whole
+  // headless process dies. Drop the client instead.
+  socket.on("error", (err) => {
+    console.error("[headless-ws] client socket error, dropping client", err);
+    browserClients.delete(socket);
+  });
   socket.on("close", () => {
     browserClients.delete(socket);
   });
@@ -276,6 +283,11 @@ websocketServer.on("connection", (socket) => {
     // The browser client may open a socket and keep it idle. No-op; the server
     // is event-driven and pushes only on outbound channel messages.
   });
+});
+
+// Unhandled 'error' on the server itself would also crash the process.
+websocketServer.on("error", (err) => {
+  console.error("[headless-ws] server error", err);
 });
 
 const port = Number(process.env.DYAD_HEADLESS_PORT ?? 3000);
