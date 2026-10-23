@@ -1,5 +1,49 @@
+/* ---------------------------------------------------------------------------
+ * Hosted-preview URL shim (must run before the iframe early-return below and
+ * before the app bundle): the preview page lives under /preview/<port>/, but
+ * app code that fetches root-absolute URLs — fetch("/api/...") — ignores the
+ * prefix and lands on the Dyad UI host, which answers with its SPA fallback
+ * HTML at 200 (silently breaking the feature). Patch fetch/XHR to re-add the
+ * prefix for same-origin root-absolute URLs.
+ * The prefix token below is substituted by the proxy worker at injection
+ * time ("/preview/<port>" in hosted mode, literal null on desktop/dev).
+ * ponytail: string URLs only — fetch(Request) and URL-object callers are not
+ * rewritten; add if a generated app actually needs it.
+ * ------------------------------------------------------------------------- */
 (function () {
-  console.debug("dyad-shim.js loaded via proxy v0.6.0");
+  const publicPrefixPath = __DYAD_PUBLIC_PREFIX_PATH__;
+  if (!publicPrefixPath || typeof window.fetch !== "function") return;
+
+  function publicize(url) {
+    if (typeof url !== "string") return url;
+    if (url === publicPrefixPath || url.startsWith(publicPrefixPath + "/")) {
+      return url;
+    }
+    if (url.startsWith("/") && !url.startsWith("//")) {
+      return publicPrefixPath + url;
+    }
+    return url;
+  }
+
+  const originalFetch = window.fetch;
+  window.fetch = function (input, init) {
+    if (typeof input === "string") {
+      return originalFetch.call(this, publicize(input), init);
+    }
+    return originalFetch.apply(this, arguments);
+  };
+
+  const originalOpen = XMLHttpRequest.prototype.open;
+  XMLHttpRequest.prototype.open = function () {
+    if (typeof arguments[1] === "string") {
+      arguments[1] = publicize(arguments[1]);
+    }
+    return originalOpen.apply(this, arguments);
+  };
+})();
+
+(function () {
+  console.debug("dyad-shim.js loaded via proxy v0.7.0");
   const isInsideIframe = window.parent !== window;
   if (!isInsideIframe) return;
 

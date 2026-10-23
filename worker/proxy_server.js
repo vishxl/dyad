@@ -352,7 +352,15 @@ function injectHTML(buf) {
     }
 
     if (dyadShimContent) {
-      scripts.push(`<script>${dyadShimContent}</script>`);
+      // Fill the hosted-preview URL shim's prefix (see dyad-shim.js head):
+      // null on desktop/dev, "/preview/<port>" in hosted mode.
+      const shimContent = publicPrefixPath
+        ? dyadShimContent.replace(
+            "__DYAD_PUBLIC_PREFIX_PATH__",
+            JSON.stringify(publicPrefixPath),
+          )
+        : dyadShimContent.replace("__DYAD_PUBLIC_PREFIX_PATH__", "null");
+      scripts.push(`<script>${shimContent}</script>`);
     } else {
       scripts.push(
         '<script>console.warn("[proxy-worker] dyad shim was not injected.");</script>',
@@ -451,10 +459,21 @@ function buildTargetURL(clientReq) {
   // Hosted mode: Vite apps are launched with --base <publicPrefixPath>
   // (app_runtime_service getViteBaseArg), so the prefix must be KEPT — Vite
   // rejects requests outside its base ("configured with a public base URL").
-  // Desktop/dev mode strips it so the app keeps its root-relative behavior.
+  // Exception: data requests (fetch/XHR send `sec-fetch-dest: empty`) are
+  // stripped, because server-route middleware in the app (e.g. nitro dev
+  // routes) matches unprefixed /api/* paths regardless of Vite's base — the
+  // prefixed form falls through to its HTML catch-all. Browsers always send
+  // sec-fetch-*; non-browser clients (no header) keep the prefix, matching
+  // the Vite base expectation. Desktop/dev mode strips unconditionally so
+  // the app keeps its root-relative behavior.
   // ponytail: hosted previews assume Vite apps; non-Vite apps get no --base
   // and would need a per-app strip decision if anyone ever runs one hosted.
   if (!publicUrlBase) {
+    const stripped = stripPublicPrefix(incomingPath);
+    if (stripped !== null) {
+      incomingPath = stripped;
+    }
+  } else if (clientReq.headers["sec-fetch-dest"] === "empty") {
     const stripped = stripPublicPrefix(incomingPath);
     if (stripped !== null) {
       incomingPath = stripped;
