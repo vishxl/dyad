@@ -21,6 +21,12 @@ Get from your Mac: your OpenRouter key (openrouter.ai/keys). That's the only cre
 4. Open ports — click the instance → click the **Subnet** link → click the **Default Security List** → **Add Ingress Rules**, add BOTH:
    - Source `0.0.0.0/0`, IP Protocol **TCP**, Destination Port **443**
    - Source `0.0.0.0/0`, IP Protocol **TCP**, Destination Port **80**
+     4b. Also open the VM's **own** firewall — OCI Ubuntu images ship an iptables REJECT-all (except 22) inside the instance, and the security list alone is not enough. On the VM:
+   ```bash
+   sudo iptables -I INPUT 1 -p tcp --dport 80 -j ACCEPT
+   sudo iptables -I INPUT 1 -p tcp --dport 443 -j ACCEPT
+   sudo apt -y install iptables-persistent && sudo netfilter-persistent save
+   ```
 5. Copy the **Public IP address** from the instance page.
 
 ✅ Check: on your Mac, `ssh ubuntu@123.45.67.89` — you should get in without a password prompt.
@@ -162,7 +168,7 @@ curl -s "http://127.0.0.1:1933/api/v1/content/read?uri=viking://resources/nextbi
 21. On your Mac (browser): open `https://123-45-67-89.sslip.io`
     - First load: a Google sign-in appears → sign in with an `@nextbillion.ai` account → Dyad UI loads.
 22. In Dyad: **Settings → Providers → add your OpenRouter (or other) API key** — one time, shared by everyone.
-23. Create a test app → prompt it → confirm the preview shows and its iframe URL starts with `https://123-45-67-89.sslip.io/preview/`.
+23. Create a test app → prompt it → confirm the preview shows and its iframe URL starts with `https://123-45-67-89.sslip.io/preview/` **and ends with `/`** (Caddy 308-redirects the slash-less form automatically — don't "fix" that redirect away).
 24. Langfuse check: make one chat → open https://cloud.langfuse.com → your trace appears in the project.
 25. Share with teammates: **just the URL** `https://123-45-67-89.sslip.io`. They sign in with Google (`@nextbillion.ai` only), nothing else to set up.
 
@@ -177,16 +183,17 @@ curl -s -X POST https://123-45-67-89.sslip.io/rpc/list-apps | head -c 40   # exp
 
 ## If something breaks
 
-| Symptom                                            | Fix                                                                                                                                                                                             |
-| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
-| Can't SSH                                          | Security list missing port 22 rule, or wrong IP                                                                                                                                                 |
-| Browser shows certificate error                    | First visit — wait 1-2 min for Let's Encrypt; check `journalctl -u caddy -n 30`                                                                                                                 |
-| Browser shows 502                                  | `systemctl is-active dyad-web` — if failed: `journalctl -u dyad-web -n 50`; most common fix: `cd /opt/dyad/app && npm rebuild better-sqlite3 dugite electron` then `systemctl restart dyad-web` |
-| Google sign-in error `redirect_uri_mismatch`       | The redirect URI in Google Console must be **exactly** `https://123-45-67-89.sslip.io/oauth2/callback`                                                                                          |
-| Sign-in says access denied                         | Account isn't `@nextbillion.ai` — that's the gate working                                                                                                                                       |
-| Chat asks for Mapbox/Google instead of NextBillion | Context pack toggle off in the chat bar, or corpus not ingested (redo Part G)                                                                                                                   |
-| Preview iframe blank                               | Send "restart the app" in the chat; if still blank check `journalctl -u dyad-web                                                                                                                | grep proxy-server-start` |
-| Everything stopped after VM reboot                 | They auto-start (`systemctl enable`); if not: `systemctl start caddy oauth2-proxy openviking dyad-web`                                                                                          |
+| Symptom                                            | Fix                                                                                                                                                                                                                                                                                                                                                                  |
+| -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Can't SSH                                          | Security list missing port 22 rule, or wrong IP                                                                                                                                                                                                                                                                                                                      |
+| Browser shows certificate error                    | First visit — wait 1-2 min for Let's Encrypt; check `journalctl -u caddy -n 30`                                                                                                                                                                                                                                                                                      |
+| Browser shows 502                                  | `systemctl is-active dyad-web` — if failed: `journalctl -u dyad-web -n 50`; most common fix: `cd /opt/dyad/app && npm rebuild better-sqlite3 dugite electron` then `systemctl restart dyad-web`                                                                                                                                                                      |
+| Google sign-in error `redirect_uri_mismatch`       | The redirect URI in Google Console must be **exactly** `https://123-45-67-89.sslip.io/oauth2/callback`                                                                                                                                                                                                                                                               |
+| Sign-in says access denied                         | Account isn't `@nextbillion.ai` — that's the gate working                                                                                                                                                                                                                                                                                                            |
+| Chat asks for Mapbox/Google instead of NextBillion | Context pack toggle off in the chat bar, or corpus not ingested (redo Part G)                                                                                                                                                                                                                                                                                        |
+| Preview iframe blank                               | Do a hard refresh first (stale cached bundle). Still blank? Check the four preview invariants in `context/dyad-web-deployment.md` §4: trailing-slash URL, Vite `--base`, worker keeps the prefix in hosted mode, router `basename` in `src/App.tsx`. For an app created before the basename fix, add `basename={import.meta.env.BASE_URL}` to its `<BrowserRouter>`. |
+| External ports refused despite security list       | The VM's own iptables REJECT-all (step 4b) — the accepts must exist and be persisted (`iptables -L INPUT -n --line-numbers` to verify)                                                                                                                                                                                                                               |
+| Everything stopped after VM reboot                 | They auto-start (`systemctl enable`); if not: `systemctl start caddy oauth2-proxy openviking dyad-web`                                                                                                                                                                                                                                                               |
 
 ## Two things to know
 
