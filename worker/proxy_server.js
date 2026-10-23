@@ -301,6 +301,25 @@ function needsInjection(pathname) {
   return ext === "" || ext === ".html";
 }
 
+/* Hosted mode only: rewrite root-absolute asset URLs in HTML to the public
+ * prefix. Under <base>/<port>/... the browser resolves src="/@vite/client"
+ * against the origin root, which routes to the Dyad UI instead of this app —
+ * the preview loads blank. Rewriting to "<prefix>/@vite/client" lets Caddy
+ * route back here, where stripPublicPrefix removes the prefix again.
+ * Skips protocol-relative (//) and already-prefixed paths.
+ * ponytail: HTML src/href/action/poster only — JS fetch("/api/...") and CSS
+ * url() inside external stylesheets still resolve root-absolute; if apps need
+ * those, the fix is a per-app Vite `base`, not more regex here. */
+function rewriteHtmlAssetPaths(txt) {
+  if (!publicPrefixPath) return txt;
+  const esc = publicPrefixPath.replace(/^\//, "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const re = new RegExp(
+    `(\\s(?:src|href|action|poster)\\s*=\\s*["'])/(?!/)(?!${esc}(?:/|["']))`,
+    "gi",
+  );
+  return txt.replace(re, `$1${publicPrefixPath}/`);
+}
+
 function injectHTML(buf) {
   let txt = buf.toString("utf8");
   // These are strings that were used since the first version of the dyad shim.
@@ -632,7 +651,7 @@ const server = http.createServer((clientReq, clientRes) => {
     upRes.on("end", () => {
       try {
         const merged = Buffer.concat(chunks);
-        const patched = injectHTML(merged);
+        const patched = rewriteHtmlAssetPaths(injectHTML(merged));
 
         const hdrs = {
           ...upRes.headers,
