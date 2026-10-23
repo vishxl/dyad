@@ -115,19 +115,85 @@ curl -s https://<host>/rpc/list-apps | head -1
 - **Restart wipes in-memory blueprint store** (desktop parity; reload rehydrates via `app-blueprint:get-state`).
 - **No WS event replay after page reload** for live streams (desktop parity).
 
-## 9. Phase 2 (per-user isolation) — what changes
+## 9. Preview architecture: replace the path prefix with wildcard subdomains
+
+**Status: recommended, not yet done. Take this up before phase 2.**
+
+### The root cause, stated once
+
+Every preview bug fixed so far traces to a single decision: hosting multiple
+apps on a **shared origin under path prefixes** (`/preview/<port>/`). Web
+software — dev servers, SPA routers, app code — assumes it owns the origin
+root; a path prefix violates that assumption in three independent places
+(Vite module URLs, the router's `location.pathname`, app-authored
+root-absolute URLs), and each workaround addressed one of them. The
+workarounds work but form a patch tower: `--base`, router `basename`,
+worker keep/strip-by-`sec-fetch-dest`, the fetch/XHR shim, the slash
+redirect.
+
+### What the prefix tower still does NOT cover (known gaps, audited on 2026-10-23)
+
+- Raw `<a href="/...">` and `<form action="/...">`: full-page navigations
+  escape the prefix and land on the Dyad UI (RouteLoop's header logo and
+  404 "Return to Home" both do this today).
+- `fetch(new Request("/..."))`, URL-object fetches, `EventSource("/...")`,
+  app-created `new WebSocket("/...")`, `window.open("/...")`.
+- Static CSS `url(/...)` in files Vite does not transform.
+
+Closing these means patching yet more browser APIs (click interception,
+EventSource/WebSocket patching) — diminishing returns; don't.
+
+### Recommendation
+
+Move previews to **wildcard subdomains** — `app-<port>.<real-domain>` —
+where each app owns its origin root and the entire tower becomes
+unnecessary and deletable:
+
+1. Buy a real domain (~$10/yr). sslip.io cannot do wildcard TLS cleanly:
+   Let's Encrypt rate-limits per registered domain and sslip.io is shared
+   by everyone, so per-subdomain certificate issuance is unreliable.
+2. DNS: wildcard `*.app.<domain>` → VM IP; Caddy gets a wildcard cert via
+   DNS-01 challenge (needs the domain's DNS provider API token in Caddy).
+3. Caddy: replace the `/preview/*` block with `*.app.<domain>` site block
+   proxying to `127.0.0.1:<port>` derived from the hostname (on-demand or
+   wildcard cert; host stays `localhost:<port>` via `header_up`).
+4. Delete the tower: unset/retire `DYAD_PREVIEW_PUBLIC_URL_BASE`,
+   `VITE_PREVIEW_URL_TEMPLATE` becomes `https://app-{port}.<domain>/`
+   (origin-root, no path), remove the worker prefix logic, the shim's
+   URL patch, the `--base` injection, and the slash redirect. Apps then
+   run desktop-identical: no basename needed, no fetch rewriting.
+5. Auth: `forward_auth` applies to the wildcard site block as today.
+
+What survives regardless: the `/ws` error hardening, the auth-gate
+placement rules (§7), the `X-Forwarded-Email` phase-2 plumbing, and the
+scaffold `basename={import.meta.env.BASE_URL}` (a no-op at origin root,
+harmless to keep).
+
+### Interim guidance (until subdomains land)
+
+- The current path-prefix setup works for its tested scope: page load,
+  client-side routing, `fetch`/XHR string URLs, HMR, service worker.
+- Don't add further browser-API patches to the shim; each one grows the
+  tower for a class of bug subdomains eliminate entirely.
+- A generated app that relies on the uncovered classes above (raw root-
+  absolute links, SSE, app WebSockets) needs either app-level fixes
+  (relative URLs, `import.meta.env.BASE_URL`-prefixed links) or the
+  subdomain migration.
+
+
+## 10. Phase 2 (per-user isolation) — what changes
 
 1. Consume `X-Forwarded-Email` (already forwarded by Caddy `forward_auth`) as the user identity on `/rpc` + `/ws`.
 2. Per-socket event routing: replace `broadcastToBrowserClients` fan-out with chatId/appId-scoped routing (`src/server/index.ts`).
 3. Per-user DB row scoping on apps/chats/settings; per-user provider keys.
-4. Optional: wildcard-subdomain previews (`app-N.<real-domain>`) + real DNS.
+4. Previews on wildcard subdomains per §9 (prerequisite for per-user app isolation).
 
-## 10. Rollback
+## 11. Rollback
 
 - Working version stays intact: `headless-web-port` @ `05d5b7a0` in `/Users/vishal/dyad`.
 - On the VM: stop `dyad-web.service`, check out `05d5b7a0`, restart. (The diffs are env-gated, so even `web-deploy` code without the env vars behaves identically to the rollback point.)
 
-## 11. Updating the VM's checkout
+## 12. Updating the VM's checkout
 
 The VM carries hand-maintained local config (`/etc/caddy/Caddyfile` with the hostname, `deploy/oauth2-proxy.cfg` with Google credentials) — a plain `git pull` on `/opt/dyad/app` silently no-ops or conflicts against those. Update per-file instead:
 
