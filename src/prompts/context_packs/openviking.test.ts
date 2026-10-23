@@ -64,6 +64,88 @@ describe("getContextPackRetrievalBlock (OpenViking)", () => {
     );
     expect(await getContextPackRetrievalBlock(["nextbillion"], "q")).toBe("");
   });
+
+  it("includes the full SKILL.md, not the ~300-char abstract teaser", async () => {
+    const fullSkill =
+      "---\nname: nextbillion-map\n---\n\n# Map rendering\n\n" +
+      "## URLs that must survive hosted previews\n" +
+      "Map subresources are fetched by maplibre's Web Worker: use " +
+      "`import.meta.env.BASE_URL` prefixes, never `window.location.origin`.";
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string | URL) => {
+        const u = String(url);
+        if (u.includes("/skills/find")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              status: "ok",
+              result: {
+                skills: [
+                  {
+                    name: "nextbillion-map",
+                    root_uri: "viking://user/default/skills/nextbillion-map",
+                    skill_md_uri:
+                      "viking://user/default/skills/nextbillion-map/SKILL.md",
+                    abstract: "# Map rendering with NextBillion.ai (teaser)",
+                  },
+                ],
+              },
+            }),
+          });
+        }
+        if (u.includes("SKILL.md")) {
+          return Promise.resolve(okRead(fullSkill));
+        }
+        return Promise.resolve(okEnvelope([]));
+      }),
+    );
+    const block = await getContextPackRetrievalBlock(
+      ["nextbillion"],
+      "build a route planner with a map",
+    );
+    expect(block).toContain("import.meta.env.BASE_URL");
+    expect(block).toContain("skills/nextbillion-map/SKILL.md");
+    expect(block).not.toContain("(teaser)");
+  });
+
+  it("falls back to the abstract when SKILL.md read fails", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn().mockImplementation((url: string | URL) => {
+        const u = String(url);
+        if (u.includes("/skills/find")) {
+          return Promise.resolve({
+            ok: true,
+            status: 200,
+            json: async () => ({
+              status: "ok",
+              result: {
+                skills: [
+                  {
+                    name: "s",
+                    root_uri: "viking://user/default/skills/s",
+                    skill_md_uri: "viking://user/default/skills/s/SKILL.md",
+                    abstract: "abstract fallback body",
+                  },
+                ],
+              },
+            }),
+          });
+        }
+        if (u.includes("SKILL.md")) {
+          return Promise.resolve({ ok: false, status: 500 });
+        }
+        return Promise.resolve(okEnvelope([]));
+      }),
+    );
+    const block = await getContextPackRetrievalBlock(
+      ["nextbillion"],
+      "anything with a map",
+    );
+    expect(block).toContain("abstract fallback body");
+  });
 });
 
 describe("getPolicyBlock (OpenViking read-by-URI)", () => {

@@ -137,6 +137,38 @@ async function readPolicyBlock(id: ContextPackId): Promise<string> {
 /** Skills live outside resource URIs (e.g. viking://user/default/skills), so
  * the plain search/find never surfaces them — query the skills index directly.
  * Fail-open independently so a skills hiccup never blocks resource retrieval. */
+
+/** ponytail: full skill markdown capped at 8000 chars — curated by us, and a
+ * sliced skill rule is worse than no skill (the model follows only what it
+ * sees). Raise if skills grow. */
+const SKILL_MAX_CHARS = 8000;
+
+async function readSkillContent(
+  uri: string,
+  fallback: string,
+): Promise<string> {
+  try {
+    const response = await fetch(
+      `${OPENVIKING_URL}/api/v1/content/read?uri=${encodeURIComponent(uri)}&raw=true`,
+      {
+        headers: authHeaders(),
+        signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
+      },
+    );
+    if (response.ok) {
+      const data = (await response.json()) as VikingReadResponse;
+      const content =
+        data.status === "ok" && typeof data.result === "string"
+          ? data.result.trim().slice(0, SKILL_MAX_CHARS)
+          : "";
+      if (content) return content;
+    }
+  } catch {
+    // fail-open to the abstract teaser below
+  }
+  return fallback.trim().slice(0, MAX_HIT_CHARS);
+}
+
 async function findSkillHits(
   id: ContextPackId,
   userPrompt: string,
@@ -163,9 +195,13 @@ async function findSkillHits(
     }
     const hits: VikingFindHit[] = [];
     for (const hit of data.result?.skills ?? []) {
-      const content = (hit.abstract ?? "").trim().slice(0, MAX_HIT_CHARS);
-      if (content)
-        hits.push({ uri: hit.skill_md_uri ?? hit.root_uri, content });
+      // The find result's `abstract` is a ~300-char teaser; the skill's
+      // mandatory rules (the reason the skill matched at all) live in
+      // SKILL.md. Read the full content; fall back to the teaser.
+      const uri = hit.skill_md_uri ?? hit.root_uri;
+      if (!uri) continue;
+      const content = await readSkillContent(uri, hit.abstract ?? "");
+      if (content) hits.push({ uri, content });
     }
     return hits;
   } catch (error) {
