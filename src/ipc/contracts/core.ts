@@ -438,6 +438,18 @@ export function createBrowserIpcBridge(options?: {
   };
 
   const invokeRaw = async (channel: string, input: unknown) => {
+    // In a browser there is no OS shell to hand the URL to — the server's
+    // headless shell shim is a no-op (src/server/electron-shim.ts). Open the
+    // URL in the viewer's own browser instead. http(s) only: the desktop
+    // handler enforces the same restriction.
+    if (
+      channel === "open-external-url" &&
+      typeof input === "string" &&
+      /^https?:\/\//.test(input)
+    ) {
+      window.open(input, "_blank", "noopener");
+      return undefined;
+    }
     const response = await fetch(
       `${getOrigin()}/rpc/${encodeURIComponent(channel)}`,
       {

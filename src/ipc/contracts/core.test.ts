@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
 import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
 import {
+  createBrowserIpcBridge,
   createClient,
   createIpcErrorEnvelope,
   createIpcSuccessEnvelope,
@@ -524,5 +525,54 @@ describe("IPC JSON Date transport (browser mode)", () => {
     };
     expect(revived.__dyadDate).toBe("2026-10-07T09:10:44.000Z");
     expect(revived.extra).toBe(1);
+  });
+});
+
+describe("createBrowserIpcBridge open-external-url", () => {
+  afterEach(() => vi.unstubAllGlobals());
+
+  it("opens the URL in the viewer's browser, not the no-op server shim", async () => {
+    const open = vi.fn();
+    const fetchMock = vi.fn();
+    vi.stubGlobal("window", {
+      open,
+      location: { origin: "https://dyad.example" },
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const bridge = createBrowserIpcBridge();
+    await bridge.invoke("open-external-url", "https://example.com/docs");
+    expect(open).toHaveBeenCalledWith(
+      "https://example.com/docs",
+      "_blank",
+      "noopener",
+    );
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it("passes non-http URLs through to the server handler and routes other channels over RPC", async () => {
+    const open = vi.fn();
+    vi.stubGlobal("window", {
+      open,
+      location: { origin: "https://dyad.example" },
+    });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({}),
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    const bridge = createBrowserIpcBridge();
+
+    // The desktop handler rejects non-http URLs server-side; the bridge must
+    // not silently open them either way.
+    await bridge.invoke("open-external-url", "file:///etc/passwd");
+    expect(open).not.toHaveBeenCalled();
+    expect(String(fetchMock.mock.calls[0][0])).toContain(
+      "/rpc/open-external-url",
+    );
+
+    await bridge.invoke("some-other-channel", { a: 1 });
+    expect(String(fetchMock.mock.calls[1][0])).toContain(
+      "/rpc/some-other-channel",
+    );
   });
 });
