@@ -29,7 +29,7 @@ export const CONTEXT_PACKS: Record<
     vikingUri: "viking://resources/nextbillion-docs",
   },
   stripi: {
-    name: "Stripi Design",
+    name: "NB Design",
     policyUri: "viking://resources/stripi-policy/index.md",
     // no vikingUri — full spec is in the per-message policy; no retrieval
   },
