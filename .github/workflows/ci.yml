@@ -404,7 +404,7 @@ jobs:
       - name: Extract macOS app bundle
         run: tar -xf out-macos.tar
       - name: Safe storage keychain identity tests
-        run: DYAD_E2E_SAFE_STORAGE=1 npx playwright test e2e-tests/safe_storage_keychain_identity.spec.ts --workers=1
+        run: NEXTBILLION_E2E_SAFE_STORAGE=1 npx playwright test e2e-tests/safe_storage_keychain_identity.spec.ts --workers=1
       - name: Upload Playwright report
         # In CI the reporter is "blob" (blob-report/) and traces/screenshots are
         # retained under test-results/ on failure; there is no playwright-report/.

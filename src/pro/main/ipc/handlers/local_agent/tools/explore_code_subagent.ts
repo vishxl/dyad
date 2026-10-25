@@ -15,7 +15,10 @@ import {
 } from "@/ipc/utils/stream_text_utils";
 import { getMaxTokens, getTemperature } from "@/ipc/utils/token_utils";
 import type { UserSettings } from "@/lib/schemas";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { grepTool } from "./grep";
 import { listFilesTool } from "./list_files";
 import { readFileTool } from "./read_file";
@@ -116,7 +119,7 @@ export async function runExploreCodeSubagent({
     ctx.chatId,
     ctx.inferenceSettings,
   );
-  assertDyadValueAvailable(storedSettings);
+  assertNextBillionValueAvailable(storedSettings);
   const selectedModel = await resolveModelSelection({
     model: SUBAGENT_MODEL,
     preferredEffortLevel:
@@ -145,7 +148,7 @@ export async function runExploreCodeSubagent({
   let explainBounceUsed = false;
   // Set only when a report is finally accepted (not on a bounced submit_report).
   // Used to stop the agent loop right after acceptance so the AI SDK does not
-  // spend an extra Dyad Engine step feeding the "Report accepted." tool result
+  // spend an extra NextBillion Engine step feeding the "Report accepted." tool result
   // back to the model (which could also run more read-only tools post-report).
   let reportFinalized = false;
 
@@ -193,9 +196,9 @@ export async function runExploreCodeSubagent({
         builtinProviderId: modelInfo.modelClient.builtinProviderId,
       }),
       providerOptions: getProviderOptions({
-        dyadAppId: ctx.appId,
-        dyadRequestId: ctx.dyadRequestId,
-        dyadDisableFiles: true,
+        nextBillionAppId: ctx.appId,
+        nextBillionRequestId: ctx.nextBillionRequestId,
+        nextBillionDisableFiles: true,
         files: [],
         mentionedAppsCodebases: [],
         builtinProviderId: modelInfo.modelClient.builtinProviderId,
@@ -373,11 +376,14 @@ function renderFinalReport({
   });
 }
 
-function assertDyadValueAvailable(settings: UserSettings): void {
-  if (!settings.enableDyadPro || !settings.providerSettings?.auto?.apiKey) {
-    throw new DyadError(
-      "explore_code sub-agent requires Dyad Pro with an auto provider API key",
-      DyadErrorKind.Precondition,
+function assertNextBillionValueAvailable(settings: UserSettings): void {
+  if (
+    !settings.enableNextBillionPro ||
+    !settings.providerSettings?.auto?.apiKey
+  ) {
+    throw new NextBillionError(
+      "explore_code sub-agent requires NextBillion Pro with an auto provider API key",
+      NextBillionErrorKind.Precondition,
     );
   }
 }

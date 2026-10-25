@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Loader2, CheckCircle2, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ImageLightbox } from "@/components/chat/ImageLightbox";
-import { buildDyadMediaUrlForApp } from "@/lib/dyadMediaUrl";
+import { buildNextBillionMediaUrlForApp } from "@/lib/nextBillionMediaUrl";
 import type { ImageGenerationResultView } from "@/ipc/types";
 
 const GENERATING_TOAST_ID = "image-gen-progress";
@@ -73,7 +73,10 @@ export function ImageSuccessToast({
   getPendingCount: () => number;
 }) {
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
-  const imageUrl = buildDyadMediaUrlForApp(result.appId, result.fileName);
+  const imageUrl = buildNextBillionMediaUrlForApp(
+    result.appId,
+    result.fileName,
+  );
 
   return (
     <>

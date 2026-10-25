@@ -1,6 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { z } from "zod";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   createBrowserIpcBridge,
   createClient,
@@ -91,45 +94,50 @@ describe("IPC invoke envelopes", () => {
     delete (window as any).electron;
   });
 
-  it("serializes and deserializes DyadError kind", () => {
+  it("serializes and deserializes NextBillionError kind", () => {
     const serialized = serializeIpcError(
-      new DyadError("Name already exists", DyadErrorKind.Conflict),
+      new NextBillionError(
+        "Name already exists",
+        NextBillionErrorKind.Conflict,
+      ),
     );
 
     const deserialized = deserializeIpcError(serialized);
 
-    expect(deserialized).toBeInstanceOf(DyadError);
-    expect((deserialized as DyadError).kind).toBe(DyadErrorKind.Conflict);
+    expect(deserialized).toBeInstanceOf(NextBillionError);
+    expect((deserialized as NextBillionError).kind).toBe(
+      NextBillionErrorKind.Conflict,
+    );
     expect(deserialized.message).toBe("Name already exists");
   });
 
-  it("preserves custom DyadError names and codes through a round trip", () => {
-    const error = new DyadError(
+  it("preserves custom NextBillionError names and codes through a round trip", () => {
+    const error = new NextBillionError(
       "A rebase is already in progress",
-      DyadErrorKind.Precondition,
-    ) as DyadError & { code: string };
+      NextBillionErrorKind.Precondition,
+    ) as NextBillionError & { code: string };
     error.name = "GitStateError";
     error.code = "REBASE_IN_PROGRESS";
 
     const deserialized = deserializeIpcError(serializeIpcError(error));
 
-    expect(deserialized).toBeInstanceOf(DyadError);
+    expect(deserialized).toBeInstanceOf(NextBillionError);
     expect(deserialized).toMatchObject({
       name: "GitStateError",
       code: "REBASE_IN_PROGRESS",
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
       message: "A rebase is already in progress",
     });
   });
 
-  it("deserializes plain errors without treating them as DyadError", () => {
+  it("deserializes plain errors without treating them as NextBillionError", () => {
     const deserialized = deserializeIpcError({
       name: "TypeError",
       message: "Boom",
     });
 
     expect(deserialized).toBeInstanceOf(Error);
-    expect(deserialized).not.toBeInstanceOf(DyadError);
+    expect(deserialized).not.toBeInstanceOf(NextBillionError);
     expect(deserialized.name).toBe("TypeError");
     expect(deserialized.message).toBe("Boom");
   });
@@ -152,12 +160,15 @@ describe("IPC invoke envelopes", () => {
     expect(invokeEnvelope).toHaveBeenCalledWith("answer", {});
   });
 
-  it("rethrows DyadError envelopes from generated clients", async () => {
+  it("rethrows NextBillionError envelopes from generated clients", async () => {
     const invokeEnvelope = vi
       .fn()
       .mockResolvedValue(
         createIpcErrorEnvelope(
-          new DyadError("No matching app", DyadErrorKind.NotFound),
+          new NextBillionError(
+            "No matching app",
+            NextBillionErrorKind.NotFound,
+          ),
         ),
       );
     (window as any).electron = { ipcRenderer: { invokeEnvelope } };
@@ -171,8 +182,8 @@ describe("IPC invoke envelopes", () => {
     });
 
     await expect(client.load({})).rejects.toMatchObject({
-      name: "DyadError",
-      kind: DyadErrorKind.NotFound,
+      name: "NextBillionError",
+      kind: NextBillionErrorKind.NotFound,
       message: "No matching app",
     });
   });
@@ -518,12 +529,12 @@ describe("IPC JSON Date transport (browser mode)", () => {
   });
 
   it("revives only single-key tagged objects", () => {
-    const notATag = { __dyadDate: "2026-10-07T09:10:44.000Z", extra: 1 };
+    const notATag = { __nextBillionDate: "2026-10-07T09:10:44.000Z", extra: 1 };
     const revived = reviveIpcDates(notATag) as {
-      __dyadDate: string;
+      __nextBillionDate: string;
       extra: number;
     };
-    expect(revived.__dyadDate).toBe("2026-10-07T09:10:44.000Z");
+    expect(revived.__nextBillionDate).toBe("2026-10-07T09:10:44.000Z");
     expect(revived.extra).toBe(1);
   });
 });
@@ -536,7 +547,7 @@ describe("createBrowserIpcBridge open-external-url", () => {
     const fetchMock = vi.fn();
     vi.stubGlobal("window", {
       open,
-      location: { origin: "https://dyad.example" },
+      location: { origin: "https://nextbillion.example" },
     });
     vi.stubGlobal("fetch", fetchMock);
     const bridge = createBrowserIpcBridge();
@@ -553,7 +564,7 @@ describe("createBrowserIpcBridge open-external-url", () => {
     const open = vi.fn();
     vi.stubGlobal("window", {
       open,
-      location: { origin: "https://dyad.example" },
+      location: { origin: "https://nextbillion.example" },
     });
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,

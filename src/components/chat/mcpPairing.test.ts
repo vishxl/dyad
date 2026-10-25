@@ -6,18 +6,18 @@ import { parseFullMessage } from "@/lib/streamingMessageParser";
 // for two parallel tools: callA, callB, then results in completion order.
 function outOfOrderBlocks() {
   const xml = [
-    `<dyad-mcp-tool-call server="s" tool="slow" call-id="A">`,
+    `<nextbillion-mcp-tool-call server="s" tool="slow" call-id="A">`,
     `{"a":1}`,
-    `</dyad-mcp-tool-call>`,
-    `<dyad-mcp-tool-call server="s" tool="fast" call-id="B">`,
+    `</nextbillion-mcp-tool-call>`,
+    `<nextbillion-mcp-tool-call server="s" tool="fast" call-id="B">`,
     `{"b":2}`,
-    `</dyad-mcp-tool-call>`,
-    `<dyad-mcp-tool-result server="s" tool="fast" call-id="B">`,
+    `</nextbillion-mcp-tool-call>`,
+    `<nextbillion-mcp-tool-result server="s" tool="fast" call-id="B">`,
     `fastresult`,
-    `</dyad-mcp-tool-result>`,
-    `<dyad-mcp-tool-result server="s" tool="slow" call-id="A">`,
+    `</nextbillion-mcp-tool-result>`,
+    `<nextbillion-mcp-tool-result server="s" tool="slow" call-id="A">`,
     `slowresult`,
-    `</dyad-mcp-tool-result>`,
+    `</nextbillion-mcp-tool-result>`,
   ].join("\n");
   return parseFullMessage(xml).blocks;
 }
@@ -33,9 +33,9 @@ describe("buildMcpPairing", () => {
 
   it("leaves a call unpaired when its result has not arrived yet", () => {
     const xml = [
-      `<dyad-mcp-tool-call server="s" tool="slow" call-id="A">`,
+      `<nextbillion-mcp-tool-call server="s" tool="slow" call-id="A">`,
       `{"a":1}`,
-      `</dyad-mcp-tool-call>`,
+      `</nextbillion-mcp-tool-call>`,
     ].join("\n");
     const pairing = buildMcpPairing(parseFullMessage(xml).blocks);
 
@@ -47,9 +47,9 @@ describe("buildMcpPairing", () => {
     // A result whose call block is absent must stay visible: the renderer hides
     // a result only when callIds contains its call-id.
     const xml = [
-      `<dyad-mcp-tool-result server="s" tool="orphan" call-id="Z">`,
+      `<nextbillion-mcp-tool-result server="s" tool="orphan" call-id="Z">`,
       `orphaned`,
-      `</dyad-mcp-tool-result>`,
+      `</nextbillion-mcp-tool-result>`,
     ].join("\n");
     const pairing = buildMcpPairing(parseFullMessage(xml).blocks);
 
@@ -59,12 +59,12 @@ describe("buildMcpPairing", () => {
 
   it("ignores legacy blocks without a call-id", () => {
     const xml = [
-      `<dyad-mcp-tool-call server="s" tool="t">`,
+      `<nextbillion-mcp-tool-call server="s" tool="t">`,
       `{"a":1}`,
-      `</dyad-mcp-tool-call>`,
-      `<dyad-mcp-tool-result server="s" tool="t">`,
+      `</nextbillion-mcp-tool-call>`,
+      `<nextbillion-mcp-tool-result server="s" tool="t">`,
       `r`,
-      `</dyad-mcp-tool-result>`,
+      `</nextbillion-mcp-tool-result>`,
     ].join("\n");
     const pairing = buildMcpPairing(parseFullMessage(xml).blocks);
 

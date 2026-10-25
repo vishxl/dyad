@@ -50,7 +50,7 @@ export function HomeChatInput({
   }); // eslint-disable-line @typescript-eslint/no-unused-vars
   useChatModeToggle();
   const { userBudget } = useUserBudgetInfo();
-  const isProEnabled = !!userBudget && !!settings?.enableDyadPro;
+  const isProEnabled = !!userBudget && !!settings?.enableNextBillionPro;
 
   const handleTranscription = useCallback(
     (text: string) => {
@@ -77,7 +77,7 @@ export function HomeChatInput({
   ]);
   const placeholder = selectedApp
     ? `Send a message to ${selectedApp.name}...`
-    : `Ask Dyad to build ${typingText ?? ""}`;
+    : `Ask NextBillion to build ${typingText ?? ""}`;
 
   // Use the attachments hook
   const {

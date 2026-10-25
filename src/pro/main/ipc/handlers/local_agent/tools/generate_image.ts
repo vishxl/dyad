@@ -10,9 +10,12 @@ import {
   escapeXmlContent,
 } from "./types";
 import { engineFetch } from "./engine_fetch";
-import { DYAD_MEDIA_DIR_NAME } from "@/ipc/utils/media_path_utils";
+import { NEXTBILLION_MEDIA_DIR_NAME } from "@/ipc/utils/media_path_utils";
 import { ImageGenerationApiResponseSchema } from "@/ipc/types/image_generation";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const logger = log.scope("generate_image");
 
@@ -24,7 +27,7 @@ const generateImageSchema = z.object({
     ),
 });
 
-const DESCRIPTION = `Generate an image using AI based on a text prompt. The generated image is saved to the project's .dyad/media directory.
+const DESCRIPTION = `Generate an image using AI based on a text prompt. The generated image is saved to the project's .nextbillion/media directory.
 
 ### When to Use
 - User requests a custom image, illustration, icon, or graphic for their app
@@ -44,12 +47,12 @@ Write detailed, descriptive prompts. Be specific about:
 - "Professional product photography of a sleek smartphone on a marble surface, soft studio lighting, shallow depth of field, warm neutral tones"
 
 ### After Generation
-The tool returns the file path in .dyad/media. Use the copy_file tool to copy it to the appropriate location in the project (e.g., public/assets/) and reference that path in your code.
+The tool returns the file path in .nextbillion/media. Use the copy_file tool to copy it to the appropriate location in the project (e.g., public/assets/) and reference that path in your code.
 `;
 
 async function callGenerateImage(
   prompt: string,
-  ctx: Pick<AgentContext, "dyadRequestId" | "abortSignal">,
+  ctx: Pick<AgentContext, "nextBillionRequestId" | "abortSignal">,
 ): Promise<z.infer<typeof ImageGenerationApiResponseSchema>["data"][number]> {
   const response = await engineFetch(ctx, "/images/generations", {
     method: "POST",
@@ -69,9 +72,9 @@ async function callGenerateImage(
   const data = ImageGenerationApiResponseSchema.parse(await response.json());
 
   if (!data.data || data.data.length === 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Image generation returned no results",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 
@@ -82,14 +85,14 @@ async function saveGeneratedImage(
   imageData: z.infer<typeof ImageGenerationApiResponseSchema>["data"][number],
   appPath: string,
 ): Promise<string> {
-  const mediaDir = path.join(appPath, DYAD_MEDIA_DIR_NAME);
+  const mediaDir = path.join(appPath, NEXTBILLION_MEDIA_DIR_NAME);
   await fs.mkdir(mediaDir, { recursive: true });
 
   const hash = crypto.randomBytes(8).toString("hex");
   const timestamp = Date.now();
   const fileName = `generated-${timestamp}-${hash}.png`;
   const filePath = path.join(mediaDir, fileName);
-  const relativePath = path.join(DYAD_MEDIA_DIR_NAME, fileName);
+  const relativePath = path.join(NEXTBILLION_MEDIA_DIR_NAME, fileName);
 
   if (imageData.b64_json) {
     const buffer = Buffer.from(imageData.b64_json, "base64");
@@ -97,17 +100,17 @@ async function saveGeneratedImage(
   } else if (imageData.url) {
     const response = await fetch(imageData.url);
     if (!response.ok) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to download generated image: ${response.status}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
     const arrayBuffer = await response.arrayBuffer();
     await fs.writeFile(filePath, Buffer.from(arrayBuffer));
   } else {
-    throw new DyadError(
+    throw new NextBillionError(
       "Image generation returned no image data",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 
@@ -124,7 +127,7 @@ export const generateImageTool: ToolDefinition<
   modifiesState: true,
   usesEngineEndpoint: true,
 
-  isEnabled: (ctx) => ctx.isDyadPro,
+  isEnabled: (ctx) => ctx.isNextBillionPro,
 
   getConsentPreview: (args) => `Generate image: "${args.prompt}"`,
 
@@ -134,14 +137,14 @@ export const generateImageTool: ToolDefinition<
   buildXml: (args, isComplete) => {
     if (!args.prompt) return undefined;
     if (isComplete) return undefined;
-    return `<dyad-image-generation prompt="${escapeXmlAttr(args.prompt)}">`;
+    return `<nextbillion-image-generation prompt="${escapeXmlAttr(args.prompt)}">`;
   },
 
   execute: async (args, ctx: AgentContext) => {
     logger.log(`Executing image generation with prompt: ${args.prompt}`);
 
     ctx.onXmlStream(
-      `<dyad-image-generation prompt="${escapeXmlAttr(args.prompt)}">`,
+      `<nextbillion-image-generation prompt="${escapeXmlAttr(args.prompt)}">`,
     );
 
     try {
@@ -150,7 +153,7 @@ export const generateImageTool: ToolDefinition<
       const relativePath = await saveGeneratedImage(imageData, ctx.appPath);
 
       ctx.onXmlComplete(
-        `<dyad-image-generation prompt="${escapeXmlAttr(args.prompt)}" path="${escapeXmlAttr(relativePath)}">${escapeXmlContent(relativePath)}</dyad-image-generation>`,
+        `<nextbillion-image-generation prompt="${escapeXmlAttr(args.prompt)}" path="${escapeXmlAttr(relativePath)}">${escapeXmlContent(relativePath)}</nextbillion-image-generation>`,
       );
 
       logger.log(`Image generation completed, saved to: ${relativePath}`);
@@ -158,7 +161,7 @@ export const generateImageTool: ToolDefinition<
       return `Image generated and saved to: ${relativePath}\nUse the copy_file tool to copy it from "${relativePath}" to the appropriate location in the project (e.g., public/assets/), then reference the copied path in your code.`;
     } catch (error) {
       ctx.onXmlComplete(
-        `<dyad-image-generation prompt="${escapeXmlAttr(args.prompt)}"></dyad-image-generation>`,
+        `<nextbillion-image-generation prompt="${escapeXmlAttr(args.prompt)}"></nextbillion-image-generation>`,
       );
       throw error;
     }

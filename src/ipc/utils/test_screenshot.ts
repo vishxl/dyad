@@ -119,7 +119,7 @@ async function resolveContainedArtifact(
  * Read a Playwright failure screenshot as a PNG data URL, enforcing the same
  * containment guards as the `tests:screenshot` IPC handler: PNG-only, resolved
  * through symlinks, and inside the app's `test-results/` directory. Returns
- * null if the path is missing, not a PNG, or escapes both the app and Dyad's
+ * null if the path is missing, not a PNG, or escapes both the app and NextBillion's
  * retained per-run artifact root.
  *
  * Shared by the IPC handler (renderer thumbnails) and the agent's run_tests

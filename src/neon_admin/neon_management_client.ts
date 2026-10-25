@@ -5,7 +5,10 @@ import { Api, createApiClient } from "@neondatabase/api-client";
 import log from "electron-log";
 import { IS_TEST_BUILD } from "../ipc/utils/test_utils";
 import { fetchWithRetry } from "../ipc/utils/retryWithRateLimit";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { getNeonErrorMessage } from "./neon_errors";
 
 const logger = log.scope("neon_management_client");
@@ -41,9 +44,9 @@ async function refreshNeonTokenOnce(): Promise<void> {
   }
 
   if (!refreshToken) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Neon refresh token not found. Please authenticate first.",
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -64,9 +67,9 @@ async function refreshNeonTokenOnce(): Promise<void> {
     );
 
     if (!response.ok) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Token refresh failed: ${response.statusText}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
@@ -366,9 +369,9 @@ export async function getNeonClient(): Promise<Api<unknown>> {
   const expiresIn = settings.neon?.expiresIn;
 
   if (!neonAccessToken) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Neon access token not found. Please authenticate first.",
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -380,9 +383,9 @@ export async function getNeonClient(): Promise<Api<unknown>> {
     const newAccessToken = updatedSettings.neon?.accessToken?.value;
 
     if (!newAccessToken) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Failed to refresh Neon access token",
-        DyadErrorKind.Auth,
+        NextBillionErrorKind.Auth,
       );
     }
 
@@ -401,7 +404,7 @@ export async function getNeonClient(): Promise<Api<unknown>> {
 // Overridable so benchmarks/tests can point the management client at a local
 // Neon API stand-in; undefined preserves the SDK default (console.neon.tech).
 function getNeonApiBaseUrl(): string | undefined {
-  return process.env.DYAD_NEON_API_BASE_URL || undefined;
+  return process.env.NEXTBILLION_NEON_API_BASE_URL || undefined;
 }
 
 /**
@@ -421,9 +424,9 @@ export async function getNeonOrganizationId(): Promise<string> {
       !response.data?.organizations ||
       response.data.organizations.length === 0
     ) {
-      throw new DyadError(
+      throw new NextBillionError(
         "No organizations found for this Neon account",
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
 
@@ -431,9 +434,9 @@ export async function getNeonOrganizationId(): Promise<string> {
     return response.data.organizations[0].id;
   } catch (error) {
     logger.error("Error fetching Neon organizations:", error);
-    throw new DyadError(
+    throw new NextBillionError(
       "Failed to fetch Neon organizations",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 }

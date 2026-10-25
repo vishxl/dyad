@@ -1,3 +1,4 @@
+import "./lib/legacy-env.mjs";
 import { spawn, spawnSync } from "node:child_process";
 import crypto from "node:crypto";
 import path from "node:path";
@@ -40,24 +41,25 @@ launch();
 function launch() {
   // Per-launch shared secret guarding /rpc and /ws: the server requires it,
   // Vite exposes it to the renderer bridge as VITE_RPC_TOKEN. Override with
-  // DYAD_RPC_TOKEN; unset DYAD_RPC_TOKEN entirely in the server's env to
+  // NEXTBILLION_RPC_TOKEN; unset NEXTBILLION_RPC_TOKEN entirely in the server's env to
   // disable token checks (origin allowlist stays active).
   const rpcToken =
-    process.env.DYAD_RPC_TOKEN || crypto.randomUUID().replace(/-/g, "");
+    process.env.NEXTBILLION_RPC_TOKEN || crypto.randomUUID().replace(/-/g, "");
 
-  const serverPort = Number(process.env.DYAD_HEADLESS_PORT ?? 3000);
-  const vitePort = Number(process.env.DYAD_HEADLESS_VITE_PORT ?? 4173);
+  const serverPort = Number(process.env.NEXTBILLION_HEADLESS_PORT ?? 3000);
+  const vitePort = Number(process.env.NEXTBILLION_HEADLESS_VITE_PORT ?? 4173);
 
   const server = spawn(process.execPath, [serverEntry], {
     cwd,
     env: {
       ...process.env,
       NODE_ENV: process.env.NODE_ENV || "development",
-      DYAD_DATA_DIR: process.env.DYAD_DATA_DIR || path.join(cwd, "userData"),
-      DYAD_RPC_TOKEN: rpcToken,
-      DYAD_HEADLESS_PORT: String(serverPort),
-      DYAD_RPC_ALLOWED_ORIGINS:
-        process.env.DYAD_RPC_ALLOWED_ORIGINS ||
+      NEXTBILLION_DATA_DIR:
+        process.env.NEXTBILLION_DATA_DIR || path.join(cwd, "userData"),
+      NEXTBILLION_RPC_TOKEN: rpcToken,
+      NEXTBILLION_HEADLESS_PORT: String(serverPort),
+      NEXTBILLION_RPC_ALLOWED_ORIGINS:
+        process.env.NEXTBILLION_RPC_ALLOWED_ORIGINS ||
         [`http://127.0.0.1:${vitePort}`, `http://localhost:${vitePort}`].join(
           ",",
         ),
@@ -84,7 +86,8 @@ function launch() {
         NODE_ENV: process.env.NODE_ENV || "development",
         VITE_BROWSER_IPC: "1",
         VITE_RPC_TOKEN: rpcToken,
-        DYAD_DATA_DIR: process.env.DYAD_DATA_DIR || path.join(cwd, "userData"),
+        NEXTBILLION_DATA_DIR:
+          process.env.NEXTBILLION_DATA_DIR || path.join(cwd, "userData"),
       },
       stdio: "inherit",
     },

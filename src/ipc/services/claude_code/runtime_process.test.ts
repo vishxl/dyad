@@ -13,7 +13,7 @@ vi.mock("node:fs/promises", async (original) => ({
 }));
 import { runClaudeTurn, safeClaudeDiagnostic } from "./runtime";
 import { getClaudeUsageLimits, setClaudeUsageAccount } from "./usage_limits";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 
 function child() {
   return Object.assign(new EventEmitter(), {
@@ -106,7 +106,7 @@ it("shows a Claude Code OAuth refresh error from the CLI stream", async () => {
   await expect(running).rejects.toMatchObject({
     message:
       "Claude Code: Failed to refresh OAuth token: another Claude Code process is refreshing it or exited mid-refresh. This is usually transient; retry in a minute, and if it persists close other Claude Code processes or sign in again",
-    kind: DyadErrorKind.Precondition,
+    kind: NextBillionErrorKind.Precondition,
   });
 });
 
@@ -152,7 +152,7 @@ it("keeps the generic exit message when the CLI reports no detail", async () => 
   spawned.emit("close", 1);
   await expect(running).rejects.toMatchObject({
     message: expect.stringContaining("Claude Code exited (1)"),
-    kind: DyadErrorKind.External,
+    kind: NextBillionErrorKind.External,
   });
 });
 

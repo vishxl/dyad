@@ -21,10 +21,10 @@ export function getExploreCodeAvailabilityForAppPath(
   reason: string | null;
   tsconfigPath: string | null;
 } {
-  if (!ctx.isDyadPro) {
+  if (!ctx.isNextBillionPro) {
     return {
       enabled: false,
-      reason: "dyad_pro_required",
+      reason: "nextbillion_pro_required",
       tsconfigPath: null,
     };
   }

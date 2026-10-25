@@ -32,7 +32,7 @@ async function waitForGeneration(po: PageObject) {
   ).toBeVisible({ timeout: Timeout.MEDIUM });
 }
 
-async function launchDyadWithProfile({
+async function launchNextBillionWithProfile({
   userDataDir,
   fakeLlmPort,
   testInfo,
@@ -61,7 +61,7 @@ async function launchDyadWithProfile({
   return { electronApp, po };
 }
 
-async function closeDyad(electronApp: ElectronApplication) {
+async function closeNextBillion(electronApp: ElectronApplication) {
   await terminateElectronApp(electronApp);
 }
 
@@ -332,13 +332,13 @@ baseTest(
     const fakeLlmPort = FAKE_LLM_BASE_PORT + testInfo.parallelIndex;
     const userDataDir = path.join(
       os.tmpdir(),
-      `dyad-e2e-durable-queue-${testInfo.parallelIndex}-${Date.now()}`,
+      `nextbillion-e2e-durable-queue-${testInfo.parallelIndex}-${Date.now()}`,
     );
     const queuedPrompts = ["durable queued one", "durable queued two"];
     let activeApp: ElectronApplication | undefined;
 
     try {
-      const firstSession = await launchDyadWithProfile({
+      const firstSession = await launchNextBillionWithProfile({
         userDataDir,
         fakeLlmPort,
         testInfo,
@@ -358,10 +358,10 @@ baseTest(
         firstSession.po.page.getByTestId("queue-header"),
       ).toContainText("2 Queued");
 
-      await closeDyad(firstSession.electronApp);
+      await closeNextBillion(firstSession.electronApp);
       activeApp = undefined;
 
-      const secondSession = await launchDyadWithProfile({
+      const secondSession = await launchNextBillionWithProfile({
         userDataDir,
         fakeLlmPort,
         testInfo,
@@ -382,7 +382,7 @@ baseTest(
         ).toBeVisible();
       }
     } finally {
-      if (activeApp) await closeDyad(activeApp);
+      if (activeApp) await closeNextBillion(activeApp);
       await fs.promises.rm(userDataDir, { recursive: true, force: true });
     }
   },

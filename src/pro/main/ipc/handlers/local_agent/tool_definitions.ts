@@ -109,7 +109,10 @@ import {
 import type { AgentToolConsent } from "@/lib/schemas";
 import { getSupabaseClientCode } from "@/supabase_admin/supabase_context";
 import { getNeonClientCode } from "@/neon_admin/neon_context";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { ExecuteAddDependencyError } from "@/ipc/processors/executeAddDependency";
 import { withTrackedMutation } from "./subagents/mutation_activity_tracker";
 import { estimateTokens } from "@/ipc/utils/token_utils";
@@ -309,16 +312,16 @@ export async function requireAgentToolConsent(
   const current = getAgentToolConsent(params.toolName);
 
   if (params.confirmation && params.toolName !== "run_shell")
-    throw new DyadError(
+    throw new NextBillionError(
       "Shell confirmation requires run_shell",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   if (current === "never" && params.confirmation) return false;
   if (current === "always" && !params.confirmation) return true;
   if (current === "never")
-    throw new DyadError(
+    throw new NextBillionError(
       "Should not ask for consent for a tool marked as 'never'",
-      DyadErrorKind.Internal,
+      NextBillionErrorKind.Internal,
     );
 
   if (
@@ -426,9 +429,9 @@ function convertToolResultForAiSdk(
   if (typeof result === "string") {
     return { type: "text", value: result };
   }
-  throw new DyadError(
+  throw new NextBillionError(
     `Unsupported tool result type: ${typeof result}`,
-    DyadErrorKind.Internal,
+    NextBillionErrorKind.Internal,
   );
 }
 
@@ -459,7 +462,7 @@ export interface BuildAgentToolSetOptions {
    */
   basicAgentMode?: boolean;
   /**
-   * If true, exclude tools that call separate Dyad Engine endpoints.
+   * If true, exclude tools that call separate NextBillion Engine endpoints.
    * The free Pro model only uses the engine chat-completions endpoint.
    */
   freeModelMode?: boolean;
@@ -504,7 +507,7 @@ export async function estimateAgentToolTokens({
   basicAgentMode = false,
   freeModelMode = false,
   enableAppBlueprint,
-  isDyadPro,
+  isNextBillionPro,
   frameworkType,
   supabaseProjectId,
   supabaseProviderToolsAvailable = false,
@@ -527,7 +530,7 @@ export async function estimateAgentToolTokens({
   basicAgentMode?: boolean;
   freeModelMode?: boolean;
   enableAppBlueprint: boolean;
-  isDyadPro: boolean;
+  isNextBillionPro: boolean;
   frameworkType: AgentContext["frameworkType"];
   supabaseProjectId: string | null;
   supabaseProviderToolsAvailable?: boolean;
@@ -548,7 +551,7 @@ export async function estimateAgentToolTokens({
   const estimateContext = {
     appPath,
     freeModelMode,
-    isDyadPro,
+    isNextBillionPro,
     frameworkType,
     supabaseProjectId,
     supabaseProviderToolsAvailable,
@@ -731,7 +734,7 @@ export function shouldIncludeTool(
     tool.name === "run_shell" &&
     !isShellExperimentAvailable({
       settings: ctx.inferenceSettings ?? readSettings(),
-      isDyadPro: ctx.isDyadPro,
+      isNextBillionPro: ctx.isNextBillionPro,
       ...options,
       freeModelMode: options.freeModelMode ?? ctx.freeModelMode,
       isChild: !!ctx.mutationActivityOwner?.persona,
@@ -767,7 +770,7 @@ export function shouldIncludeTool(
   if (options.freeModelMode && tool.usesEngineEndpoint) {
     return false;
   }
-  if (tool.subagentOnly && !ctx.isDyadPro) {
+  if (tool.subagentOnly && !ctx.isNextBillionPro) {
     return false;
   }
   // search_chats is superseded by the explore_chat_history sub-agent wherever
@@ -906,9 +909,9 @@ export function buildAgentToolSet(
           // The SDK is not the authority for validation: MCP and sandbox
           // adapters must enter the same invocation boundary.
           if (!shouldIncludeTool(tool, invocationCtx, options, "invocation")) {
-            throw new DyadError(
+            throw new NextBillionError(
               "Tool is unavailable in this turn",
-              DyadErrorKind.Precondition,
+              NextBillionErrorKind.Precondition,
             );
           }
           const schema = asSchema(
@@ -965,15 +968,15 @@ export function buildAgentToolSet(
             if (
               !shouldIncludeTool(tool, invocationCtx, options, "invocation")
             ) {
-              throw new DyadError(
+              throw new NextBillionError(
                 "Tool is no longer available",
-                DyadErrorKind.Precondition,
+                NextBillionErrorKind.Precondition,
               );
             }
             if (invocationCtx.abortSignal?.aborted) {
-              throw new DyadError(
+              throw new NextBillionError(
                 "This agent run was cancelled.",
-                DyadErrorKind.UserCancelled,
+                NextBillionErrorKind.UserCancelled,
               );
             }
             // Track file edit tool usage before execution to capture all attempts
@@ -1035,7 +1038,7 @@ export function buildAgentToolSet(
           const errorMessage = getToolErrorSummary(error);
           const errorDetails = getToolErrorDisplayDetails(error);
 
-          const errorXml = `<dyad-output type="error" message="Tool '${tool.name}' failed: ${escapeXmlAttr(errorMessage)}">${escapeXmlContent(errorDetails)}</dyad-output>`;
+          const errorXml = `<nextbillion-output type="error" message="Tool '${tool.name}' failed: ${escapeXmlAttr(errorMessage)}">${escapeXmlContent(errorDetails)}</nextbillion-output>`;
           invocationCtx.onXmlComplete(errorXml);
           if (toolCallId && invocationCtx.onToolActivity) {
             await invocationCtx.onToolActivity({

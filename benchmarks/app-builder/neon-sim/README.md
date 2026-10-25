@@ -25,10 +25,10 @@ managed by neon-sim). Creates role `simuser` (LOGIN/CREATEDB) on first start.
 | 7790 | SQL proxy, plain HTTP (debug)                                                                                                                                |
 | 5433 | pg-tls-front → 5432 — for TCP clients that hardcode `ssl:true` (ts-pg-schema-diff)                                                                           |
 
-## Env contract for Dyad / benchmark / generated-app processes
+## Env contract for NextBillion / benchmark / generated-app processes
 
 ```bash
-DYAD_NEON_API_BASE_URL=http://127.0.0.1:7788/api/v2   # the P1 patch reads this
+NEXTBILLION_NEON_API_BASE_URL=http://127.0.0.1:7788/api/v2   # the P1 patch reads this
 NODE_EXTRA_CA_CERTS=<neon-sim>/certs/ca.pem            # every node process touching SQL
 ```
 
@@ -36,24 +36,24 @@ Connection URIs issued by the shim look like
 `postgresql://simuser:simpass@db.localtest.me:5433/<db>?sslmode=require` — one
 URI serves both consumers: the serverless fetch path ignores the port and
 resolves `api.localtest.me` → loopback (public DNS; airgapped runs need
-/etc/hosts), TCP clients honor `:5433`. Seed Dyad's `settings.neon` tokens with
+/etc/hosts), TCP clients honor `:5433`. Seed NextBillion's `settings.neon` tokens with
 a far-future `expiresIn` so the oauth.dyad.sh refresh path is never hit; the
-shim accepts any Bearer token. `E2E_TEST_BUILD` must be **unset** or Dyad
+shim accepts any Bearer token. `E2E_TEST_BUILD` must be **unset** or NextBillion
 short-circuits to its in-process mock and never reaches the shim.
 
-## Endpoint surface (mirrors Dyad's E2E mock exactly)
+## Endpoint surface (mirrors NextBillion's E2E mock exactly)
 
 `GET|POST /projects`, `GET|DELETE /projects/{pid}`,
 `GET /projects/{pid}/connection_uri`, `GET|POST /projects/{pid}/branches`,
 `GET|DELETE /projects/{pid}/branches/{bid}`, branch `databases` / `roles`,
 `GET|POST …/auth` (GET 404s until POST, matching `ensureNeonAuth`'s probe),
 `GET|POST …/auth/domains`, `GET|PATCH …/auth/email_and_password`
-(`require_email_verification:false` — keeps Dyad's prompt on the no-OTP path),
+(`require_email_verification:false` — keeps NextBillion's prompt on the no-OTP path),
 `GET /users/me/organizations`.
 
 Branch model: branch = Postgres database `sim_<proj>_<branch>_<hex>`, owner
 `simuser`; child branches are `CREATE DATABASE … TEMPLATE parent` copies
-(connections terminated first). Dyad's main→development→preview creation order
+(connections terminated first). NextBillion's main→development→preview creation order
 means dev/preview inherit main's `neon_auth` schema, matching real Neon's
 inheritance (the 409 path in `neon_utils.ts` never fires because our POST
 …/auth is idempotent-success instead).
@@ -66,10 +66,10 @@ Per-(project,branch) **better-auth 1.4.18** instance (the exact version
 database** (pool `options=-csearch_path=neon_auth`), config per the S-AUTH
 spike: `cookiePrefix "neon-auth"`, `useSecureCookies:true`, email/password on,
 verification off, any localhost origin trusted. **Naming decision:** managed
-Neon Auth reports `schema_name: "neon_auth", table_name: "users"` (see Dyad's
+Neon Auth reports `schema_name: "neon_auth", table_name: "users"` (see NextBillion's
 mock) but better-auth's table is `"user"` — we add a view
 `neon_auth.users AS SELECT * FROM neon_auth."user"` so both names work in
-model-written SQL. Dyad's prompts/guides do not hardcode either name (only a
+model-written SQL. NextBillion's prompts/guides do not hardcode either name (only a
 409 comment mentions the schema), so this is belt-and-braces.
 
 ## Ops endpoints
@@ -88,8 +88,8 @@ model-written SQL. Dyad's prompts/guides do not hardcode either name (only a
    real Neon's `/sql` behavior unverified offline — `STRICT_SINGLE_STATEMENT=1`
    flips it (see S-SQL README; verify once against free-tier Neon before phase 1).
 3. `POST …/auth` on a branch that inherited the schema returns 201 (real Neon:
-   409 then re-GET); Dyad's flow is satisfied either way.
-4. Auth JWKS URL is a placeholder (`/jwks` not implemented); Dyad and the
+   409 then re-GET); NextBillion's flow is satisfied either way.
+4. Auth JWKS URL is a placeholder (`/jwks` not implemented); NextBillion and the
    benchmark apps use cookie sessions, not JWT verification.
 5. Connection URIs embed `sslmode=require` and a real password, but local
    Postgres trusts loopback; simuser's password is only meaningful through

@@ -12,14 +12,14 @@ import {
 test("resolves Electron's production user data path on each platform", () => {
   assert.equal(
     getProductionUserDataPath({ platform: "darwin", homeDir: "/home/me" }),
-    path.join("/home/me", "Library", "Application Support", "dyad"),
+    path.join("/home/me", "Library", "Application Support", "nextbillion"),
   );
   assert.equal(
     getProductionUserDataPath({
       platform: "win32",
       env: { APPDATA: "C:\\Users\\me\\AppData\\Roaming" },
     }),
-    path.join("C:\\Users\\me\\AppData\\Roaming", "dyad"),
+    path.join("C:\\Users\\me\\AppData\\Roaming", "nextbillion"),
   );
   assert.equal(
     getProductionUserDataPath({
@@ -27,12 +27,14 @@ test("resolves Electron's production user data path on each platform", () => {
       env: { XDG_CONFIG_HOME: "/config" },
       homeDir: "/home/me",
     }),
-    path.join("/config", "dyad"),
+    path.join("/config", "nextbillion"),
   );
 });
 
 test("reports unique processes using production data", () => {
-  const root = mkdtempSync(path.join(os.tmpdir(), "dyad-copy-processes-"));
+  const root = mkdtempSync(
+    path.join(os.tmpdir(), "nextbillion-copy-processes-"),
+  );
   writeFileSync(path.join(root, "sqlite.db"), "database");
 
   assert.deepEqual(
@@ -44,27 +46,32 @@ test("reports unique processes using production data", () => {
   );
 });
 
-test("reports the production Dyad process on Windows", () => {
+test("reports the production NextBillion process on Windows", () => {
   assert.deepEqual(
     getProcessesUsingDataDirectories([], {
       platform: "win32",
       runSync: () =>
-        '"dyad.exe","789","Console","1","123,456 K"\r\nINFO: No other tasks',
+        '"nextbillion.exe","789","Console","1","123,456 K"\r\nINFO: No other tasks',
     }),
     ["789"],
   );
 });
 
 test("replaces development data only after copying durable production data", () => {
-  const root = mkdtempSync(path.join(os.tmpdir(), "dyad-copy-data-"));
+  const root = mkdtempSync(path.join(os.tmpdir(), "nextbillion-copy-data-"));
   const source = path.join(root, "production");
   const destination = path.join(root, "userData");
-  mkdirSync(path.join(source, "dyad-apps", "my-app"), { recursive: true });
+  mkdirSync(path.join(source, "nextbillion-apps", "my-app"), {
+    recursive: true,
+  });
   mkdirSync(path.join(source, "Cache"), { recursive: true });
   mkdirSync(destination);
   writeFileSync(path.join(source, "sqlite.db"), "production database");
   writeFileSync(path.join(source, "user-settings.json"), "settings");
-  writeFileSync(path.join(source, "dyad-apps", "my-app", "index.ts"), "app");
+  writeFileSync(
+    path.join(source, "nextbillion-apps", "my-app", "index.ts"),
+    "app",
+  );
   writeFileSync(path.join(source, "Cache", "cache.bin"), "cache");
   writeFileSync(path.join(destination, "stale.txt"), "stale");
 
@@ -82,7 +89,7 @@ test("replaces development data only after copying durable production data", () 
   );
   assert.equal(
     readFileSync(
-      path.join(destination, "dyad-apps", "my-app", "index.ts"),
+      path.join(destination, "nextbillion-apps", "my-app", "index.ts"),
       "utf8",
     ),
     "app",

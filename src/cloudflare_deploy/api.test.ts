@@ -9,7 +9,7 @@ import {
   isCloudflareAuthFailure,
   listWorkers,
   restoreTrigger,
-  toCloudflareDyadError,
+  toCloudflareNextBillionError,
   verifyToken,
 } from "./api";
 import { ConnectCloudflareWorkerParamsSchema } from "@/ipc/types/cloudflare";
@@ -104,16 +104,16 @@ describe("responses", () => {
     expect(isCloudflareAuthFailure(error)).toBe(false);
   });
 
-  it("keep the original error when reported as a DyadError", () => {
+  it("keep the original error when reported as a NextBillionError", () => {
     // Its stack is what telemetry needs for an unexpected failure.
     const unexpected = new TypeError("fetch failed");
-    expect(toCloudflareDyadError(unexpected, "Could not connect").cause).toBe(
-      unexpected,
-    );
+    expect(
+      toCloudflareNextBillionError(unexpected, "Could not connect").cause,
+    ).toBe(unexpected);
     const refused = new CloudflareApiError("Forbidden", 403, []);
-    expect(toCloudflareDyadError(refused, "Could not connect").cause).toBe(
-      refused,
-    );
+    expect(
+      toCloudflareNextBillionError(refused, "Could not connect").cause,
+    ).toBe(refused);
   });
 });
 

@@ -78,7 +78,7 @@ const mocks = vi.hoisted(() => ({
   chat: null as null | {
     id: number;
     appId?: number;
-    executionBackend?: "dyad" | "claude-code";
+    executionBackend?: "nextbillion" | "claude-code";
     messages: Array<{ id: number }>;
     modelSelection?: {
       provider: string;
@@ -125,11 +125,11 @@ const mocks = vi.hoisted(() => ({
   },
   settings: {
     proModelUsage: "subscription" as "subscription" | "pro",
-    enableDyadPro: true,
+    enableNextBillionPro: true,
     providerSettings: {
       auto: {
         apiKey: {
-          value: "dyad-pro-key",
+          value: "nextbillion-pro-key",
         },
       },
       openrouter: {
@@ -312,7 +312,7 @@ vi.mock("@/hooks/useLanguageModelsByProviders", () => ({
             },
             {
               apiName: "free-pro",
-              displayName: "Dyad Free",
+              displayName: "NextBillion Free",
               description: "Free Pro model",
               type: "cloud",
               tag: "Free",
@@ -425,7 +425,7 @@ vi.mock("@/hooks/useLanguageModelProviders", () => ({
     data: [
       {
         id: "auto",
-        name: "Dyad",
+        name: "NextBillion",
         type: "cloud",
       },
       {
@@ -666,8 +666,8 @@ describe("ModelPicker", () => {
     mocks.ollamaError = null;
     mocks.lmStudioModels = [];
     mocks.lmStudioError = null;
-    mocks.settings.enableDyadPro = true;
-    mocks.settings.providerSettings.auto.apiKey.value = "dyad-pro-key";
+    mocks.settings.enableNextBillionPro = true;
+    mocks.settings.providerSettings.auto.apiKey.value = "nextbillion-pro-key";
     mocks.settings.providerSettings.openrouter.apiKey.value = "";
     mocks.settings.selectedModel = { name: "auto", provider: "auto" };
     mocks.settings.recentModels = [];
@@ -698,12 +698,12 @@ describe("ModelPicker", () => {
     expect(screen.queryByText("Premium")).toBeNull();
     expect(screen.queryByText("Local models")).toBeNull();
     expect(screen.queryByText("Free (OpenRouter)")).toBeNull();
-    expect(screen.getByText("Dyad Free")).toBeTruthy();
+    expect(screen.getByText("NextBillion Free")).toBeTruthy();
     expect(screen.getByText("2/5 left")).toBeTruthy();
     expect(screen.getByText("Data sharing")).toBeTruthy();
     expect(
       screen
-        .getByText("Dyad Free")
+        .getByText("NextBillion Free")
         .closest("button")
         ?.getAttribute("aria-label"),
     ).toContain("2/5 left. Data sharing");
@@ -1421,8 +1421,8 @@ describe("ModelPicker", () => {
     ]);
   });
 
-  it("keeps the non-Pro root compact while preserving its Dyad choices", () => {
-    mocks.settings.enableDyadPro = false;
+  it("keeps the non-Pro root compact while preserving its NextBillion choices", () => {
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
 
     render(<ModelPicker />);
@@ -1432,11 +1432,11 @@ describe("ModelPicker", () => {
     expect(screen.queryByText("GPT 5")).toBeNull();
     expect(screen.getByText("All models")).toBeTruthy();
     expect(screen.queryByText("Other AI providers")).toBeNull();
-    expect(screen.queryByText("Dyad Free")).toBeNull();
+    expect(screen.queryByText("NextBillion Free")).toBeNull();
     expect(screen.getByText("Free (OpenRouter)")).toBeTruthy();
   });
 
-  it("shows Auto (balanced) to Dyad Pro users", () => {
+  it("shows Auto (balanced) to NextBillion Pro users", () => {
     render(<ModelPicker />);
 
     expect(screen.getByText("Auto (balanced)")).toBeTruthy();
@@ -1447,7 +1447,7 @@ describe("ModelPicker", () => {
     (loading) => {
       mocks.subscriptionLoading = loading;
       mocks.subscriptionUnavailable = true;
-      mocks.settings.enableDyadPro = false;
+      mocks.settings.enableNextBillionPro = false;
       mocks.settings.providerSettings.auto.apiKey.value = "";
       mocks.renderSubContent = true;
       render(<ModelPicker />);
@@ -1459,7 +1459,7 @@ describe("ModelPicker", () => {
   );
 
   it("unlocks only subscription-supported models for free users", async () => {
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
     mocks.renderSubContent = true;
     render(<ModelPicker />);
@@ -1484,7 +1484,7 @@ describe("ModelPicker", () => {
 
   it("marks models without a provider key as locked for non-Pro users", () => {
     mocks.subscriptionConnected = false;
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
     mocks.settings.providerSettings.openrouter.apiKey.value = "openrouter-key";
     mocks.renderSubContent = true;
@@ -1513,7 +1513,7 @@ describe("ModelPicker", () => {
 
   it("opens the unlock dialog instead of selecting a locked model", () => {
     mocks.subscriptionConnected = false;
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
     mocks.renderSubContent = true;
 
@@ -1531,7 +1531,7 @@ describe("ModelPicker", () => {
 
   it("navigates to provider settings from the unlock dialog own-key link", () => {
     mocks.subscriptionConnected = false;
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
     mocks.renderSubContent = true;
 
@@ -1548,7 +1548,7 @@ describe("ModelPicker", () => {
   });
 
   it("lets non-Pro users select models from providers with their own key", () => {
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
     mocks.settings.providerSettings.openrouter.apiKey.value = "openrouter-key";
     mocks.renderSubContent = true;
@@ -1576,7 +1576,7 @@ describe("ModelPicker", () => {
   });
 
   it("does not lock models while settings and env vars are still loading", () => {
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
     mocks.settingsLoading = true;
     mocks.renderSubContent = true;
@@ -1588,7 +1588,7 @@ describe("ModelPicker", () => {
 
   it("labels locked models for assistive tech", () => {
     mocks.subscriptionConnected = false;
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
     mocks.renderSubContent = true;
 
@@ -1596,11 +1596,11 @@ describe("ModelPicker", () => {
 
     expect(
       screen.getByText("GPT 5").closest("button")?.getAttribute("aria-label"),
-    ).toBe("GPT 5 — requires Dyad Pro or an API key from OpenAI");
+    ).toBe("GPT 5 — requires NextBillion Pro or an API key from OpenAI");
   });
 
   it("points locked free models at an OpenRouter key instead of Pro", () => {
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
     mocks.renderSubContent = true;
 
@@ -1626,7 +1626,7 @@ describe("ModelPicker", () => {
   });
 
   it("does not render an upgrade footer", () => {
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
 
     render(<ModelPicker />);
@@ -1635,7 +1635,7 @@ describe("ModelPicker", () => {
   });
 
   it("shows data sharing disclosure on Auto for non-Pro users with an OpenRouter key", () => {
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
     mocks.settings.providerSettings.openrouter.apiKey.value = "openrouter-key";
 
@@ -1649,7 +1649,7 @@ describe("ModelPicker", () => {
   });
 
   it("shows data sharing disclosure on Auto for non-Pro users with OPENROUTER_API_KEY", () => {
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
     mocks.envVars.OPENROUTER_API_KEY = "openrouter-env-key";
 
@@ -1663,7 +1663,7 @@ describe("ModelPicker", () => {
   });
 
   it("does not show data sharing disclosure on Auto without an OpenRouter key", () => {
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
 
     render(<ModelPicker />);
@@ -1676,7 +1676,7 @@ describe("ModelPicker", () => {
   });
 
   it("shows data sharing disclosure on the top-level Free OpenRouter model", () => {
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
 
     render(<ModelPicker />);
@@ -1689,7 +1689,7 @@ describe("ModelPicker", () => {
 
   it("shows data sharing disclosure on explicit free OpenRouter provider models", () => {
     mocks.renderSubContent = true;
-    mocks.settings.enableDyadPro = false;
+    mocks.settings.enableNextBillionPro = false;
     mocks.settings.providerSettings.auto.apiKey.value = "";
 
     render(<ModelPicker />);
@@ -1718,14 +1718,16 @@ describe("ModelPicker", () => {
     });
   });
 
-  it("hides Dyad Free for Dyad Pro trial users", () => {
+  it("hides NextBillion Free for NextBillion Pro trial users", () => {
     mocks.isTrial = true;
 
     render(<ModelPicker />);
 
-    expect(screen.queryByText("Dyad Free")).toBeNull();
+    expect(screen.queryByText("NextBillion Free")).toBeNull();
     expect(
-      screen.queryByText("Upgrade from Dyad Pro trial to unlock more models."),
+      screen.queryByText(
+        "Upgrade from NextBillion Pro trial to unlock more models.",
+      ),
     ).toBeNull();
     const autoRow = document.querySelector<HTMLElement>(
       '[data-model-provider="auto"][data-model-name="auto"]',
@@ -1736,7 +1738,7 @@ describe("ModelPicker", () => {
     ).toBe("Med");
   });
 
-  it("does not select Dyad Free when quota is exhausted", () => {
+  it("does not select NextBillion Free when quota is exhausted", () => {
     mocks.freeModelQuota.isQuotaExceeded = true;
     mocks.freeModelQuota.messagesRemaining = 0;
     mocks.freeModelQuota.quotaStatus = {
@@ -1749,15 +1751,15 @@ describe("ModelPicker", () => {
 
     render(<ModelPicker />);
 
-    fireEvent.click(screen.getByText("Dyad Free").closest("button")!);
+    fireEvent.click(screen.getByText("NextBillion Free").closest("button")!);
 
     expect(mocks.updateSettings).not.toHaveBeenCalled();
   });
 
-  it("moves Build mode to Agent when selecting Dyad Free", async () => {
+  it("moves Build mode to Agent when selecting NextBillion Free", async () => {
     render(<ModelPicker />);
 
-    fireEvent.click(screen.getByText("Dyad Free").closest("button")!);
+    fireEvent.click(screen.getByText("NextBillion Free").closest("button")!);
 
     await waitFor(() => {
       expect(mocks.updateSettings).toHaveBeenCalledWith({
@@ -1785,7 +1787,7 @@ describe("ModelPicker", () => {
     };
 
     render(<ModelPicker />);
-    fireEvent.click(screen.getByText("Dyad Free").closest("button")!);
+    fireEvent.click(screen.getByText("NextBillion Free").closest("button")!);
 
     await waitFor(() => {
       expect(mocks.setChatSelection).toHaveBeenCalledWith({
@@ -1800,7 +1802,7 @@ describe("ModelPicker", () => {
     expect(mocks.setChatModelSelection).not.toHaveBeenCalled();
   });
 
-  it("shows Dyad Free quota as unavailable when the quota fetch fails", () => {
+  it("shows NextBillion Free quota as unavailable when the quota fetch fails", () => {
     mocks.freeModelQuota.error = new Error("quota unavailable");
     mocks.freeModelQuota.quotaStatus = null;
 
@@ -1832,7 +1834,7 @@ describe("Claude Code subscription picker", () => {
     mocks.chat = {
       id: 7,
       appId: 9,
-      executionBackend: "dyad",
+      executionBackend: "nextbillion",
       messages: [{ id: 1 }],
       modelSelection: { provider: "auto", name: "auto", effortLevel: "medium" },
     };
@@ -2018,7 +2020,7 @@ describe("Claude Code subscription picker", () => {
     expect(screen.queryByText("Refresh connection")).toBeNull();
     expect(screen.queryByText("Claude Code — sonnet")).toBeNull();
   });
-  it("keeps Claude Code catalog choices available during a Dyad trial", () => {
+  it("keeps Claude Code catalog choices available during a NextBillion trial", () => {
     mocks.isTrial = true;
     render(<ModelPicker />);
     expect(
@@ -2074,7 +2076,7 @@ describe("Claude Code subscription picker", () => {
       ).not.toBeNull();
     },
   );
-  it.each(["dyad", "claude-code"] as const)(
+  it.each(["nextbillion", "claude-code"] as const)(
     "switches an empty %s chat in place without asking for a new chat",
     async (backend) => {
       mocks.chat!.messages = [];
@@ -2082,7 +2084,7 @@ describe("Claude Code subscription picker", () => {
       mocks.chat!.modelSelection = undefined;
       render(<ModelPicker />);
       fireEvent.click(
-        backend === "dyad"
+        backend === "nextbillion"
           ? document.querySelector(
               '[data-model-provider="claude-code"][data-model-name="sonnet"]',
             )!
@@ -2093,7 +2095,7 @@ describe("Claude Code subscription picker", () => {
       await waitFor(() =>
         expect(mocks.setChatSelection).toHaveBeenCalledWith({
           modelSelection: expect.objectContaining({
-            provider: backend === "dyad" ? "claude-code" : "auto",
+            provider: backend === "nextbillion" ? "claude-code" : "auto",
           }),
         }),
       );
@@ -2157,7 +2159,7 @@ describe("Claude Code subscription picker", () => {
     expect(mocks.setChatSelection).not.toHaveBeenCalled();
   });
   it("uses the chat backend rather than the global model", async () => {
-    mocks.chat!.executionBackend = "dyad";
+    mocks.chat!.executionBackend = "nextbillion";
     mocks.settings.selectedModel = { provider: "claude-code", name: "sonnet" };
     mocks.renderSubContent = true;
     render(<ModelPicker />);

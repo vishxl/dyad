@@ -25,7 +25,7 @@ await build({
     "electron",
     "electron-log",
     "better-sqlite3",
-    "dyad-keychain-reader",
+    "nextbillion-keychain-reader",
     "cpu-features",
     "node-pty",
   ],
@@ -36,4 +36,4 @@ await build({
   logLevel: "info",
 });
 
-console.log(`Built headless Dyad server to ${outFile}`);
+console.log(`Built headless NextBillion server to ${outFile}`);

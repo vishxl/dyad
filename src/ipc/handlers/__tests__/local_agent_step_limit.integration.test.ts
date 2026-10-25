@@ -4,8 +4,8 @@
 //
 // The `tc=local-agent/step-limit` fixture streams 100 consecutive tool-call
 // turns. The local agent's step limit (stepCountIs(100)) stops the loop and
-// appends a <dyad-step-limit> notice instead of reaching the fixture's final
-// "All steps completed." turn. The DyadStepLimit card ("Paused after 100 tool
+// appends a <nextbillion-step-limit> notice instead of reaching the fixture's final
+// "All steps completed." turn. The NextBillionStepLimit card ("Paused after 100 tool
 // calls") renders in the DOM with a REAL Continue button; clicking it streams
 // a new "Continue" prompt (the exact behavior the node version invoked
 // directly), after which further prompts run normally.
@@ -45,9 +45,9 @@ describe("local agent step limit (integration)", () => {
       chatMode: "local-agent",
       settings: {
         isTestMode: true,
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: {
-          auto: { apiKey: { value: "testdyadkey" } },
+          auto: { apiKey: { value: "testnextbillionkey" } },
         },
       },
     });
@@ -94,7 +94,7 @@ describe("local agent step limit (integration)", () => {
       timeout: 15_000,
     });
 
-    // The DyadStepLimit pause card renders in the DOM — the same surface the
+    // The NextBillionStepLimit pause card renders in the DOM — the same surface the
     // e2e asserted — with the real Continue control.
     await waitFor(
       () =>
@@ -132,7 +132,7 @@ describe("local agent step limit (integration)", () => {
     const messages = await loadMessages();
     const assistant = messages.filter((m) => m.role === "assistant").at(-1)!;
     // Paused: the step-limit notice is appended...
-    expect(assistant.content).toContain('<dyad-step-limit steps="100"');
+    expect(assistant.content).toContain('<nextbillion-step-limit steps="100"');
     expect(assistant.content).toContain(
       "Automatically paused after 100 tool calls.",
     );
@@ -144,7 +144,7 @@ describe("local agent step limit (integration)", () => {
       messages.some((m) => m.content === "tc=local-agent/simple-response"),
     ).toBe(false);
 
-    // Click the REAL DyadStepLimit "Continue" button — it streams a plain
+    // Click the REAL NextBillionStepLimit "Continue" button — it streams a plain
     // "Continue" prompt (the step-limit turn's end was consumed above, so
     // this waitForStreamEnd gates on the continue turn).
     const continueButton = await screen.findByRole("button", {
@@ -157,7 +157,7 @@ describe("local agent step limit (integration)", () => {
     const continueAssistant = continueMessages
       .filter((m) => m.role === "assistant")
       .at(-1)!;
-    expect(continueAssistant.content).not.toContain("<dyad-step-limit");
+    expect(continueAssistant.content).not.toContain("<nextbillion-step-limit");
 
     // Continue resumes the queue: the queued prompt drains and streams as its
     // own turn — the queue×step-limit interaction unique to this test.

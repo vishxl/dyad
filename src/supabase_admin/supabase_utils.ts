@@ -14,7 +14,10 @@ import {
 } from "./supabase_management_client";
 import { SUPABASE_BUNDLE_ONLY_DEPLOY_CONCURRENCY } from "./supabase_deploy_queue";
 import type { DeferredSupabaseFunctionSync } from "./supabase_recording_deferred_sync";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { runSupabaseDependencyAnalysis } from "@/ipc/processors/supabase_dependency_analysis";
 import type { SupabaseFunctionImpact } from "../../shared/supabase_dependency_analysis_types";
 
@@ -133,9 +136,9 @@ export function extractFunctionNameFromPath(filePath: string): string {
   const match = normalized.match(/^supabase\/functions\/([^/]+)/);
 
   if (!match) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Invalid Supabase function path: ${filePath}. Expected format: supabase/functions/{functionName}/...`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
@@ -143,9 +146,9 @@ export function extractFunctionNameFromPath(filePath: string): string {
 
   // Exclude _shared and other special directories
   if (functionName.startsWith("_")) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Invalid Supabase function path: ${filePath}. Function names starting with "_" are reserved for special directories.`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 

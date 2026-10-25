@@ -94,7 +94,7 @@ describe("classifyMcpToolConsent", () => {
 describe("buildMcpAutoApprove", () => {
   const baseParams = {
     settings: { autoApproveSafeMcpTools: true } as any,
-    isDyadPro: true,
+    isNextBillionPro: true,
     chatId: 1,
     serverName: "srv",
     toolName: "tool",
@@ -103,7 +103,7 @@ describe("buildMcpAutoApprove", () => {
     args: { a: 1 },
   };
 
-  it("does not build an auto-approve callback for Dyad Free turns", () => {
+  it("does not build an auto-approve callback for NextBillion Free turns", () => {
     const autoApprove = buildMcpAutoApprove({
       ...baseParams,
       freeModelMode: true,

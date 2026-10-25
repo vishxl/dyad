@@ -1,10 +1,13 @@
 import { assistantAttribution } from "@/shared/execution_backend";
 import { type Message } from "@/ipc/types";
 import {
-  DyadMarkdownParser,
+  NextBillionMarkdownParser,
   VanillaMarkdownParser,
-} from "./DyadMarkdownParser";
-import { DyadAttachment, type AttachmentSize } from "./DyadAttachment";
+} from "./NextBillionMarkdownParser";
+import {
+  NextBillionAttachment,
+  type AttachmentSize,
+} from "./NextBillionAttachment";
 import { useStreamChat } from "@/hooks/useStreamChat";
 import { StreamingLoadingAnimation } from "./StreamingLoadingAnimation";
 import {
@@ -57,7 +60,7 @@ import {
 import { ChatMessageAnnotationLayer } from "./ChatMessageAnnotationLayer";
 import { isChatMessageAnnotatable } from "./chatAnnotationEligibility";
 
-/** Extract <dyad-attachment> tags from message content and return parsed attachment data. */
+/** Extract <nextbillion-attachment> tags from message content and return parsed attachment data. */
 function extractAttachments(content: string): {
   name: string;
   type: string;
@@ -65,7 +68,8 @@ function extractAttachments(content: string): {
   path: string;
   attachmentType: string;
 }[] {
-  const tagRegex = /<dyad-attachment\s+([^>]*)><\/dyad-attachment>/g;
+  const tagRegex =
+    /<nextbillion-attachment\s+([^>]*)><\/nextbillion-attachment>/g;
   const attrRegex = /([\w-]+)="([^"]*)"/g;
   const results: {
     name: string;
@@ -94,17 +98,17 @@ function extractAttachments(content: string): {
   return results;
 }
 
-/** Strip <dyad-attachment> tags from user message content. */
+/** Strip <nextbillion-attachment> tags from user message content. */
 function stripAttachmentInfo(content: string): string {
   return content
-    .replace(/<dyad-attachment\s+[^>]*><\/dyad-attachment>/g, "")
+    .replace(/<nextbillion-attachment\s+[^>]*><\/nextbillion-attachment>/g, "")
     .trim();
 }
 
 interface ChatMessageProps {
   message: Message;
   isLastMessage: boolean;
-  executionBackend?: "dyad" | "claude-code";
+  executionBackend?: "nextbillion" | "claude-code";
   isCancelledPrompt?: boolean;
 }
 
@@ -359,7 +363,7 @@ const ChatMessage = ({
               >
                 {message.role === "assistant" ? (
                   <>
-                    <DyadMarkdownParser
+                    <NextBillionMarkdownParser
                       content={assistantTextContent}
                       messageId={message.id}
                       showStreamingPreview={isLastMessage && isStreaming}
@@ -445,7 +449,7 @@ const ChatMessage = ({
                 rootIsStreaming={isLastMessage && isStreaming}
                 showReviewAction={isLastMessage}
                 hideInlineThreads={assistantTextContent.includes(
-                  "<dyad-subagent",
+                  "<nextbillion-subagent",
                 )}
               />
             )}
@@ -458,7 +462,7 @@ const ChatMessage = ({
                 button here instead. Text prompts render it above. */}
             {!hasUserText && restoreButtonNode}
             {attachments.map((att, i) => (
-              <DyadAttachment
+              <NextBillionAttachment
                 key={i}
                 size={attachmentSize}
                 node={{
@@ -491,7 +495,7 @@ const ChatMessage = ({
                 >
                   {
                     messageVersion.message
-                      .replace(/^\[dyad\]\s*/i, "")
+                      .replace(/^\[nextbillion\]\s*/i, "")
                       .split("\n")[0]
                   }
                 </span>

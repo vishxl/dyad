@@ -40,9 +40,9 @@ import {
 import {
   getProviderOptions,
   getAiHeaders,
-  DYAD_INTERNAL_REQUEST_ID_HEADER,
+  NEXTBILLION_INTERNAL_REQUEST_ID_HEADER,
 } from "@/ipc/utils/provider_options";
-import { isDyadProEnabled } from "@/lib/schemas";
+import { isNextBillionProEnabled } from "@/lib/schemas";
 import {
   normalizeModelSelection,
   resolveDefaultModelSelection,
@@ -57,7 +57,7 @@ const logger = log.scope("compaction_handler");
 // quality at ~2x lower latency, which matters because compaction blocks the
 // turn mid-stream. Matches the durable Explorer persona model.
 // Non-Pro users keep their selected chat model — the pinned model is only
-// reachable through the Dyad Engine gateway.
+// reachable through the NextBillion Engine gateway.
 const PRO_COMPACTION_MODEL = {
   provider: "openai",
   name: SMALL_MODEL_NAME,
@@ -167,7 +167,7 @@ export async function performCompaction(
   event: IpcMainInvokeEvent,
   chatId: number,
   appPath: string,
-  dyadRequestId: string,
+  nextBillionRequestId: string,
   onSummaryChunk?: (accumulatedText: string) => void,
   options?: {
     createdAtStrategy?: "before-latest-user" | "now";
@@ -208,7 +208,7 @@ export async function performCompaction(
       : await resolveDefaultModelSelection(storedSettings);
     // Stored connections describe an earlier turn, not this auxiliary request.
     const { connection: _connection, ...modelIdentity } = selectedModel;
-    const compactionModel = isDyadProEnabled(storedSettings)
+    const compactionModel = isNextBillionProEnabled(storedSettings)
       ? await resolveModelSelection({
           model: PRO_COMPACTION_MODEL,
           preferredEffortLevel:
@@ -246,7 +246,7 @@ export async function performCompaction(
       }),
     );
 
-    // Store readable transcript backup in the app's .dyad/chats/ directory
+    // Store readable transcript backup in the app's .nextbillion/chats/ directory
     const backupPath = await storePreCompactionMessages(
       appPath,
       chatId,
@@ -276,7 +276,7 @@ export async function performCompaction(
       {
         sessionId: String(chatId),
         traceName: "compaction",
-        metadata: { dyadRequestId },
+        metadata: { nextBillionRequestId },
       },
       () =>
         streamText({
@@ -286,12 +286,12 @@ export async function performCompaction(
             ...getAiHeaders({
               builtinProviderId: modelClient.builtinProviderId,
             }),
-            [DYAD_INTERNAL_REQUEST_ID_HEADER]: dyadRequestId,
+            [NEXTBILLION_INTERNAL_REQUEST_ID_HEADER]: nextBillionRequestId,
           },
           providerOptions: getProviderOptions({
-            dyadAppId: 0,
-            dyadRequestId,
-            dyadDisableFiles: true,
+            nextBillionAppId: 0,
+            nextBillionRequestId,
+            nextBillionDisableFiles: true,
             files: [],
             mentionedAppsCodebases: [],
             builtinProviderId: modelClient.builtinProviderId,

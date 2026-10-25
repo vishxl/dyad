@@ -30,7 +30,7 @@ export const AnnotatorOnlyForPro = ({ onGoBack }: AnnotatorOnlyForProProps) => {
         </h2>
         <p className="text-muted-foreground text-center max-w-md text-base leading-relaxed">
           Unlock the ability to annotate screenshots and enhance your workflow
-          with Dyad Pro.
+          with NextBillion Pro.
         </p>
       </div>
     </div>

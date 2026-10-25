@@ -40,8 +40,8 @@ export const DEFAULT_FLOW_TIMEOUTS_MS: Record<
 
 /**
  * How long a connected flow's ref keeps recognizing repeat deliveries of its
- * own callback. The OAuth proxy's success page keeps an "Open Dyad" link that
- * replays the same `dyad://` URL, so a user can re-fire it after the flow has
+ * own callback. The OAuth proxy's success page keeps an "Open NextBillion" link that
+ * replays the same `nextbillion://` URL, so a user can re-fire it after the flow has
  * connected and even after they acknowledged the success.
  */
 export const DUPLICATE_RETURN_WINDOW_MS = 10 * 60_000;

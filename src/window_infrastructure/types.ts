@@ -62,7 +62,7 @@ export const ChatTabPresentationStateSchema = z.object({
    * recording its start route rather than pinning one to a redirect
    * destination.
    */
-  previewRouteSource: z.enum(["none", "dyad", "app"]).optional(),
+  previewRouteSource: z.enum(["none", "nextbillion", "app"]).optional(),
   previewMode: z.enum([
     "preview",
     "code",

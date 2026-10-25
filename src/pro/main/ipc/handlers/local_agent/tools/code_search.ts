@@ -8,11 +8,14 @@ import {
 } from "./types";
 import { extractCodebase } from "../../../../../../utils/codebase";
 import { engineFetch } from "./engine_fetch";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { isCodeExplorerReady } from "@/ipc/processors/code_explorer";
 import { readSettings } from "@/main/settings";
 import {
-  filterDyadInternalFiles,
+  filterNextBillionInternalFiles,
   resolveTargetAppPath,
 } from "./resolve_app_context";
 
@@ -57,7 +60,7 @@ async function callCodeSearch(
 ): Promise<string[]> {
   // Stream initial state to UI
   ctx.onXmlStream(
-    `<dyad-code-search${buildCodeSearchAttributes({
+    `<nextbillion-code-search${buildCodeSearchAttributes({
       query: params.query,
       app_name: params.app_name,
     })}>`,
@@ -73,9 +76,9 @@ async function callCodeSearch(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new DyadError(
+    throw new NextBillionError(
       `Code search failed: ${response.status} ${response.statusText} - ${errorText}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 
@@ -109,7 +112,7 @@ export const codeSearchTool: ToolDefinition<CodeSearchArgs> = {
   // Route root discovery through the Explorer sub-agent whenever it is
   // available. Inside Explorer, retain code_search as a fallback unless the
   // compiler-backed exploration surface is ready.
-  isEnabled: (ctx) => ctx.isDyadPro,
+  isEnabled: (ctx) => ctx.isNextBillionPro,
   isDiscoverable: (ctx) => {
     if (!ctx.subagentThreadId && ctx.canUseExplorerSubagent) return false;
 
@@ -128,7 +131,7 @@ export const codeSearchTool: ToolDefinition<CodeSearchArgs> = {
   buildXml: (args, isComplete) => {
     if (!args.query) return undefined;
     if (isComplete) return undefined;
-    return `<dyad-code-search${buildCodeSearchAttributes(args)}>Searching...`;
+    return `<nextbillion-code-search${buildCodeSearchAttributes(args)}>Searching...`;
   },
 
   execute: async (args, ctx: AgentContext) => {
@@ -145,7 +148,7 @@ export const codeSearchTool: ToolDefinition<CodeSearchArgs> = {
       },
     });
 
-    const filteredFiles = filterDyadInternalFiles(files, args.app_name);
+    const filteredFiles = filterNextBillionInternalFiles(files, args.app_name);
 
     // Map files to FileContext format
     const filesContext = filteredFiles.map((file) => ({
@@ -173,9 +176,9 @@ export const codeSearchTool: ToolDefinition<CodeSearchArgs> = {
         ? "No relevant files found."
         : relevantFiles.map((f) => ` - ${f}`).join("\n");
 
-    // Write final result to UI and DB with dyad-code-search wrapper
+    // Write final result to UI and DB with nextbillion-code-search wrapper
     ctx.onXmlComplete(
-      `<dyad-code-search${buildCodeSearchAttributes(args)}>${escapeXmlContent(resultText)}</dyad-code-search>`,
+      `<nextbillion-code-search${buildCodeSearchAttributes(args)}>${escapeXmlContent(resultText)}</nextbillion-code-search>`,
     );
 
     logger.log(`Code search completed for query: ${args.query}`);

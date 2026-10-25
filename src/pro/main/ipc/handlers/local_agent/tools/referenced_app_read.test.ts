@@ -4,7 +4,9 @@ import { appOperationCoordinator } from "@/ipc/services/app_operation_coordinato
 import type { AgentContext } from "./types";
 const row = vi.hoisted(() => ({ find: vi.fn() }));
 vi.mock("@/db", () => ({ db: { query: { apps: { findFirst: row.find } } } }));
-vi.mock("@/paths/paths", () => ({ getDyadAppPath: (path: string) => path }));
+vi.mock("@/paths/paths", () => ({
+  getNextBillionAppPath: (path: string) => path,
+}));
 const ctx = {
   referencedApps: new Map([["other", "/old/path"]]),
   referencedAppIds: new Map([["other", 987654]]),

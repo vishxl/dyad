@@ -8,9 +8,9 @@ const NULL_BODY_STATUSES = new Set([101, 103, 204, 205, 304]);
 /**
  * Send one model request and log its lifecycle: sent, response headers,
  * first body chunk, and end of stream. When a turn hangs with no error, these
- * lines show whether the request never left Dyad, is waiting on the server,
+ * lines show whether the request never left NextBillion, is waiting on the server,
  * or stalled mid-stream. `label` should carry the request id so the lines can
- * be matched against Dyad Engine logs; it must never contain secrets.
+ * be matched against NextBillion Engine logs; it must never contain secrets.
  */
 export async function fetchWithRequestLogging(
   label: string,

@@ -1,8 +1,11 @@
 import log from "electron-log";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { activeRecordings } from "@/ipc/services/recording_registry";
 import { readSettings } from "@/main/settings";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 
 const logger = log.scope("supabase_recording_deferred_sync");
 
@@ -32,11 +35,11 @@ const pendingByApp = new Map<number, PendingSync>();
  * `supabase-functions` claim. The work is not lost: it is registered here and
  * reconciled once the recording's claims are released.
  */
-export class SupabaseFunctionSyncDeferredError extends DyadError {
+export class SupabaseFunctionSyncDeferredError extends NextBillionError {
   constructor() {
     super(
-      "A recording session is active, so Dyad will deploy this Supabase function change after the recording ends.",
-      DyadErrorKind.Precondition,
+      "A recording session is active, so NextBillion will deploy this Supabase function change after the recording ends.",
+      NextBillionErrorKind.Precondition,
     );
     this.name = "SupabaseFunctionSyncDeferredError";
   }
@@ -117,7 +120,7 @@ export async function flushDeferredSupabaseFunctionSync(
       );
       return;
     }
-    const appPath = getDyadAppPath(app.path);
+    const appPath = getNextBillionAppPath(app.path);
     const skipPruneEdgeFunctions =
       readSettings().skipPruneEdgeFunctions ?? false;
     const target = {
@@ -197,7 +200,7 @@ async function reportDeferredSyncFailure(
     });
     if (!target) return;
     windowRegistry.endpointForSession(target)?.send("toast:error", {
-      message: `Dyad couldn't deploy the Supabase function changes made during the recording: ${detail}. Use "Redeploy edge functions" in the Supabase panel to sync them.`,
+      message: `NextBillion couldn't deploy the Supabase function changes made during the recording: ${detail}. Use "Redeploy edge functions" in the Supabase panel to sync them.`,
       persist: true,
       toastId: `supabase-deferred-sync-${appId}`,
     });

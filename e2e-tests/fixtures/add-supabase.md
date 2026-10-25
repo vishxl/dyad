@@ -1,2 +1,2 @@
 Adding supabase...
-<dyad-add-integration></dyad-add-integration>
+<nextbillion-add-integration></nextbillion-add-integration>

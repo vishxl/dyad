@@ -1,7 +1,10 @@
 import { ipc, type UncommittedFile } from "@/ipc/types";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 export type { UncommittedFile };
 
@@ -14,9 +17,9 @@ export function useUncommittedFiles(appId: number | null) {
     queryKey: queryKeys.uncommittedFiles.byApp({ appId }),
     queryFn: async (): Promise<UncommittedFile[]> => {
       if (appId === null) {
-        throw new DyadError(
+        throw new NextBillionError(
           "appId is null, cannot fetch uncommitted files.",
-          DyadErrorKind.Conflict,
+          NextBillionErrorKind.Conflict,
         );
       }
       return ipc.git.getUncommittedFiles({ appId });

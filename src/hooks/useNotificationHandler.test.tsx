@@ -145,7 +145,7 @@ describe("useNotificationHandler", () => {
       title: "Notes",
       options: {
         body: "Built a notes app",
-        tag: "dyad-chat-complete-42",
+        tag: "nextbillion-chat-complete-42",
       },
     });
 
@@ -176,8 +176,8 @@ describe("useNotificationHandler", () => {
     expect(notification).toMatchObject({
       title: "Notes",
       options: {
-        body: "Dyad wants to connect the Vercel plugin. Click to review.",
-        tag: "dyad-plugin-suggestion-plugin-suggestion:1",
+        body: "NextBillion wants to connect the Vercel plugin. Click to review.",
+        tag: "nextbillion-plugin-suggestion-plugin-suggestion:1",
         // Blocks the turn until answered, so it must not auto-dismiss.
         requireInteraction: true,
       },

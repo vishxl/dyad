@@ -14,7 +14,10 @@ import {
 } from "@/ipc/utils/stream_text_utils";
 import { getMaxTokens, getTemperature } from "@/ipc/utils/token_utils";
 import type { UserSettings } from "@/lib/schemas";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { searchChatsTool } from "./search_chats";
 import { readChatTool } from "./read_chat";
 import type { AgentContext, ToolDefinition } from "./types";
@@ -30,7 +33,7 @@ import {
 
 const logger = log.scope("explore_chat_history_subagent");
 
-// Shared with the other latency-sensitive Dyad tasks through SMALL_MODEL_NAME.
+// Shared with the other latency-sensitive NextBillion tasks through SMALL_MODEL_NAME.
 const SUBAGENT_MODEL = { provider: "openai", name: SMALL_MODEL_NAME } as const;
 // Max model turns. The chat-history corpus is small; benchmark runs
 // converged in well under this (mean 5 searches + 3 reads).
@@ -135,9 +138,9 @@ export async function runExploreChatHistorySubagent({
         builtinProviderId: modelInfo.modelClient.builtinProviderId,
       }),
       providerOptions: getProviderOptions({
-        dyadAppId: ctx.appId,
-        dyadRequestId: ctx.dyadRequestId,
-        dyadDisableFiles: true,
+        nextBillionAppId: ctx.appId,
+        nextBillionRequestId: ctx.nextBillionRequestId,
+        nextBillionDisableFiles: true,
         files: [],
         mentionedAppsCodebases: [],
         builtinProviderId: modelInfo.modelClient.builtinProviderId,
@@ -206,16 +209,16 @@ function assertHistoryExplorerAvailable(
   ctx: AgentContext,
 ): void {
   // Toolset exclusion is not an execution-time security boundary — re-check.
-  if (!ctx.isDyadPro || !settings.enableDyadPro) {
-    throw new DyadError(
-      "explore_chat_history requires Dyad Pro",
-      DyadErrorKind.Precondition,
+  if (!ctx.isNextBillionPro || !settings.enableNextBillionPro) {
+    throw new NextBillionError(
+      "explore_chat_history requires NextBillion Pro",
+      NextBillionErrorKind.Precondition,
     );
   }
   if (!settings.providerSettings?.auto?.apiKey) {
-    throw new DyadError(
-      "explore_chat_history requires a Dyad Pro auto provider API key",
-      DyadErrorKind.Precondition,
+    throw new NextBillionError(
+      "explore_chat_history requires a NextBillion Pro auto provider API key",
+      NextBillionErrorKind.Precondition,
     );
   }
 }

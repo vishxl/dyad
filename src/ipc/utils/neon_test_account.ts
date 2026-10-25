@@ -1,7 +1,10 @@
 import crypto from "node:crypto";
 import log from "electron-log";
 
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
 import { fetchWithRetry } from "@/ipc/utils/retryWithRateLimit";
 
@@ -23,7 +26,7 @@ export interface NeonTestAccount {
  * Auth's own signup endpoint — never by inserting into auth tables, which
  * commonly produces a user that exists but cannot log in.
  *
- * Throws `DyadError` when signup is rejected, and when it succeeds but produces
+ * Throws `NextBillionError` when signup is rejected, and when it succeeds but produces
  * an account that can't sign in (email verification required); callers treat
  * either as "auth unavailable" and record/run unauthenticated rather than
  * failing the whole flow.
@@ -37,11 +40,11 @@ export async function createNeonTestAccount({
   appId: number;
   signal?: AbortSignal;
 }): Promise<NeonTestAccount> {
-  const email = `dyad-test+${appId}-${Date.now()}@dyad.test`;
+  const email = `nextbillion-test+${appId}-${Date.now()}@nextbillion.test`;
   const password = crypto.randomBytes(24).toString("base64url");
 
   if (IS_TEST_BUILD) {
-    // Don't hit the network in Dyad's own E2E build.
+    // Don't hit the network in NextBillion's own E2E build.
     return { email, password };
   }
 
@@ -61,7 +64,7 @@ export async function createNeonTestAccount({
         Origin: authUrl.origin,
       },
       body: JSON.stringify({
-        name: "Dyad Test User",
+        name: "NextBillion Test User",
         email,
         password,
         callbackURL,
@@ -76,9 +79,9 @@ export async function createNeonTestAccount({
       .text()
       .then((body) => body.slice(0, 500))
       .catch(() => "");
-    throw new DyadError(
+    throw new NextBillionError(
       `Better Auth rejected the test-account signup (${response.status}). ${detail}`.trim(),
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
   await assertAccountCanSignIn(response);
@@ -110,8 +113,8 @@ async function assertAccountCanSignIn(response: Response): Promise<void> {
   if (payload.token) return;
   if (payload.user?.emailVerified !== false) return;
 
-  throw new DyadError(
+  throw new NextBillionError(
     "Neon Auth requires email verification, so the throwaway test account can't sign in. Recording and generated tests will run signed out.",
-    DyadErrorKind.External,
+    NextBillionErrorKind.External,
   );
 }

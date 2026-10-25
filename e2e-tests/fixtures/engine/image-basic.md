@@ -1,6 +1,6 @@
 OK, I'm going to write an app with an image now...
 
-<dyad-write path="src/pages/Index.tsx" description="write-description">
+<nextbillion-write path="src/pages/Index.tsx" description="write-description">
 const Index = () => {
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -16,6 +16,6 @@ const Index = () => {
 };
 
 export default Index;
-</dyad-write>
+</nextbillion-write>
 
 And it's done!

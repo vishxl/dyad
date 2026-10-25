@@ -4,7 +4,7 @@ import { fetch } from "undici";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 import { z } from "zod";
-import { createDyadToolBridge } from "./tool_bridge";
+import { createNextBillionToolBridge } from "./tool_bridge";
 import {
   TOOL_DEFINITIONS,
   buildAgentToolSet,
@@ -23,13 +23,13 @@ it("adapts every registered schema plus dynamic third-party tools without a Clau
     inputSchema: z.object({ query: z.string() }),
     description: "Third-party tool",
   };
-  const bridge = await createDyadToolBridge({
+  const bridge = await createNextBillionToolBridge({
     tools,
     signal: new AbortController().signal,
     invoke: vi.fn(),
   });
   const config = JSON.parse(await readFile(bridge.configPath, "utf8"))
-    .mcpServers.dyad;
+    .mcpServers.nextbillion;
   const client = new Client({ name: "registry-test", version: "1" });
   try {
     await client.connect(
@@ -49,7 +49,7 @@ it("adapts every registered schema plus dynamic third-party tools without a Clau
 
 it("uses the same availability rules for Build, Ask, Plan, provider and feature profiles", () => {
   const ctx = {
-    isDyadPro: true,
+    isNextBillionPro: true,
     frameworkType: "vite",
     referencedApps: new Map(),
     supabaseProjectId: null,
@@ -85,13 +85,13 @@ it("deduplicates retried MCP identities and rejects conflicting payloads and for
   const invoke = vi.fn(async () => ({
     content: [{ type: "text" as const, text: "done" }],
   }));
-  const bridge = await createDyadToolBridge({
+  const bridge = await createNextBillionToolBridge({
     tools: { probe: { inputSchema: z.object({ text: z.string() }) } },
     signal: new AbortController().signal,
     invoke,
   });
   const config = JSON.parse(await readFile(bridge.configPath, "utf8"))
-    .mcpServers.dyad;
+    .mcpServers.nextbillion;
   const call = (text: string, origin?: string) =>
     fetch(config.url, {
       method: "POST",

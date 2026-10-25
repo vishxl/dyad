@@ -1,6 +1,9 @@
 import type { IpcMainInvokeEvent } from "electron";
 import log from "electron-log";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   TestRunQueue,
   type TestRunExecution,
@@ -33,7 +36,10 @@ export function withAppTestRun<Result>(
   const { appId, event } = options;
   if (deletingApps.has(appId))
     return Promise.reject(
-      new DyadError("App is being deleted", DyadErrorKind.Precondition),
+      new NextBillionError(
+        "App is being deleted",
+        NextBillionErrorKind.Precondition,
+      ),
     );
   const runId = ++nextTestRunId;
   let queue = testRunQueues.get(appId);

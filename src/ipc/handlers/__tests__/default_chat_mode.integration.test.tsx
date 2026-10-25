@@ -11,11 +11,11 @@ import { writeSettings } from "@/main/settings";
 import type { UserSettings } from "@/lib/schemas";
 import { ipc } from "@/ipc/types";
 
-const DYAD_PRO_SETTINGS: Partial<UserSettings> = {
-  enableDyadPro: true,
+const NEXTBILLION_PRO_SETTINGS: Partial<UserSettings> = {
+  enableNextBillionPro: true,
   providerSettings: {
     auto: {
-      apiKey: { value: "testdyadkey" },
+      apiKey: { value: "testnextbillionkey" },
     },
   },
   selectedChatMode: "local-agent",
@@ -30,10 +30,10 @@ describe("default chat mode selector (integration)", () => {
       electronMock: h,
       autoApprove: true,
       chatMode: "local-agent",
-      // Dyad Pro settings trigger free-quota fetches; route them to the fake
+      // NextBillion Pro settings trigger free-quota fetches; route them to the fake
       // engine instead of the real engine.dyad.sh.
       engine: true,
-      settings: { isTestMode: true, ...DYAD_PRO_SETTINGS },
+      settings: { isTestMode: true, ...NEXTBILLION_PRO_SETTINGS },
     });
   }, 60_000);
 
@@ -58,7 +58,7 @@ describe("default chat mode selector (integration)", () => {
 
   it("shows Build for a non-Pro build default", async () => {
     writeSettings({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       providerSettings: {},
       selectedChatMode: "build",
       defaultChatMode: "build",
@@ -76,7 +76,7 @@ describe("default chat mode selector (integration)", () => {
 
   it("shows Agent for the implicit non-Pro baseline", async () => {
     writeSettings({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       providerSettings: {},
       selectedChatMode: "build",
       defaultChatMode: undefined,
@@ -95,7 +95,7 @@ describe("default chat mode selector (integration)", () => {
 
   it("shows Build for the implicit Google-only baseline", async () => {
     writeSettings({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       providerSettings: {
         google: { apiKey: { value: "google-key" } },
       },
@@ -114,7 +114,7 @@ describe("default chat mode selector (integration)", () => {
 
   it("honors an explicit Agent default for Google-only users", async () => {
     writeSettings({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       providerSettings: {
         google: { apiKey: { value: "google-key" } },
       },

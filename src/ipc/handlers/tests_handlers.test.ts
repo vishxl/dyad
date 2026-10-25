@@ -4,7 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import { eq } from "drizzle-orm";
 
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import type { RemoveFileAndCommitResult } from "../services/git_service";
 import { apps } from "@/db/schema";
 import { DEFAULT_SETTINGS } from "@/main/settings";
@@ -24,7 +27,7 @@ import { runningApps } from "../utils/process_manager";
 
 // Every app folder lives under one throwaway base so the delete handler runs
 // against real directories (its path guards resolve symlinks on disk).
-const TEMP_BASE = path.join(os.tmpdir(), "dyad-tests-handler-tests");
+const TEMP_BASE = path.join(os.tmpdir(), "nextbillion-tests-handler-tests");
 const TEST_WINDOW_SESSION_ID = WindowSessionIdSchema.parse(
   "10000000-0000-4000-8000-000000000001",
 );
@@ -74,7 +77,7 @@ vi.mock("electron", () => ({
   },
   app: {
     getPath: vi.fn(() =>
-      path.join(os.tmpdir(), "dyad-tests-handler-user-data"),
+      path.join(os.tmpdir(), "nextbillion-tests-handler-user-data"),
     ),
     getAppPath: vi.fn(() => process.cwd()),
   },
@@ -84,12 +87,15 @@ vi.mock("@/paths/paths", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/paths/paths")>();
   const nodePath = await import("node:path");
   const nodeOs = await import("node:os");
-  const base = nodePath.join(nodeOs.tmpdir(), "dyad-tests-handler-tests");
+  const base = nodePath.join(
+    nodeOs.tmpdir(),
+    "nextbillion-tests-handler-tests",
+  );
   return {
     ...actual,
     getUserDataPath: () =>
-      nodePath.join(nodeOs.tmpdir(), "dyad-tests-handler-user-data"),
-    getDyadAppPath: (appPath: string) =>
+      nodePath.join(nodeOs.tmpdir(), "nextbillion-tests-handler-user-data"),
+    getNextBillionAppPath: (appPath: string) =>
       nodePath.isAbsolute(appPath) ? appPath : nodePath.join(base, appPath),
   };
 });
@@ -128,8 +134,8 @@ const prepareIsolatedTestDatabaseMock = vi.hoisted(() => vi.fn());
 const startTestCaseLifecycleServerMock = vi.hoisted(() => vi.fn());
 vi.mock("../services/test_case_lifecycle_server", () => ({
   startTestCaseLifecycleServer: startTestCaseLifecycleServerMock,
-  TEST_CASE_ENDPOINT_ENV: "DYAD_TEST_CASE_ENDPOINT",
-  TEST_CASE_TOKEN_ENV: "DYAD_TEST_CASE_TOKEN",
+  TEST_CASE_ENDPOINT_ENV: "NEXTBILLION_TEST_CASE_ENDPOINT",
+  TEST_CASE_TOKEN_ENV: "NEXTBILLION_TEST_CASE_TOKEN",
 }));
 const readSettingsMock = vi.hoisted(() => vi.fn());
 const sendTelemetryEventMock = vi.hoisted(() => vi.fn());
@@ -697,7 +703,7 @@ describe("tests handlers", () => {
             appId,
             source: "panel",
           }),
-        ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+        ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
         expect(prepareIsolatedTestDatabaseMock).not.toHaveBeenCalled();
       } finally {
         runSpy.mockRestore();
@@ -784,9 +790,9 @@ describe("tests handlers", () => {
         }),
       });
       startE2eTestRuntimeMock.mockRejectedValue(
-        new DyadError(
+        new NextBillionError(
           "The isolated test server did not become ready within 2 minutes.",
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         ),
       );
 
@@ -1107,9 +1113,9 @@ describe("tests handlers", () => {
         .where(eq(apps.id, appId))
         .run();
       createE2eTestWorkspaceMock.mockRejectedValue(
-        new DyadError(
+        new NextBillionError(
           "Could not prepare the isolated Git workspace: invalid repository.",
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         ),
       );
 
@@ -1146,7 +1152,10 @@ describe("tests handlers", () => {
         }),
       });
       installE2eTestWorkspaceDependenciesMock.mockRejectedValue(
-        new DyadError("lockfile mismatch", DyadErrorKind.Precondition),
+        new NextBillionError(
+          "lockfile mismatch",
+          NextBillionErrorKind.Precondition,
+        ),
       );
 
       const result = await runAppTestsWithIsolation({
@@ -1247,7 +1256,7 @@ describe("tests handlers", () => {
         .update(apps)
         .set({
           testingEnabled: true,
-          neonTestBranchId: "dyad-cleanup-only:v1:leaked",
+          neonTestBranchId: "nextbillion-cleanup-only:v1:leaked",
         })
         .where(eq(apps.id, appId))
         .run();
@@ -1311,7 +1320,7 @@ describe("tests handlers", () => {
       }
 
       expect(result.infraError?.message).toMatch(
-        /changed while Dyad was preparing/i,
+        /changed while NextBillion was preparing/i,
       );
       expect(prepareIsolatedTestDatabaseMock).not.toHaveBeenCalled();
       expect(startE2eTestRuntimeMock).not.toHaveBeenCalled();
@@ -1350,7 +1359,7 @@ describe("tests handlers", () => {
       });
 
       expect(result.infraError?.message).toMatch(
-        /changed while Dyad was preparing/i,
+        /changed while NextBillion was preparing/i,
       );
       // The capture succeeded, so its workspace is this stage's to clean up —
       // the `setupError` result deliberately carries none for the caller.
@@ -1369,7 +1378,7 @@ describe("tests handlers", () => {
         .set({ testingEnabled: true })
         .where(eq(apps.id, appId))
         .run();
-      // `getDyadAppPath` is mocked to join TEMP_BASE, and `seedApp` stores the
+      // `getNextBillionAppPath` is mocked to join TEMP_BASE, and `seedApp` stores the
       // app's name as its path.
       const realAppPath = path.join(TEMP_BASE, "app");
       const sandboxPath = path.join(TEMP_BASE, "sandbox");
@@ -1401,7 +1410,7 @@ describe("tests handlers", () => {
       });
 
       expect(result.infraError?.message).toMatch(
-        /changed while Dyad was preparing/i,
+        /changed while NextBillion was preparing/i,
       );
       expect(dispose).toHaveBeenCalledOnce();
       expect(prepareIsolatedTestDatabaseMock).not.toHaveBeenCalled();
@@ -1411,7 +1420,7 @@ describe("tests handlers", () => {
       // The prepare stage decides whether to skip the clean install from these;
       // the run stage builds the server command from its own row. Cleared
       // between the two and the workspace has no node_modules while the runtime
-      // takes the Dyad-managed `npm run dev` branch.
+      // takes the NextBillion-managed `npm run dev` branch.
       const appId = seedApp("app");
       harness.db
         .update(apps)
@@ -1450,7 +1459,7 @@ describe("tests handlers", () => {
       }
 
       expect(result.infraError?.message).toMatch(
-        /changed while Dyad was preparing/i,
+        /changed while NextBillion was preparing/i,
       );
       expect(startE2eTestRuntimeMock).not.toHaveBeenCalled();
     });
@@ -1673,7 +1682,7 @@ describe("tests handlers", () => {
             },
             async () => undefined,
           ),
-        ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+        ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       },
     );
 
@@ -1725,7 +1734,7 @@ describe("tests handlers", () => {
       // A custom-command app skips the clean install entirely, so nothing
       // reproduces `@playwright/test` in the sandbox. Left to the runner, that
       // surfaced as a bare resolution error and was recorded as an internal
-      // Dyad exception rather than an actionable precondition.
+      // NextBillion exception rather than an actionable precondition.
       const appId = seedApp("app");
       harness.db
         .update(apps)
@@ -2156,7 +2165,7 @@ describe("tests handlers", () => {
             queuedCallback,
           );
           const rejected = expect(queued).rejects.toMatchObject({
-            kind: DyadErrorKind.Precondition,
+            kind: NextBillionErrorKind.Precondition,
           });
           finishSettlement();
           const [result] = await Promise.all([run, rejected]);
@@ -2165,7 +2174,7 @@ describe("tests handlers", () => {
           expect(result.infraError?.message).toMatch(
             /couldn't confirm.*test processes stopped/i,
           );
-          expect(result.infraError?.message).toMatch(/restart Dyad/i);
+          expect(result.infraError?.message).toMatch(/restart NextBillion/i);
           expect(teardown).not.toHaveBeenCalled();
           expect(queuedCallback).not.toHaveBeenCalled();
           expect(createE2eTestWorkspaceMock).not.toHaveBeenCalled();
@@ -2188,7 +2197,9 @@ describe("tests handlers", () => {
                 { appId, operation: "later-operation", resources: [resource] },
                 callback,
               ),
-            ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+            ).rejects.toMatchObject({
+              kind: NextBillionErrorKind.Precondition,
+            });
             expect(callback).not.toHaveBeenCalled();
           }
           expect(() => appOperationCoordinator.beginAppDeletion(appId)).toThrow(
@@ -2201,7 +2212,7 @@ describe("tests handlers", () => {
               appId,
               source: "panel",
             }),
-          ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+          ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
           expect(prepareIsolatedTestDatabaseMock).toHaveBeenCalledOnce();
           expect(settleE2eTestProcessesMock).toHaveBeenCalledOnce();
           expect(
@@ -2900,7 +2911,7 @@ describe("tests handlers", () => {
 
       await expect(
         harness.invokeHandler("tests:delete", { appId, testFile }),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Validation });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Validation });
 
       expect(fs.existsSync(outside)).toBe(true);
       expect(fs.existsSync(helper)).toBe(true);
@@ -2915,7 +2926,7 @@ describe("tests handlers", () => {
           appId,
           testFile: "e2e-tests/gone.spec.ts",
         }),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.NotFound });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.NotFound });
 
       expect(removeFileAndCommitMock).not.toHaveBeenCalled();
     });
@@ -2930,7 +2941,7 @@ describe("tests handlers", () => {
           appId: otherAppId,
           testFile: "e2e-tests/signup.spec.ts",
         }),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.NotFound });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.NotFound });
 
       expect(fs.existsSync(specA)).toBe(true);
     });

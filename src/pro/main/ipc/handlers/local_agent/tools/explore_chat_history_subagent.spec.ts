@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { streamText } from "ai";
 import { SMALL_MODEL_NAME } from "@/ipc/shared/language_model_constants";
 
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import {
   drainChatSearchIndexOnce,
   resetChatSearchIndexerForTesting,
@@ -88,10 +88,10 @@ describe("runExploreChatHistorySubagent", () => {
     vi.clearAllMocks();
     harness = setupChatSearchTestDb();
     mocks.readSettings.mockReturnValue({
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       providerSettings: {
         auto: {
-          apiKey: { value: "dyad-pro-key" },
+          apiKey: { value: "nextbillion-pro-key" },
         },
       },
     });
@@ -104,7 +104,7 @@ describe("runExploreChatHistorySubagent", () => {
     mocks.getMaxTokens.mockResolvedValue(32_000);
     mocks.getTemperature.mockResolvedValue(0);
     mocks.getAiHeaders.mockReturnValue({ "x-test": "header" });
-    mocks.getProviderOptions.mockReturnValue({ dyad: "options" });
+    mocks.getProviderOptions.mockReturnValue({ nextbillion: "options" });
     mocks.streamText.mockImplementation(() => ({
       fullStream: createTextStream([]),
       textStream: createTextStream([]),
@@ -120,7 +120,7 @@ describe("runExploreChatHistorySubagent", () => {
   it.each(["build", "ask", "plan", "local-agent"] as const)(
     "inherits accepted %s billing settings instead of the live default",
     async (selectedChatMode) => {
-      const ctx = makeAgentContext({ isDyadPro: true });
+      const ctx = makeAgentContext({ isNextBillionPro: true });
       ctx.inferenceSettings = { ...mocks.readSettings(), selectedChatMode };
       mocks.readSettings.mockReturnValue({
         ...ctx.inferenceSettings,
@@ -142,51 +142,51 @@ describe("runExploreChatHistorySubagent", () => {
     },
   );
 
-  it("throws a Precondition error when the context is not Dyad Pro", async () => {
-    // makeAgentContext defaults to isDyadPro: false.
+  it("throws a Precondition error when the context is not NextBillion Pro", async () => {
+    // makeAgentContext defaults to isNextBillionPro: false.
     await expect(
       runExploreChatHistorySubagent({
         query: "auth decision",
         ctx: makeAgentContext(),
       }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
     expect(mocks.streamText).not.toHaveBeenCalled();
   });
 
-  it("throws a Precondition error when settings do not enable Dyad Pro", async () => {
+  it("throws a Precondition error when settings do not enable NextBillion Pro", async () => {
     mocks.readSettings.mockReturnValue({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       providerSettings: {
-        auto: { apiKey: { value: "dyad-pro-key" } },
+        auto: { apiKey: { value: "nextbillion-pro-key" } },
       },
     });
     await expect(
       runExploreChatHistorySubagent({
         query: "auth decision",
-        ctx: makeAgentContext({ isDyadPro: true }),
+        ctx: makeAgentContext({ isNextBillionPro: true }),
       }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
     expect(mocks.streamText).not.toHaveBeenCalled();
   });
 
   it("throws a Precondition error when the auto provider API key is missing", async () => {
     mocks.readSettings.mockReturnValue({
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       providerSettings: {},
     });
     await expect(
       runExploreChatHistorySubagent({
         query: "auth decision",
-        ctx: makeAgentContext({ isDyadPro: true }),
+        ctx: makeAgentContext({ isNextBillionPro: true }),
       }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
     expect(mocks.streamText).not.toHaveBeenCalled();
   });
 
   it("exposes exactly search_chats, read_chat, and submit_report to the child model", async () => {
     await runExploreChatHistorySubagent({
       query: "auth decision",
-      ctx: makeAgentContext({ isDyadPro: true }),
+      ctx: makeAgentContext({ isNextBillionPro: true }),
     });
 
     expect(vi.mocked(streamText)).toHaveBeenCalledTimes(1);
@@ -225,7 +225,7 @@ describe("runExploreChatHistorySubagent", () => {
     await drainChatSearchIndexOnce();
 
     const ctx = makeAgentContext({
-      isDyadPro: true,
+      isNextBillionPro: true,
       appId,
       chatId: currentChat,
     });
@@ -292,7 +292,7 @@ describe("runExploreChatHistorySubagent", () => {
 
     await runExploreChatHistorySubagent({
       query: "auth decision",
-      ctx: makeAgentContext({ isDyadPro: true }),
+      ctx: makeAgentContext({ isNextBillionPro: true }),
     });
 
     expect(results[19]).not.toContain("budget exhausted");
@@ -317,7 +317,7 @@ describe("runExploreChatHistorySubagent", () => {
     await drainChatSearchIndexOnce();
 
     const ctx = makeAgentContext({
-      isDyadPro: true,
+      isNextBillionPro: true,
       appId,
       chatId: currentChat,
     });
@@ -391,7 +391,7 @@ describe("runExploreChatHistorySubagent", () => {
     await drainChatSearchIndexOnce();
 
     const ctx = makeAgentContext({
-      isDyadPro: true,
+      isNextBillionPro: true,
       appId,
       chatId: currentChat,
     });
@@ -470,7 +470,7 @@ describe("runExploreChatHistorySubagent", () => {
     const { report } = await runExploreChatHistorySubagent({
       query: "which auth provider did we pick?",
       ctx: makeAgentContext({
-        isDyadPro: true,
+        isNextBillionPro: true,
         appId,
         chatId: currentChat,
       }),
@@ -518,7 +518,7 @@ describe("runExploreChatHistorySubagent", () => {
     const { report } = await runExploreChatHistorySubagent({
       query: "which auth provider did we pick?",
       ctx: makeAgentContext({
-        isDyadPro: true,
+        isNextBillionPro: true,
         appId,
         chatId: currentChat,
       }),
@@ -545,7 +545,7 @@ describe("runExploreChatHistorySubagent", () => {
 
     const { report } = await runExploreChatHistorySubagent({
       query: "auth decision",
-      ctx: makeAgentContext({ isDyadPro: true }),
+      ctx: makeAgentContext({ isNextBillionPro: true }),
     });
 
     expect(report.text).toContain("Deterministic evidence-only fallback");
@@ -566,7 +566,7 @@ describe("runExploreChatHistorySubagent", () => {
     await expect(
       runExploreChatHistorySubagent({
         query: "auth decision",
-        ctx: makeAgentContext({ isDyadPro: true }),
+        ctx: makeAgentContext({ isNextBillionPro: true }),
       }),
     ).rejects.toThrow("provider exploded");
   });
@@ -577,7 +577,7 @@ describe("runExploreChatHistorySubagent", () => {
     );
     const controller = new AbortController();
     const ctx = makeAgentContext({
-      isDyadPro: true,
+      isNextBillionPro: true,
       abortSignal: controller.signal,
     });
     mocks.streamText.mockImplementationOnce((options: any) => ({

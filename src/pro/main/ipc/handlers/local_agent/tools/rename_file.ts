@@ -37,7 +37,7 @@ export const renameFileTool: ToolDefinition<z.infer<typeof renameFileSchema>> =
 
     buildXml: (args, _isComplete) => {
       if (!args.from || !args.to) return undefined;
-      return `<dyad-rename from="${escapeXmlAttr(args.from)}" to="${escapeXmlAttr(args.to)}"></dyad-rename>`;
+      return `<nextbillion-rename from="${escapeXmlAttr(args.from)}" to="${escapeXmlAttr(args.to)}"></nextbillion-rename>`;
     },
 
     shouldTrackMutation: (_args, result) =>

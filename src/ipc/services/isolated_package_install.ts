@@ -364,16 +364,16 @@ export async function runCleanPackageInstall({
   }
 
   // The lockfile and `package.json` disagree. This is a routine state in a
-  // Dyad app — the agent edits `package.json` and the preview's tolerant
+  // NextBillion app — the agent edits `package.json` and the preview's tolerant
   // `npm install --legacy-peer-deps` silently repairs it — so a frozen install
   // being STRICTER than the preview the sandbox is meant to reproduce is a
   // defect, not extra safety: it would fail every test run for an app that
   // starts and runs fine.
   //
-  // Per **Principle #5: Bridge, Don't Replace** ("Dyad runs `npm install` ...
+  // Per **Principle #5: Bridge, Don't Replace** ("NextBillion runs `npm install` ...
   // but doesn't manage node_modules or lock files beyond what the user
   // configures"), the fallback resolves the tree the way the user's own
-  // preview does rather than making Dyad the owner of their lockfile. Announced
+  // preview does rather than making NextBillion the owner of their lockfile. Announced
   // rather than silent, per **Principle #4: Transparent Over Magical**, so the
   // drift is visible in the setup output where the user can act on it.
   onOutput?.(

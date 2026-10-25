@@ -1,5 +1,5 @@
 /**
- * The Cloudflare API calls Dyad makes to set up and watch Worker deployments.
+ * The Cloudflare API calls NextBillion makes to set up and watch Worker deployments.
  *
  * Every function takes the user's API token. Failures surface as
  * `CloudflareApiError`, which keeps Cloudflare's numeric error codes because
@@ -7,7 +7,10 @@
  */
 
 import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import type { DeployRuleBody } from "./build_config";
 
 export function getCloudflareApiBase(): string {
@@ -56,25 +59,34 @@ export function isCloudflareAuthFailure(error: unknown): boolean {
 }
 
 /** Classifies an API failure so expected ones stay out of error telemetry. */
-export function toCloudflareDyadError(error: unknown, action: string): Error {
-  if (error instanceof DyadError) {
+export function toCloudflareNextBillionError(
+  error: unknown,
+  action: string,
+): Error {
+  if (error instanceof NextBillionError) {
     return error;
   }
   if (error instanceof CloudflareApiError) {
     const kind =
       error.status === 401 || error.status === 403
-        ? DyadErrorKind.Auth
+        ? NextBillionErrorKind.Auth
         : error.status === 404
-          ? DyadErrorKind.NotFound
+          ? NextBillionErrorKind.NotFound
           : error.status === 429
-            ? DyadErrorKind.RateLimited
-            : DyadErrorKind.External;
-    return new DyadError(`${action}: ${error.message}`, kind, { cause: error });
+            ? NextBillionErrorKind.RateLimited
+            : NextBillionErrorKind.External;
+    return new NextBillionError(`${action}: ${error.message}`, kind, {
+      cause: error,
+    });
   }
   const message = error instanceof Error ? error.message : String(error);
-  return new DyadError(`${action}: ${message}`, DyadErrorKind.External, {
-    cause: error,
-  });
+  return new NextBillionError(
+    `${action}: ${message}`,
+    NextBillionErrorKind.External,
+    {
+      cause: error,
+    },
+  );
 }
 
 /**
@@ -425,7 +437,7 @@ export async function ensureBuildToken(
     "POST",
     apiPath`/accounts/${accountId}/builds/tokens`,
     {
-      build_token_name: "Dyad",
+      build_token_name: "NextBillion",
       build_token_secret: token,
       cloudflare_token_id: tokenId,
     },

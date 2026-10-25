@@ -107,7 +107,7 @@ describe("getAllowedRpcOrigins", () => {
   it("parses a custom comma list and normalizes trailing slashes", () => {
     expect(
       getAllowedRpcOrigins({
-        DYAD_RPC_ALLOWED_ORIGINS:
+        NEXTBILLION_RPC_ALLOWED_ORIGINS:
           "http://localhost:5173/, http://10.0.0.5:4173",
       }),
     ).toEqual(new Set(["http://localhost:5173", "http://10.0.0.5:4173"]));

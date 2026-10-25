@@ -49,7 +49,7 @@ const RECORDING_ID_RE = /^Recording id: (\S+)\s*$/m;
  * fallback path where the agent is no longer parked on the card.
  */
 const VERIFY_REQUEST_RE =
-  /^I approved the assertions\. Dyad generated (\S+) from my recording\.\s*$/m;
+  /^I approved the assertions\. NextBillion generated (\S+) from my recording\.\s*$/m;
 
 /**
  * Markers from the `generate_test_assertions` tool result (see
@@ -58,7 +58,7 @@ const VERIFY_REQUEST_RE =
  * answered and the tool call must not be repeated.
  */
 const APPROVED_RESULT_RE =
-  /^The user approved the plan\. Dyad generated (\S+) from the recording/m;
+  /^The user approved the plan\. NextBillion generated (\S+) from the recording/m;
 const CLOSED_RESULT_RE = /^The user closed the review card without approving/m;
 
 /** Derive a plain-English sentence for a recorded Playwright statement. */
@@ -206,7 +206,7 @@ export function matchAssertionsAgentTurn(
 
   // Bail rather than send a call the tool must reject: without this the schema
   // check fails, `execute()` never runs, no card is emitted, and the E2E waits
-  // out its timeout on a missing `dyad-test-assertions-card` with nothing
+  // out its timeout on a missing `nextbillion-test-assertions-card` with nothing
   // pointing at the fixture as the cause.
   const recordingId = RECORDING_ID_RE.exec(lastUserText)?.[1];
   if (!recordingId) return null;
@@ -222,7 +222,7 @@ export function matchAssertionsAgentTurn(
       // Copied from the request verbatim: the tool compares it against the
       // parked draft and rejects a plan that describes a different recording.
       recordingId,
-      // The model names the test. Dyad only uses this when the user left the
+      // The model names the test. NextBillion only uses this when the user left the
       // recording unnamed, but the tool always asks for it, so always send one.
       testName: steps.at(-1)?.text ?? "Recorded flow",
       steps,

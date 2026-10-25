@@ -2,7 +2,7 @@ import { z } from "zod";
 
 /**
  * Shared model for the preview test recorder. The injected recorder client
- * (`worker/dyad-recorder-client.js`) posts `RecordedAction`s to the renderer.
+ * (`worker/nextbillion-recorder-client.js`) posts `RecordedAction`s to the renderer.
  * These are validated at the postMessage boundary with `parseRecorderAction`
  * because the payload originates in the previewed app's frame.
  */
@@ -39,9 +39,9 @@ function isRelativeInAppSourcePath(value: string): boolean {
 }
 
 /**
- * Development-only source information injected by Dyad's component tagger.
+ * Development-only source information injected by NextBillion's component tagger.
  *
- * This is never a replay locator: line-based `data-dyad-id` values move as the
+ * This is never a replay locator: line-based `data-nextbillion-id` values move as the
  * app is edited and are absent from production builds. A fragile CSS fallback
  * carries the hint only so the agent can find the JSX element and add a stable
  * `data-testid` before it proposes the recorded test.
@@ -87,7 +87,7 @@ export const LocatorDescriptorSchema = z.object({
   exact: z.boolean().optional(),
   /** Zero-based index when the locator matches multiple elements. */
   nth: z.number().int().nonnegative().optional(),
-  /** Present on CSS fallbacks when Dyad can trace the DOM node to app source. */
+  /** Present on CSS fallbacks when NextBillion can trace the DOM node to app source. */
   sourceHint: LocatorSourceHintSchema.optional(),
 });
 export type LocatorDescriptor = z.infer<typeof LocatorDescriptorSchema>;
@@ -96,7 +96,7 @@ export type LocatorDescriptor = z.infer<typeof LocatorDescriptorSchema>;
  * A host that cannot be reached, so resolving against it proves whether a
  * candidate path stays on whatever origin Playwright resolves it against.
  */
-const NAVIGATE_BASE = "http://dyad.invalid";
+const NAVIGATE_BASE = "http://nextbillion.invalid";
 
 /**
  * Whether `page.goto(value)` would stay inside the recorded app.
@@ -111,15 +111,15 @@ const NAVIGATE_BASE = "http://dyad.invalid";
 function isAppRelativePath(value: string): boolean {
   // Decided on the string a URL parser will actually see. WHATWG URL deletes
   // every tab, LF and CR from its input before parsing anything, so
-  // `"/\t/dyad.invalid/x"` is parsed as the authority-relative
-  // `"//dyad.invalid/x"` — reading the raw second character here would find the
+  // `"/\t/nextbillion.invalid/x"` is parsed as the authority-relative
+  // `"//nextbillion.invalid/x"` — reading the raw second character here would find the
   // tab, pass the structural check below, and then resolve onto the sentinel
   // base and compare equal. Playwright resolves the same string against the
   // real preview and leaves the app.
   const normalized = value.replace(/[\t\n\r]/g, "");
   if (!normalized.startsWith("/")) return false;
   // An authority-relative path is off-origin by construction, and comparing
-  // resolved origins can't see it: `//dyad.invalid/x` resolves *onto* the
+  // resolved origins can't see it: `//nextbillion.invalid/x` resolves *onto* the
   // sentinel base and compares equal, while Playwright would resolve it against
   // the real preview and leave the app. Both separators, since WHATWG URL
   // treats them alike for special schemes.
@@ -163,7 +163,7 @@ export const RecordedActionSchema = z.discriminatedUnion("kind", [
     locator: LocatorDescriptorSchema,
     values: z.array(z.string().max(MAX_VALUE_LEN)).max(MAX_SELECT_VALUES),
   }),
-  // Synthesized in the renderer when the user navigates from Dyad's own chrome:
+  // Synthesized in the renderer when the user navigates from NextBillion's own chrome:
   // the preview address bar and routes dropdown for `navigate`, its back and
   // forward buttons for the other two. Routing the app does on its own is not
   // recorded — the step that triggered it already is.
@@ -201,7 +201,7 @@ export interface RecordedEntry {
 }
 
 /**
- * Validate an untrusted `dyad-recorder-action` payload; null when malformed.
+ * Validate an untrusted `nextbillion-recorder-action` payload; null when malformed.
  *
  * Pass `trusted` only for actions the renderer synthesizes itself. Everything
  * else arrives by postMessage from the previewed app, which must not be able to

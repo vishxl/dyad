@@ -5,7 +5,7 @@ import os from "node:os";
 import path from "node:path";
 const mocks = vi.hoisted(() => ({
   directory: "",
-  key: "test-dyad-key",
+  key: "test-nextbillion-key",
   proEnabled: true,
   warn: vi.fn(),
 }));
@@ -15,7 +15,7 @@ vi.mock("./codex_subscription_credit_check", () => ({
 vi.mock("@/paths/paths", () => ({ getUserDataPath: () => mocks.directory }));
 vi.mock("@/main/settings", () => ({
   readSettings: () => ({
-    enableDyadPro: mocks.proEnabled,
+    enableNextBillionPro: mocks.proEnabled,
     providerSettings: { auto: { apiKey: { value: mocks.key } } },
   }),
 }));
@@ -34,11 +34,11 @@ const usage = {
 };
 describe("single-attempt subscription usage", () => {
   beforeEach(() => {
-    mocks.key = "test-dyad-key";
+    mocks.key = "test-nextbillion-key";
     mocks.proEnabled = true;
     mocks.warn.mockClear();
     mocks.directory = fs.mkdtempSync(
-      path.join(os.tmpdir(), "dyad-usage-test-"),
+      path.join(os.tmpdir(), "nextbillion-usage-test-"),
     );
     vi.stubGlobal(
       "fetch",
@@ -196,7 +196,7 @@ describe("single-attempt subscription usage", () => {
     mocks.key = "other-test-account";
     await finishSubscriptionUsage(id, "model", usage);
     expect(vi.mocked(fetch).mock.calls[0][1]?.headers).toMatchObject({
-      Authorization: "Bearer test-dyad-key",
+      Authorization: "Bearer test-nextbillion-key",
     });
   });
   it("never loads legacy saved reports or restores active reports after restart", async () => {

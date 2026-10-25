@@ -10,7 +10,7 @@ import { desc, eq, and, gt, gte, isNotNull } from "drizzle-orm";
 import type { GitCommit } from "../git_types";
 import fs from "node:fs";
 import path from "node:path";
-import { getDyadAppPath } from "../../paths/paths";
+import { getNextBillionAppPath } from "../../paths/paths";
 import {
   appOperationCoordinator,
   readAppResource,
@@ -58,7 +58,10 @@ import {
 } from "../utils/app_env_var_utils";
 import { storeDbTimestampAtCurrentVersion } from "../utils/neon_timestamp_utils";
 import { retryOnLocked } from "../utils/retryOnLocked";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { syncCloudSandboxSnapshot } from "../utils/cloud_sandbox_provider";
 import {
   DIFF_BINARY_PLACEHOLDER,
@@ -417,10 +420,10 @@ async function resolveRestoreRef({
 }> {
   const currentBranch = await gitCurrentBranch({ path: appPath });
   if (!currentBranch && !targetBranchName) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Cannot restore while viewing a historical version. Close the version " +
         "preview to return to your branch, then try again.",
-      DyadErrorKind.Conflict,
+      NextBillionErrorKind.Conflict,
     );
   }
   const revertRef = currentBranch ?? targetBranchName!;
@@ -453,12 +456,15 @@ async function getVersionAppPath(appId: number): Promise<string> {
   });
 
   if (!app) {
-    throw new DyadError("App not found", DyadErrorKind.NotFound);
+    throw new NextBillionError("App not found", NextBillionErrorKind.NotFound);
   }
 
-  const appPath = getDyadAppPath(app.path);
+  const appPath = getNextBillionAppPath(app.path);
   if (!fs.existsSync(path.join(appPath, ".git"))) {
-    throw new DyadError("Not a git repository", DyadErrorKind.External);
+    throw new NextBillionError(
+      "Not a git repository",
+      NextBillionErrorKind.External,
+    );
   }
 
   return appPath;
@@ -476,7 +482,10 @@ async function assertVersionExists({
     commitHash: versionId,
   });
   if (!exists) {
-    throw new DyadError("Version not found", DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      "Version not found",
+      NextBillionErrorKind.NotFound,
+    );
   }
 }
 
@@ -608,15 +617,15 @@ async function revertCodebaseToVersion({
   // emitting progress or making any mutation.
   const repositoryHealth = await inspectRepositoryHealth({ path: appPath });
   if (repositoryHealth.unmergedFiles.length > 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Cannot revert: repository has unresolved file conflicts.",
-      DyadErrorKind.Conflict,
+      NextBillionErrorKind.Conflict,
     );
   }
   if (repositoryHealth.operationInProgress) {
-    throw new DyadError(
-      `Cannot revert: a Git ${repositoryHealth.operationInProgress} is in progress. Finish or cancel it outside Dyad, then try again.`,
-      DyadErrorKind.Conflict,
+    throw new NextBillionError(
+      `Cannot revert: a Git ${repositoryHealth.operationInProgress} is in progress. Finish or cancel it outside NextBillion, then try again.`,
+      NextBillionErrorKind.Conflict,
     );
   }
 
@@ -667,7 +676,7 @@ async function revertCodebaseToVersion({
       `Preserving dirty tree in a checkpoint commit before restoring app ${appId}. ` +
         `User-visible uncommitted file(s): ${preservedFiles.length}` +
         (preservedUserVisibleFiles ? ` (${preservedUserVisibleFiles})` : "") +
-        ". Dyad-managed runtime files may also be included in the checkpoint.",
+        ". NextBillion-managed runtime files may also be included in the checkpoint.",
     );
     checkpointGitStep("preserve-dirty-tree");
     await gitAddAll({ path: appPath });
@@ -687,9 +696,9 @@ async function revertCodebaseToVersion({
       path: appPath,
     });
     if (userVisibleChanges.length > 0) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Cannot revert: working tree has uncommitted changes.",
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
   }
@@ -810,9 +819,9 @@ async function revertCodebaseToVersion({
 
         const preserveBranchId = response.data.branch.parent_id;
         if (!preserveBranchId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Preserve branch ID not found",
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
         logger.info(
@@ -928,7 +937,7 @@ export function registerVersionHandlers() {
       return [];
     }
 
-    const appPath = getDyadAppPath(app.path);
+    const appPath = getNextBillionAppPath(app.path);
 
     // Just return an empty array if the app is not a git repo.
     if (!fs.existsSync(path.join(appPath, ".git"))) {
@@ -993,14 +1002,20 @@ export function registerVersionHandlers() {
     });
 
     if (!app) {
-      throw new DyadError("App not found", DyadErrorKind.NotFound);
+      throw new NextBillionError(
+        "App not found",
+        NextBillionErrorKind.NotFound,
+      );
     }
 
-    const appPath = getDyadAppPath(app.path);
+    const appPath = getNextBillionAppPath(app.path);
 
     // Return appropriate result if the app is not a git repo
     if (!fs.existsSync(path.join(appPath, ".git"))) {
-      throw new DyadError("Not a git repository", DyadErrorKind.External);
+      throw new NextBillionError(
+        "Not a git repository",
+        NextBillionErrorKind.External,
+      );
     }
 
     try {
@@ -1011,9 +1026,9 @@ export function registerVersionHandlers() {
       };
     } catch (error: any) {
       logger.error(`Error getting current branch for app ${appId}:`, error);
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to get current branch: ${error.message}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   });
@@ -1025,13 +1040,19 @@ export function registerVersionHandlers() {
     });
 
     if (!app) {
-      throw new DyadError("App not found", DyadErrorKind.NotFound);
+      throw new NextBillionError(
+        "App not found",
+        NextBillionErrorKind.NotFound,
+      );
     }
 
-    const appPath = getDyadAppPath(app.path);
+    const appPath = getNextBillionAppPath(app.path);
 
     if (!fs.existsSync(path.join(appPath, ".git"))) {
-      throw new DyadError("Not a git repository", DyadErrorKind.External);
+      throw new NextBillionError(
+        "Not a git repository",
+        NextBillionErrorKind.External,
+      );
     }
 
     try {
@@ -1076,18 +1097,18 @@ export function registerVersionHandlers() {
       }
       return results;
     } catch (error: any) {
-      // Preserve the original error kind for DyadErrors thrown by inner
-      // functions; only wrap unexpected (non-Dyad) failures as External.
-      if (error instanceof DyadError) {
+      // Preserve the original error kind for NextBillionErrors thrown by inner
+      // functions; only wrap unexpected (non-NextBillion) failures as External.
+      if (error instanceof NextBillionError) {
         throw error;
       }
       logger.error(
         `Error getting version changes for app ${appId} version ${versionId}:`,
         error,
       );
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to get version changes: ${error.message}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   });
@@ -1130,10 +1151,13 @@ export function registerVersionHandlers() {
           });
 
           if (!app) {
-            throw new DyadError("App not found", DyadErrorKind.NotFound);
+            throw new NextBillionError(
+              "App not found",
+              NextBillionErrorKind.NotFound,
+            );
           }
 
-          const appPath = getDyadAppPath(app.path);
+          const appPath = getNextBillionAppPath(app.path);
 
           if (expectedHeadOid) {
             const currentHeadOid = await getCurrentCommitHash({
@@ -1141,9 +1165,9 @@ export function registerVersionHandlers() {
               ref: targetBranchName ?? "HEAD",
             });
             if (currentHeadOid !== expectedHeadOid) {
-              throw new DyadError(
+              throw new NextBillionError(
                 "The app's history changed since you confirmed. Please retry the undo.",
-                DyadErrorKind.Conflict,
+                NextBillionErrorKind.Conflict,
               );
             }
           }
@@ -1337,9 +1361,12 @@ export function registerVersionHandlers() {
           where: eq(apps.id, appId),
         });
         if (!app) {
-          throw new DyadError("App not found", DyadErrorKind.NotFound);
+          throw new NextBillionError(
+            "App not found",
+            NextBillionErrorKind.NotFound,
+          );
         }
-        const appPath = getDyadAppPath(app.path);
+        const appPath = getNextBillionAppPath(app.path);
         if (restoreCodebase) {
           // Validate the branch anchor before cancelling any streams. The same
           // check runs again during the mutation to protect against a ref change
@@ -1356,21 +1383,27 @@ export function registerVersionHandlers() {
           },
         });
         if (!chat) {
-          throw new DyadError("Chat not found", DyadErrorKind.NotFound);
+          throw new NextBillionError(
+            "Chat not found",
+            NextBillionErrorKind.NotFound,
+          );
         }
         // Defense in depth: make sure the chat actually belongs to this app so
         // a mismatched (appId, chatId) from the renderer can't create a chat
         // under the wrong app or revert to a commit from another app's repo.
         if (chat.appId !== appId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Chat does not belong to this app",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
 
         const targetIndex = chat.messages.findIndex((m) => m.id === messageId);
         if (targetIndex === -1) {
-          throw new DyadError("Message not found", DyadErrorKind.NotFound);
+          throw new NextBillionError(
+            "Message not found",
+            NextBillionErrorKind.NotFound,
+          );
         }
 
         const messagesBefore = chat.messages
@@ -1415,8 +1448,8 @@ export function registerVersionHandlers() {
             });
           } catch (error) {
             if (
-              error instanceof DyadError &&
-              error.kind === DyadErrorKind.NotFound
+              error instanceof NextBillionError &&
+              error.kind === NextBillionErrorKind.NotFound
             ) {
               return {
                 status: "warn" as const,
@@ -1481,9 +1514,9 @@ export function registerVersionHandlers() {
       releaseRecordingBlock =
         blockRecordingStart(appId, "restore a version") ?? undefined;
       if (!releaseRecordingBlock) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Stop the recording session before you restore this version — it's holding this app while it records.",
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         );
       }
 
@@ -1545,13 +1578,16 @@ export function registerVersionHandlers() {
             where: eq(apps.id, appId),
           });
           if (!latestApp) {
-            throw new DyadError("App not found", DyadErrorKind.NotFound);
+            throw new NextBillionError(
+              "App not found",
+              NextBillionErrorKind.NotFound,
+            );
           }
           // The app directory can be renamed while phase 2 awaits stream
           // cancellation without holding the app lock. Re-resolve it from the
           // row fetched after reacquiring the lock so every phase-3 filesystem
           // operation targets the current directory.
-          const latestAppPath = getDyadAppPath(latestApp.path);
+          const latestAppPath = getNextBillionAppPath(latestApp.path);
 
           const latestChat = await db.query.chats.findFirst({
             where: eq(chats.id, chatId),
@@ -1562,12 +1598,15 @@ export function registerVersionHandlers() {
             },
           });
           if (!latestChat) {
-            throw new DyadError("Chat not found", DyadErrorKind.NotFound);
+            throw new NextBillionError(
+              "Chat not found",
+              NextBillionErrorKind.NotFound,
+            );
           }
           if (latestChat.appId !== appId) {
-            throw new DyadError(
+            throw new NextBillionError(
               "Chat does not belong to this app",
-              DyadErrorKind.Validation,
+              NextBillionErrorKind.Validation,
             );
           }
 
@@ -1575,7 +1614,10 @@ export function registerVersionHandlers() {
             (m) => m.id === messageId,
           );
           if (latestTargetIndex === -1) {
-            throw new DyadError("Message not found", DyadErrorKind.NotFound);
+            throw new NextBillionError(
+              "Message not found",
+              NextBillionErrorKind.NotFound,
+            );
           }
 
           const latestTargetTurnOutcome = await getRestoreTargetTurnOutcome({
@@ -1628,8 +1670,8 @@ export function registerVersionHandlers() {
               });
             } catch (error) {
               if (
-                error instanceof DyadError &&
-                error.kind === DyadErrorKind.NotFound
+                error instanceof NextBillionError &&
+                error.kind === NextBillionErrorKind.NotFound
               ) {
                 return versionCommandResult({
                   repositoryOutcome: "unchanged",
@@ -1934,7 +1976,10 @@ export function registerVersionHandlers() {
         });
 
         if (!app) {
-          throw new DyadError("App not found", DyadErrorKind.NotFound);
+          throw new NextBillionError(
+            "App not found",
+            NextBillionErrorKind.NotFound,
+          );
         }
 
         if (
@@ -2034,7 +2079,7 @@ export function registerVersionHandlers() {
             }
           }
         }
-        const fullAppPath = getDyadAppPath(app.path);
+        const fullAppPath = getNextBillionAppPath(app.path);
         await gitCheckout({
           path: fullAppPath,
           ref: gitRef,

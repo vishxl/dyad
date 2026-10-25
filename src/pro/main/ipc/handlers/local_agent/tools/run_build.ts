@@ -4,7 +4,10 @@ import path from "node:path";
 import log from "electron-log/main";
 import { z } from "zod";
 
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   appOperationCoordinator,
   readAppResource,
@@ -43,8 +46,8 @@ const BUILD_TIMEOUT_MS = 10 * 60_000;
 const MAX_RESULT_OUTPUT_CHARS = 16_000;
 const BUILD_OUTPUT_PREVIEW_INTERVAL_MS = 250;
 const STALE_SNAPSHOT_AGE_MS = 60 * 60_000;
-const SNAPSHOT_PREFIX = ".dyad-build-";
-const SNAPSHOT_NAME_PATTERN = /^\.dyad-build-[A-Za-z0-9]{6}$/;
+const SNAPSHOT_PREFIX = ".nextbillion-build-";
+const SNAPSHOT_NAME_PATTERN = /^\.nextbillion-build-[A-Za-z0-9]{6}$/;
 const SNAPSHOT_ROOT_NAME = "build-snapshots";
 const SNAPSHOT_EXCLUDED_NAMES = new Set([
   "node_modules",
@@ -118,7 +121,7 @@ function completeStatus(
   state: "finished" | "warning" = "finished",
 ): void {
   ctx.onXmlComplete(
-    `<dyad-status title="${escapeXmlAttr(title)}" state="${state}">\n${escapeXmlContent(body)}\n</dyad-status>`,
+    `<nextbillion-status title="${escapeXmlAttr(title)}" state="${state}">\n${escapeXmlContent(body)}\n</nextbillion-status>`,
   );
 }
 
@@ -128,9 +131,9 @@ async function readPackageJson(appPath: string): Promise<PackageJson> {
       await fs.readFile(path.join(appPath, "package.json"), "utf8"),
     ) as PackageJson;
   } catch (error) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Could not read package.json: ${error instanceof Error ? error.message : String(error)}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 }
@@ -400,7 +403,7 @@ function streamBuildOutput(ctx: AgentContext, accumulatedOutput: string): void {
   const output = accumulatedOutput.trim();
   if (!output) return;
   ctx.onXmlStream(
-    `<dyad-status title="Production build output">\n${escapeXmlContent(output)}\n</dyad-status>`,
+    `<nextbillion-status title="Production build output">\n${escapeXmlContent(output)}\n</nextbillion-status>`,
   );
 }
 
@@ -422,7 +425,7 @@ export const runBuildTool: ToolDefinition<z.infer<typeof runBuildSchema>> = {
   buildXml: (_args, isComplete) =>
     isComplete
       ? undefined
-      : '<dyad-status title="Running production build"></dyad-status>',
+      : '<nextbillion-status title="Running production build"></nextbillion-status>',
 
   execute: async (_args, ctx) => {
     if (activeBuilds.has(ctx.appId)) {
@@ -451,9 +454,9 @@ export const runBuildTool: ToolDefinition<z.infer<typeof runBuildSchema>> = {
           } satisfies BuildAttemptState);
           const currentMutationCount = ctx.mutationCount ?? 0;
           if (runningApps.get(ctx.appId)?.mode === "cloud") {
-            throw new DyadError(
+            throw new NextBillionError(
               "Production build verification is unavailable while this app is running in a cloud sandbox because the build would run on the host instead of inside that sandbox. Switch the app runtime to Host and try again.",
-              DyadErrorKind.Precondition,
+              NextBillionErrorKind.Precondition,
             );
           }
           if (state.count >= MAX_BUILD_RUNS_PER_TURN) {
@@ -480,9 +483,9 @@ export const runBuildTool: ToolDefinition<z.infer<typeof runBuildSchema>> = {
           const packageJson = await readPackageJson(ctx.appPath);
           const buildScript = getScript(packageJson, "build");
           if (!buildScript) {
-            throw new DyadError(
+            throw new NextBillionError(
               "This app does not define a package.json scripts.build command, so production build verification is unavailable.",
-              DyadErrorKind.Precondition,
+              NextBillionErrorKind.Precondition,
             );
           }
           const facts = await gatherBuildProjectFacts(
@@ -495,7 +498,7 @@ export const runBuildTool: ToolDefinition<z.infer<typeof runBuildSchema>> = {
           );
           const mode = selectBuildExecutionMode(facts);
           ctx.onXmlStream(
-            `<dyad-status title="${escapeXmlAttr(mode === "in-place" ? "Building beside preview" : "Preparing isolated build")}"></dyad-status>`,
+            `<nextbillion-status title="${escapeXmlAttr(mode === "in-place" ? "Building beside preview" : "Preparing isolated build")}"></nextbillion-status>`,
           );
           const abortScope = createBuildAbortScope(ctx.abortSignal);
           const operationStartedAt = Date.now();
@@ -521,7 +524,7 @@ export const runBuildTool: ToolDefinition<z.infer<typeof runBuildSchema>> = {
               );
               phase = "dependency installation";
               ctx.onXmlStream(
-                '<dyad-status title="Installing isolated build dependencies"></dyad-status>',
+                '<nextbillion-status title="Installing isolated build dependencies"></nextbillion-status>',
               );
               const installOutputPreview = createBuildOutputPreview((output) =>
                 streamBuildOutput(ctx, output),
@@ -547,9 +550,9 @@ export const runBuildTool: ToolDefinition<z.infer<typeof runBuildSchema>> = {
                 return body;
               }
               if (installResult.aborted) {
-                throw new DyadError(
+                throw new NextBillionError(
                   "Build cancelled.",
-                  DyadErrorKind.UserCancelled,
+                  NextBillionErrorKind.UserCancelled,
                 );
               }
               if (installResult.code !== 0) {
@@ -572,7 +575,7 @@ export const runBuildTool: ToolDefinition<z.infer<typeof runBuildSchema>> = {
             state.count += 1;
             state.mutationCountAtLastRun = currentMutationCount;
             ctx.onXmlStream(
-              '<dyad-status title="Running production build"></dyad-status>',
+              '<nextbillion-status title="Running production build"></nextbillion-status>',
             );
             const buildStartedAt = Date.now();
             const buildOutputPreview = createBuildOutputPreview((output) =>
@@ -598,9 +601,9 @@ export const runBuildTool: ToolDefinition<z.infer<typeof runBuildSchema>> = {
               return body;
             }
             if (result.aborted) {
-              throw new DyadError(
+              throw new NextBillionError(
                 "Build cancelled.",
-                DyadErrorKind.UserCancelled,
+                NextBillionErrorKind.UserCancelled,
               );
             }
             if (result.code !== 0) {

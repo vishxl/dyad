@@ -1,4 +1,7 @@
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import type { AgentContext } from "./tools/types";
 
 /** Host-recorded evidence, shared by native tools and both MCP execution paths. */
@@ -23,15 +26,15 @@ export function recordShellReviewOutcome(
     const error = outcome.error;
     const denied =
       ctx.abortSignal?.aborted ||
-      (error instanceof DyadError &&
+      (error instanceof NextBillionError &&
         [
-          DyadErrorKind.UserCancelled,
-          DyadErrorKind.Precondition,
-          DyadErrorKind.Auth,
-          DyadErrorKind.Validation,
-          DyadErrorKind.NotFound,
-          DyadErrorKind.Conflict,
-          DyadErrorKind.RateLimited,
+          NextBillionErrorKind.UserCancelled,
+          NextBillionErrorKind.Precondition,
+          NextBillionErrorKind.Auth,
+          NextBillionErrorKind.Validation,
+          NextBillionErrorKind.NotFound,
+          NextBillionErrorKind.Conflict,
+          NextBillionErrorKind.RateLimited,
         ].includes(error.kind));
     status =
       outcome.executed && !denied

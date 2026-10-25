@@ -7,7 +7,10 @@ import {
   PlanHandoffRemoteSnapshotSchema,
 } from "./transport";
 import type { PlanHandoffHostState } from "./host_state";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const schema = z.object({
   intent: PlanHandoffIntentSchema.nullable(),
@@ -17,7 +20,10 @@ const schema = z.object({
 });
 const file = (chatId: number) => {
   if (!Number.isSafeInteger(chatId) || chatId <= 0)
-    throw new DyadError("Invalid handoff chat", DyadErrorKind.Validation);
+    throw new NextBillionError(
+      "Invalid handoff chat",
+      NextBillionErrorKind.Validation,
+    );
   return path.join(getUserDataPath(), "plan-handoffs", `${chatId}.json`);
 };
 
@@ -42,9 +48,9 @@ export function hydratePlanHandoff(
   try {
     state = schema.parse(JSON.parse(readFileSync(file(chatId), "utf8")));
     if (!state.intent || state.intent.sourceChatId !== chatId)
-      throw new DyadError(
+      throw new NextBillionError(
         "Invalid saved handoff identity",
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
   } catch (error) {
     const missing = (error as NodeJS.ErrnoException).code === "ENOENT";

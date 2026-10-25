@@ -67,7 +67,7 @@ function fixture(t, overrides = {}) {
     if (key.startsWith("remote get-url"))
       return args.at(-1) === "upstream"
         ? "https://github.com/dyad-sh/dyad.git"
-        : "git@github.com:person/dyad.git";
+        : "git@github.com:person/nextbillion.git";
     if (args[0] === "show")
       return JSON.stringify({
         version: "1.15.0-beta.1",
@@ -127,7 +127,7 @@ test("promotes the published beta from its successful workflow using beta manife
 test("selects release and fork remotes by repository even when their names differ", async (t) => {
   const f = fixture(t, {
     "remote get-url --push origin": "https://github.com/dyad-sh/dyad.git",
-    "remote get-url --push upstream": "git@github.com:person/dyad.git",
+    "remote get-url --push upstream": "git@github.com:person/nextbillion.git",
   });
   await f.run();
   assert.ok(

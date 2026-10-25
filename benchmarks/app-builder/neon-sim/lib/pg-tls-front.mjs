@@ -1,6 +1,6 @@
 // TLS-terminating TCP front for local Postgres (ported from the validated
 // S-SQL spike; verdicts in DESIGN.md §10). Lets clients that hardcode
-// ssl:true (ts-pg-schema-diff via Dyad's MIGRATION_SCHEMA_DIFF_CONNECTION_OPTIONS)
+// ssl:true (ts-pg-schema-diff via NextBillion's MIGRATION_SCHEMA_DIFF_CONNECTION_OPTIONS)
 // reach a no-SSL local Postgres: answers the SSLRequest with 'S', terminates
 // TLS with the sim cert, pipes plaintext to the real server.
 import net from "node:net";

@@ -1,7 +1,7 @@
 # CUJ suites — app-builder benchmark
 
 Harness-agnostic Playwright suites that score a built app at a checkpoint. They
-know nothing about Dyad, Claude Code, or Codex: they drive whatever app is
+know nothing about NextBillion, Claude Code, or Codex: they drive whatever app is
 serving at `APP_URL`, using only the routes, `data-testid`s and JSON API fields
 pinned in the milestone prompts. That is what makes phase-1 and phase-2 numbers
 comparable.
@@ -50,7 +50,7 @@ APP_PORT=3000 \
 DATABASE_URL='postgresql://simuser:simpass@db.localtest.me:5433/<clone>?sslmode=require' \
 NEON_AUTH_BASE_URL='http://127.0.0.1:7788/authsvc/<projectId>/<branchId>' \
 NEON_AUTH_COOKIE_SECRET='<64 hex chars>' \
-NODE_EXTRA_CA_CERTS=/Users/mini/dyad-2/benchmarks/app-builder/neon-sim/certs/ca.pem \
+NODE_EXTRA_CA_CERTS=/Users/mini/nextbillion-2/benchmarks/app-builder/neon-sim/certs/ca.pem \
 ./score-checkpoint.sh
 ```
 
@@ -77,7 +77,7 @@ failure mode is visible in the report (never a silent drop).
 
 ## Phase 2 (Claude Code / Codex CLI)
 
-Nothing here is Dyad-specific. A phase-2 adapter builds the app however its
+Nothing here is NextBillion-specific. A phase-2 adapter builds the app however its
 harness does, then calls `score-checkpoint.sh` with the same arguments. Keep the
 `cuj-tests/` directory and the neon-sim stack identical across harnesses — they
 are the controlled variables of the comparison.

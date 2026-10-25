@@ -1,3 +1,4 @@
+import "./legacy_storage_bootstrap";
 import { StrictMode, useCallback, useEffect, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { router } from "./router";
@@ -7,7 +8,7 @@ import posthog from "posthog-js";
 import {
   getTelemetryUserId,
   isTelemetryOptedIn,
-  isDyadProUser,
+  isNextBillionProUser,
 } from "./hooks/useSettings";
 
 // Initialize i18next before any rendering
@@ -140,7 +141,7 @@ const posthogClient = posthog.init(
         event.properties["$ip"] = null;
       }
 
-      const isPro = isDyadProUser();
+      const isPro = isNextBillionProUser();
       const dedupedEvent = postHogErrorDeduper.process(event, isPro);
       if (!dedupedEvent) {
         console.debug("Deduplicating PostHog error event", event?.event);

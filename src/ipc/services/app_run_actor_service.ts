@@ -10,7 +10,10 @@ import { MainAppRuntimeOutput } from "./main_app_runtime_output";
 import type { AppRunInvocationRef } from "@/app_run/state";
 import { appRuntimeService } from "./app_runtime_service";
 import { remoteMachineHost } from "./distributed_machine_actor_host";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   finalizeOperationAdmission,
   type OperationTicket,
@@ -69,9 +72,9 @@ export class AppRunActorService {
     const key = appRunKey(appId);
     const actor = this.host.peek(appRunDefinition.id, key);
     if (!actor) {
-      throw new DyadError(
+      throw new NextBillionError(
         "App run actor is not available",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     const sink = actor.captureSink({ revisionPolicy: "allow-advance" });
@@ -203,7 +206,7 @@ export class AppRunActorService {
         type: "server" as const,
         level: "info" as const,
         message: "Restarting app",
-        sourceName: "Dyad",
+        sourceName: "NextBillion",
         appId,
         timestamp: startedAt,
         runtimeBoundary: "restart" as const,
@@ -323,9 +326,9 @@ export class AppRunActorService {
       },
       assertFinalAdmission: () => {
         if (this.host.peek(appRunDefinition.id, appRunKey(appId)) !== actor) {
-          throw new DyadError(
+          throw new NextBillionError(
             "App run actor was replaced",
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         }
       },
@@ -358,7 +361,7 @@ export class AppRunActorService {
                 operation: event.type === "STOP_REQUESTED" ? "stop" : "run",
                 error: {
                   message: `App run request was ignored: ${dispatch.reason}`,
-                  kind: DyadErrorKind.Conflict,
+                  kind: NextBillionErrorKind.Conflict,
                 },
               }
             : {
@@ -375,15 +378,15 @@ export class AppRunActorService {
     const settlement = await ticket.settled;
     if (settlement.outcome.kind === "failed") {
       const error = settlement.outcome.error;
-      if (error.kind) throw new DyadError(error.message, error.kind);
+      if (error.kind) throw new NextBillionError(error.message, error.kind);
       throw new Error(error.message);
     }
     if (settlement.outcome.kind === "cancelled") {
-      throw new DyadError(
+      throw new NextBillionError(
         settlement.outcome.reason === "superseded"
           ? "App run request was superseded"
           : "App run actor was disposed",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
   }

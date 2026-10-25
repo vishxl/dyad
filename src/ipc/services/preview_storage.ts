@@ -1,5 +1,8 @@
 import { session } from "electron";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { isAppPreviewHostname } from "../../../shared/preview_hostname";
 
 /** App domains isolate cookies; legacy localhost cookies are shared across ports. */
@@ -10,13 +13,13 @@ export async function clearPreviewStorage(origin: string): Promise<void> {
     (!isAppPreviewHostname(url.hostname) && url.hostname !== "localhost") ||
     url.protocol !== "http:"
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Cannot clear storage for an unrecognized preview origin",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   // Include the app's partitioned iframe storage, matching the frame origin
-  // even when Dyad's file:// renderer is the top-level site. Keep cookies out:
+  // even when NextBillion's file:// renderer is the top-level site. Keep cookies out:
   // clearData removes them at registrable-domain scope, which is too broad.
   await session.defaultSession.clearData({
     origins: [url.origin],

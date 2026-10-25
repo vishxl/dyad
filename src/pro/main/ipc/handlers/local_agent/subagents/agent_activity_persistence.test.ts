@@ -47,7 +47,8 @@ describe("sub-agent activity persistence", () => {
           toolCallId: "call-grep",
           toolName: "grep",
           status: "completed",
-          presentationXml: '<dyad-grep query="auth">src/auth.ts:1</dyad-grep>',
+          presentationXml:
+            '<nextbillion-grep query="auth">src/auth.ts:1</nextbillion-grep>',
           inputJson: { query: "auth" },
           outputText: "src/auth.ts:1:export function authenticate()",
           completedAt: new Date(),
@@ -58,7 +59,8 @@ describe("sub-agent activity persistence", () => {
           toolCallId: "call-read",
           toolName: "read_file",
           status: "pending",
-          presentationXml: '<dyad-read path="src/auth.ts"></dyad-read>',
+          presentationXml:
+            '<nextbillion-read path="src/auth.ts"></nextbillion-read>',
         },
       ])
       .run();

@@ -13,8 +13,11 @@ import {
   finishSubscriptionUsage,
   interruptSubscriptionUsage,
 } from "../services/codex_subscription_usage";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
-import { DYAD_INTERNAL_REQUEST_ID_HEADER } from "./provider_options";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
+import { NEXTBILLION_INTERNAL_REQUEST_ID_HEADER } from "./provider_options";
 import {
   fetchWithRequestLogging,
   readRequestHeader,
@@ -143,7 +146,8 @@ export async function createCodexSubscriptionModel(
         .digest("hex");
       body.input = reasoningExclusions.filter(scope, body.input as unknown[]);
       const requestLabel = `chatgpt-subscription:${
-        readRequestHeader(init, DYAD_INTERNAL_REQUEST_ID_HEADER) ?? "no-id"
+        readRequestHeader(init, NEXTBILLION_INTERNAL_REQUEST_ID_HEADER) ??
+        "no-id"
       }`;
       let sendCount = 0;
       const sendOnce = () => {
@@ -205,20 +209,20 @@ export async function createCodexSubscriptionModel(
       if (!response.ok) {
         const kind =
           response.status === 429
-            ? DyadErrorKind.RateLimited
+            ? NextBillionErrorKind.RateLimited
             : response.status === 401 || response.status === 403
-              ? DyadErrorKind.Auth
+              ? NextBillionErrorKind.Auth
               : response.status === 400 ||
                   response.status === 404 ||
                   response.status === 422
-                ? DyadErrorKind.Validation
-                : DyadErrorKind.External;
+                ? NextBillionErrorKind.Validation
+                : NextBillionErrorKind.External;
         const { detail } =
-          kind !== DyadErrorKind.External
+          kind !== NextBillionErrorKind.External
             ? (errorDetail ??
               (await readSubscriptionErrorDetail(response, credentials)))
             : { detail: "" };
-        if (kind === DyadErrorKind.External)
+        if (kind === NextBillionErrorKind.External)
           await response.body?.cancel().catch(() => {});
         // Never let SDK errors retain an OAuth request or raw upstream body.
         const summary =
@@ -227,7 +231,10 @@ export async function createCodexSubscriptionModel(
             : response.status === 429
               ? "ChatGPT subscription limit reached. Wait for your limit to reset, upgrade your ChatGPT subscription tier, or choose another available model."
               : `ChatGPT subscription request failed (HTTP ${response.status}).`;
-        throw new DyadError(detail ? `${summary} ${detail}` : summary, kind);
+        throw new NextBillionError(
+          detail ? `${summary} ${detail}` : summary,
+          kind,
+        );
       }
       return response;
     },
@@ -262,11 +269,11 @@ export async function createCodexSubscriptionModel(
         } catch (error) {
           interruptSubscriptionUsage(
             id,
-            error instanceof DyadError &&
+            error instanceof NextBillionError &&
               [
-                DyadErrorKind.Auth,
-                DyadErrorKind.RateLimited,
-                DyadErrorKind.Validation,
+                NextBillionErrorKind.Auth,
+                NextBillionErrorKind.RateLimited,
+                NextBillionErrorKind.Validation,
               ].includes(error.kind),
           );
           throw error;

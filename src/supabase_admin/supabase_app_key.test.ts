@@ -58,7 +58,9 @@ const PROJECT_API_KEYS = [
 const appDirs: string[] = [];
 
 function makeApp(key: string | null): string {
-  const appPath = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-app-key-"));
+  const appPath = fs.mkdtempSync(
+    path.join(os.tmpdir(), "nextbillion-app-key-"),
+  );
   appDirs.push(appPath);
   if (key !== null) {
     const clientDir = path.join(appPath, "src", "integrations", "supabase");
@@ -91,7 +93,7 @@ beforeEach(() => {
   gitAddMock.mockResolvedValue(undefined);
   gitCommitMock.mockResolvedValue("commit-hash");
   // The common case: the user wasn't editing client.ts, so the rewrite is
-  // Dyad's alone to commit.
+  // NextBillion's alone to commit.
   isGitPathCleanMock.mockResolvedValue(true);
 });
 
@@ -240,7 +242,7 @@ describe("switchAppToPublishableKey", () => {
     expect(after).toContain(`"${PUBLISHABLE}"`);
   });
 
-  // Dyad's own one-line edit shouldn't land the user in the "uncommitted
+  // NextBillion's own one-line edit shouldn't land the user in the "uncommitted
   // changes" banner over a change they didn't make.
   it("commits the rewritten client, scoped to that file alone", async () => {
     const appPath = makeApp(LEGACY_ANON);
@@ -359,7 +361,7 @@ describe("switchAppToPublishableKey", () => {
     // An imported app can carry a symlinked client.ts; following it would land
     // the rewrite on a file outside the app directory.
     const outside = path.join(
-      fs.mkdtempSync(path.join(os.tmpdir(), "dyad-outside-")),
+      fs.mkdtempSync(path.join(os.tmpdir(), "nextbillion-outside-")),
       "client.ts",
     );
     appDirs.push(path.dirname(outside));
@@ -378,7 +380,7 @@ describe("switchAppToPublishableKey", () => {
   });
 
   // `git commit -- <path>` records the whole working-tree version of that path,
-  // not the hunk Dyad changed, so committing a file the user was mid-edit in
+  // not the hunk NextBillion changed, so committing a file the user was mid-edit in
   // would fold their work into a commit labelled as a key swap.
   it("leaves the rewrite uncommitted when client.ts already had user edits", async () => {
     const appPath = makeApp(LEGACY_ANON);

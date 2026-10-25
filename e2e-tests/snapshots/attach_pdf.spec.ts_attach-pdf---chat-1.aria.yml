@@ -6,7 +6,7 @@
 - button "Restore to this point"
 - paragraph: "[dump]"
 - button "sample.pdf Context"
-- paragraph: "[[dyad-dump-path=*]]"
+- paragraph: "[[nextbillion-dump-path=*]]"
 - button "Copy"
 - button "Undo"
 - button "Retry"

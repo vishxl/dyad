@@ -79,15 +79,15 @@ describe("SubscriptionStatusBanner", () => {
   it.each([
     {
       alert: "payment_past_due" as const,
-      text: "Payment failed. Update your payment method to keep Dyad Pro active.",
+      text: "Payment failed. Update your payment method to keep NextBillion Pro active.",
     },
     {
       alert: "subscription_ending" as const,
-      text: "Your Dyad Pro subscription ends in 20 days. You will lose 650 credits.",
+      text: "Your NextBillion Pro subscription ends in 20 days. You will lose 650 credits.",
     },
     {
       alert: "subscription_paused" as const,
-      text: "Your Dyad Pro subscription is paused.",
+      text: "Your NextBillion Pro subscription is paused.",
     },
   ])("renders the $alert localized variant", ({ alert, text }) => {
     mocks.status = {
@@ -116,7 +116,7 @@ describe("SubscriptionStatusBanner", () => {
 
     expect(
       screen.getByText(
-        "Your Dyad Pro subscription ends in 1 day. You will lose 1 credit.",
+        "Your NextBillion Pro subscription ends in 1 day. You will lose 1 credit.",
       ),
     ).not.toBeNull();
   });
@@ -132,7 +132,7 @@ describe("SubscriptionStatusBanner", () => {
 
     expect(
       screen.getByText(
-        "Your Dyad Pro subscription ends today. You will lose 650 credits.",
+        "Your NextBillion Pro subscription ends today. You will lose 650 credits.",
       ),
     ).not.toBeNull();
   });
@@ -224,8 +224,8 @@ describe("SubscriptionStatusBanner", () => {
   });
 
   it.each([
-    ["pt-BR", "Sua assinatura do Dyad Pro está pausada."],
-    ["zh-CN", "您的 Dyad Pro 订阅已暂停。"],
+    ["pt-BR", "Sua assinatura do NextBillion Pro está pausada."],
+    ["zh-CN", "您的 NextBillion Pro 订阅已暂停。"],
   ])("renders localized copy in %s", async (language, text) => {
     await i18n.changeLanguage(language);
     mocks.status = {

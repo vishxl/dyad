@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { claudeConversation } from "./prompt";
 
 it.each([
@@ -13,7 +13,7 @@ it.each([
 ])("classifies user attachment/context refusals as validation", (part) => {
   expect(() =>
     claudeConversation([{ role: "user", content: [part] }], false),
-  ).toThrow(expect.objectContaining({ kind: DyadErrorKind.Validation }));
+  ).toThrow(expect.objectContaining({ kind: NextBillionErrorKind.Validation }));
 });
 
 it("classifies unresolved attachment URLs as validation without fetching", () => {
@@ -33,7 +33,7 @@ it("classifies unresolved attachment URLs as validation without fetching", () =>
       ],
       false,
     ),
-  ).toThrow(expect.objectContaining({ kind: DyadErrorKind.Validation }));
+  ).toThrow(expect.objectContaining({ kind: NextBillionErrorKind.Validation }));
 });
 
 it("bounds the complete UTF-8 prompt including oversized questionnaire recovery", () => {

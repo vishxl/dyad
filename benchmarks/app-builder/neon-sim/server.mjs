@@ -46,7 +46,7 @@ console.log(
 );
 console.log(`[neon-sim] pg-tls-front on :${TLS_FRONT_PORT} -> :5432`);
 console.log(
-  `[neon-sim] Dyad env: DYAD_NEON_API_BASE_URL=http://127.0.0.1:${CONTROL_PORT}/api/v2`,
+  `[neon-sim] NextBillion env: NEXTBILLION_NEON_API_BASE_URL=http://127.0.0.1:${CONTROL_PORT}/api/v2`,
 );
 
 async function shutdown() {

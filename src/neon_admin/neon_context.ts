@@ -2,7 +2,11 @@ import { neon } from "@neondatabase/serverless";
 import log from "electron-log";
 import { getNeonClient } from "./neon_management_client";
 import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import type { AppFrameworkType } from "@/lib/framework_constants";
 import { renderTestDatabaseSchema } from "@/lib/test_database_schema";
 import {
@@ -164,9 +168,9 @@ export async function executeNeonSql({
     return JSON.stringify(result, null, 2);
   } catch (error) {
     logger.error("Error executing Neon SQL:", error);
-    throw new DyadError(
+    throw new NextBillionError(
       `Failed to execute SQL on Neon: ${error instanceof Error ? error.message : String(error)}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 }
@@ -204,9 +208,9 @@ export async function executeNeonStatementsInTransaction({
     connectionUri = await getConnectionUri({ projectId, branchId });
   } catch (error) {
     logger.error("Failed to resolve Neon connection URI:", error);
-    throw new DyadError(
+    throw new NextBillionError(
       `Failed to resolve Neon connection: ${error instanceof Error ? error.message : String(error)}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 
@@ -222,9 +226,9 @@ export async function executeNeonStatementsInTransaction({
   } catch (error) {
     logger.error("Error applying migration transaction on Neon:", error);
     const message = error instanceof Error ? error.message : String(error);
-    throw new DyadError(
+    throw new NextBillionError(
       `Failed to apply migration on Neon (transaction rolled back): ${message}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 }
@@ -313,9 +317,9 @@ ${JSON.stringify(tableNames)}
 `;
   } catch (error) {
     logger.error("Error getting Neon project info:", error);
-    throw new DyadError(
+    throw new NextBillionError(
       `Failed to get Neon project info: ${error instanceof Error ? error.message : String(error)}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 }
@@ -374,12 +378,12 @@ export async function getNeonTableSchema({
     });
   } catch (error) {
     logger.error("Error getting Neon table schema:", error);
-    if (isDyadError(error)) {
+    if (isNextBillionError(error)) {
       throw error;
     }
-    throw new DyadError(
+    throw new NextBillionError(
       `Failed to get Neon table schema: ${error instanceof Error ? error.message : String(error)}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 }

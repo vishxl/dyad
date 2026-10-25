@@ -1,9 +1,9 @@
 import { BrowserWindow } from "electron";
 import log from "electron-log";
 import {
-  DyadError,
-  isDyadErrorKindFilteredFromTelemetry,
-} from "@/errors/dyad_error";
+  NextBillionError,
+  isNextBillionErrorKindFilteredFromTelemetry,
+} from "@/errors/nextbillion_error";
 import { isGenericFetchFailedError } from "@/lib/posthogTelemetry";
 import { TelemetryEventPayload } from "@/ipc/types";
 import { sshFailureOf } from "@/shared/ssh_failure";
@@ -93,7 +93,7 @@ export function sendTelemetryException(
 }
 
 /**
- * Channels that talk to a server the user runs, rather than to Dyad's own.
+ * Channels that talk to a server the user runs, rather than to NextBillion's own.
  *
  * Every prefix a self-hosted surface uses has to be listed. Setting a server up
  * is the same class as deploying to one and carries more: its failures quote
@@ -124,8 +124,8 @@ function framesOnly(err: Error): string | undefined {
 }
 
 export function shouldFilterTelemetryException(error: unknown): boolean {
-  // Ahead of the kind check, which returns for every DyadError: this one is a
-  // DyadError too. A non-2xx from a self-hosted Coolify is that instance
+  // Ahead of the kind check, which returns for every NextBillionError: this one is a
+  // NextBillionError too. A non-2xx from a self-hosted Coolify is that instance
   // rejecting a request rather than a fault here, and its message carries
   // whatever that machine chose to say — which can name a host, a path or a
   // connection string. The user still sees it; nothing reports it.
@@ -150,8 +150,8 @@ export function shouldFilterTelemetryException(error: unknown): boolean {
     return true;
   }
 
-  if (error instanceof DyadError) {
-    return isDyadErrorKindFilteredFromTelemetry(error.kind);
+  if (error instanceof NextBillionError) {
+    return isNextBillionErrorKindFilteredFromTelemetry(error.kind);
   }
 
   if (

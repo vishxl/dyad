@@ -41,7 +41,7 @@ export const AppBaseSchema = z.object({
 });
 
 /**
- * Which publishing destinations the app is connected to in Dyad: a Vercel
+ * Which publishing destinations the app is connected to in NextBillion: a Vercel
  * project on the app row, or a Cloudflare or Coolify connection row. It says
  * nothing about whether the deployment is still live on the other side.
  */

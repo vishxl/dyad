@@ -58,13 +58,13 @@ export async function classifyMcpToolConsent(
 }
 
 // Builds the auto-approve callback for requireMcpToolConsent, or undefined when
-// the feature is off or the turn is running in Dyad Free mode. Shared by both
+// the feature is off or the turn is running in NextBillion Free mode. Shared by both
 // agent MCP paths (sandbox host functions and directly-registered tools) so
 // auto-approval behaves the same regardless of how the tool is plumbed.
 export function buildMcpAutoApprove(params: {
   signal?: AbortSignal;
   settings: UserSettings;
-  isDyadPro: boolean;
+  isNextBillionPro: boolean;
   freeModelMode?: boolean;
   chatId: number;
   serverName: string;
@@ -75,7 +75,7 @@ export function buildMcpAutoApprove(params: {
 }): (() => Promise<McpAutoApproveResult>) | undefined {
   if (
     !params.settings.autoApproveSafeMcpTools ||
-    !params.isDyadPro ||
+    !params.isNextBillionPro ||
     params.freeModelMode
   ) {
     return undefined;

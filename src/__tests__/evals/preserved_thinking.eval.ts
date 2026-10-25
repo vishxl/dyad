@@ -1,5 +1,5 @@
 // @vitest-environment node
-// Opt-in live validation: DYAD_LIVE_PRESERVED_THINKING=1 DYAD_PRO_KEY=...
+// Opt-in live validation: NEXTBILLION_LIVE_PRESERVED_THINKING=1 NEXTBILLION_PRO_KEY=...
 // npm run eval -- src/__tests__/evals/preserved_thinking.eval.ts
 import { getModelPreferenceKey } from "@/lib/modelEffort";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
@@ -19,14 +19,14 @@ import {
 
 // This drives real chat:stream requests, including mode-specific prompts/tools
 // and persisted AI SDK history. No production user data is loaded.
-describe.skipIf(process.env.DYAD_LIVE_PRESERVED_THINKING !== "1")(
+describe.skipIf(process.env.NEXTBILLION_LIVE_PRESERVED_THINKING !== "1")(
   "live preserved thinking",
   () => {
     let harness: ChatFlowHarness;
     const requests: Array<{ thinkingPaths: string[]; dropBlock: boolean }> = [];
     let restoreFetch: (() => void) | undefined;
     beforeAll(async () => {
-      expect(process.env.DYAD_PRO_KEY).toBeTruthy();
+      expect(process.env.NEXTBILLION_PRO_KEY).toBeTruthy();
       const originalFetch = globalThis.fetch;
       const fetchSpy = vi
         .spyOn(globalThis, "fetch")
@@ -68,7 +68,7 @@ describe.skipIf(process.env.DYAD_LIVE_PRESERVED_THINKING !== "1")(
           name: "claude-opus-5-5",
         },
         settings: {
-          enableDyadPro: true,
+          enableNextBillionPro: true,
           modelEffortPreferences: {
             [getModelPreferenceKey({
               provider: "anthropic",
@@ -82,7 +82,7 @@ describe.skipIf(process.env.DYAD_LIVE_PRESERVED_THINKING !== "1")(
           enableCodeExplorer: false,
           enableImplementerSubagent: false,
           providerSettings: {
-            auto: { apiKey: { value: process.env.DYAD_PRO_KEY! } },
+            auto: { apiKey: { value: process.env.NEXTBILLION_PRO_KEY! } },
           },
         },
       });

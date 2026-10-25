@@ -76,7 +76,7 @@ export const ChatSchema = z.object({
   dbTimestamp: z.string().nullable().optional(),
   chatMode: NullableChatModeSchema,
   modelSelection: ModelSelectionSchema.nullable().optional(),
-  executionBackend: z.enum(["dyad", "claude-code"]).optional(),
+  executionBackend: z.enum(["nextbillion", "claude-code"]).optional(),
   /**
    * Apps referenced via `@app:Name` that stay readable for the rest of the
    * chat in agent-backed modes.
@@ -218,7 +218,7 @@ export type ChatStreamParams = z.infer<typeof ChatStreamParamsSchema>;
  * The renderer reconstructs as `current.slice(0, offset) + content`, so
  * `offset` must be the longest common prefix length between the previously
  * sent content and the current full response (cleanFullResponse may rewrite
- * earlier bytes inside in-progress dyad-tag attribute values).
+ * earlier bytes inside in-progress nextbillion-tag attribute values).
  */
 export const StreamingPatchSchema = z.object({
   offset: z.number().int().nonnegative(),
@@ -544,7 +544,7 @@ export const chatContracts = {
   // Renderer→main ack for stress-test backpressure on the canned test
   // streaming path. The handler is registered unconditionally, but real
   // LLM streams omit `chunkSeq`, so the renderer only invokes this
-  // channel for canned [dyad-qa=...] streams.
+  // channel for canned [nextbillion-qa=...] streams.
   responseAck: defineContract({
     channel: "chat:response:ack",
     input: z.object({

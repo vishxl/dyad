@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import {
   AppDeletionInProgressError,
   AppOperationCoordinator,
@@ -209,7 +209,7 @@ describe("AppOperationCoordinator", () => {
     );
     controller.abort();
     await expect(queued).rejects.toMatchObject({
-      kind: DyadErrorKind.UserCancelled,
+      kind: NextBillionErrorKind.UserCancelled,
     });
     expect(execute).not.toHaveBeenCalled();
     expect(coordinator.isBusy(1, ["runtime"])).toBe(true);
@@ -567,7 +567,7 @@ describe("AppOperationCoordinator", () => {
         { appId: 1, operation: "late", resources: ["chat-membership"] },
         async () => undefined,
       ),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
 
     const drained = vi.fn();
     const drainPromise = deletion.drain().then(drained);
@@ -630,7 +630,7 @@ describe("AppOperationCoordinator", () => {
       queuedCallback,
     );
     const rejected = expect(queued).rejects.toMatchObject({
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
       message: "Stop the remaining processes",
     });
 
@@ -651,7 +651,7 @@ describe("AppOperationCoordinator", () => {
           { appId: 1, operation: "later", resources: [resource] },
           callback,
         ),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       expect(callback).not.toHaveBeenCalled();
     }
     await expect(

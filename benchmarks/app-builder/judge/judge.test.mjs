@@ -101,9 +101,9 @@ test("judge uses isolated repaired evidence and records its source hash without 
     {
       env: {
         ...process.env,
-        DYAD_PRO_KEY: "local-test-placeholder",
-        DYAD_PRO_API_KEY: "",
-        DYAD_ENGINE_URL: "http://127.0.0.1:" + server.address().port,
+        NEXTBILLION_PRO_KEY: "local-test-placeholder",
+        NEXTBILLION_PRO_API_KEY: "",
+        NEXTBILLION_ENGINE_URL: "http://127.0.0.1:" + server.address().port,
       },
       stdio: ["ignore", "pipe", "pipe"],
     },

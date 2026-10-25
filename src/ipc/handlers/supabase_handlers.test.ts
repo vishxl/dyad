@@ -4,7 +4,10 @@ import { eq } from "drizzle-orm";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apps } from "@/db/schema";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { SUPABASE_PROJECT_CREATED_BUT_UNLINKED } from "@/ipc/types";
 import { queryInvalidationBus } from "@/window_infrastructure/main/query_invalidation_bus";
 import { activeRecordings } from "@/ipc/services/recording_registry";
@@ -28,7 +31,7 @@ vi.mock("electron", () => ({
   ipcMain: { handle: vi.fn(), on: vi.fn() },
   app: {
     getPath: vi.fn(() =>
-      path.join(os.tmpdir(), "dyad-supabase-handler-user-data"),
+      path.join(os.tmpdir(), "nextbillion-supabase-handler-user-data"),
     ),
     getAppPath: vi.fn(() => process.cwd()),
   },
@@ -36,7 +39,7 @@ vi.mock("electron", () => ({
 
 vi.mock("@/paths/paths", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/paths/paths")>()),
-  getDyadAppPath: (appPath: string) => `/apps/${appPath}`,
+  getNextBillionAppPath: (appPath: string) => `/apps/${appPath}`,
 }));
 
 vi.mock("@/main/settings", async (importOriginal) => ({
@@ -117,7 +120,7 @@ describe("Supabase handlers", () => {
     ])("refuses %s while recording", async (_label, channel, input) => {
       await expect(harness.invokeHandler(channel, input)).rejects.toMatchObject(
         {
-          kind: DyadErrorKind.Precondition,
+          kind: NextBillionErrorKind.Precondition,
         },
       );
     });
@@ -362,7 +365,7 @@ describe("Supabase handlers", () => {
             },
           },
         ),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       expect(mocks.deployAllSupabaseFunctions).not.toHaveBeenCalled();
     });
   });
@@ -450,7 +453,7 @@ describe("Supabase handlers", () => {
 
       await expect(first).resolves.toMatchObject({ id: "proj-new" });
       await expect(second).rejects.toMatchObject({
-        kind: DyadErrorKind.Precondition,
+        kind: NextBillionErrorKind.Precondition,
       });
       // The point of the test: exactly one project reached Supabase, so there
       // is no orphan for the user to clean up.
@@ -466,7 +469,7 @@ describe("Supabase handlers", () => {
 
       await expect(
         harness.invokeHandler("supabase:create-project", INPUT),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       expect(mocks.createSupabaseProject).not.toHaveBeenCalled();
       expect(readApp()).toMatchObject({ supabaseProjectId: "proj-existing" });
     });
@@ -476,7 +479,7 @@ describe("Supabase handlers", () => {
 
       await expect(
         harness.invokeHandler("supabase:create-project", INPUT),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       expect(mocks.createSupabaseProject).not.toHaveBeenCalled();
     });
 
@@ -490,7 +493,7 @@ describe("Supabase handlers", () => {
 
       await expect(
         harness.invokeHandler("supabase:create-project", INPUT),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       expect(mocks.createSupabaseProject).not.toHaveBeenCalled();
     });
 
@@ -503,18 +506,20 @@ describe("Supabase handlers", () => {
     it("marks a create that could not be linked with a stable code", async () => {
       insertApp();
       vi.spyOn(harness.db, "update").mockImplementationOnce(() => {
-        throw new Error("SQLITE_BUSY: /home/someone/.dyad/sqlite.db is locked");
+        throw new Error(
+          "SQLITE_BUSY: /home/someone/.nextbillion/sqlite.db is locked",
+        );
       });
 
       const thrown = await harness
         .invokeHandler("supabase:create-project", INPUT)
         .catch((error: unknown) => error);
       expect(thrown).toMatchObject({
-        kind: DyadErrorKind.Internal,
+        kind: NextBillionErrorKind.Internal,
         code: SUPABASE_PROJECT_CREATED_BUT_UNLINKED,
         message: expect.stringContaining("proj-new"),
       });
-      // The database error is logged, not projected: `rules/dyad-errors.md`
+      // The database error is logged, not projected: `rules/nextbillion-errors.md`
       // treats the renderer boundary as security-sensitive, and a Drizzle
       // failure can carry SQL, parameters and local paths.
       expect((thrown as Error).message).not.toContain("SQLITE_BUSY");
@@ -562,7 +567,7 @@ describe("Supabase handlers", () => {
       await expect(
         harness.invokeHandler("supabase:create-project", INPUT),
       ).rejects.toMatchObject({
-        kind: DyadErrorKind.Precondition,
+        kind: NextBillionErrorKind.Precondition,
         message: expect.stringContaining("proj-new"),
       });
       // Refused before reaching Supabase, which is the whole point.
@@ -587,7 +592,7 @@ describe("Supabase handlers", () => {
           harness.invokeHandler("supabase:create-project", INPUT),
           `attempt ${attempt}`,
         ).rejects.toMatchObject({
-          kind: DyadErrorKind.Precondition,
+          kind: NextBillionErrorKind.Precondition,
           // Refusing is only half of it: the message has to name the way out,
           // and selecting a project is what actually releases the record. Not
           // asserted as prose — this is the one instruction the guard owes the
@@ -619,7 +624,7 @@ describe("Supabase handlers", () => {
 
       await expect(
         harness.invokeHandler("supabase:create-project", INPUT),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       expect(mocks.createSupabaseProject).toHaveBeenCalledTimes(1);
     });
 
@@ -652,10 +657,10 @@ describe("Supabase handlers", () => {
     // Treating it as an ordinary failure would leave the form inviting a retry.
     it("treats a created project with no ref as unlinked too", async () => {
       insertApp();
-      const noRef = new DyadError(
+      const noRef = new NextBillionError(
         "Supabase created a project but returned no project ref: {}",
-        DyadErrorKind.External,
-      ) as DyadError & { code: string };
+        NextBillionErrorKind.External,
+      ) as NextBillionError & { code: string };
       noRef.code = SUPABASE_PROJECT_CREATED_BUT_UNLINKED;
       mocks.createSupabaseProject.mockRejectedValueOnce(noRef);
       const publish = vi.spyOn(queryInvalidationBus, "publish");
@@ -677,7 +682,7 @@ describe("Supabase handlers", () => {
       await expect(
         harness.invokeHandler("supabase:create-project", INPUT),
       ).rejects.toMatchObject({
-        kind: DyadErrorKind.Precondition,
+        kind: NextBillionErrorKind.Precondition,
         message: expect.stringMatching(/select .*project/i),
       });
       expect(mocks.createSupabaseProject).toHaveBeenCalledTimes(1);
@@ -695,7 +700,7 @@ describe("Supabase handlers", () => {
       await expect(
         harness.invokeHandler("supabase:create-project", INPUT),
       ).rejects.toMatchObject({
-        kind: DyadErrorKind.Precondition,
+        kind: NextBillionErrorKind.Precondition,
         message: expect.stringContaining("free tier project limit reached"),
       });
       expect(readApp()).toMatchObject({ supabaseProjectId: null });
@@ -728,7 +733,7 @@ describe("Supabase handlers", () => {
       await expect(
         harness.invokeHandler("supabase:create-project", INPUT),
       ).rejects.toMatchObject({
-        kind: DyadErrorKind.External,
+        kind: NextBillionErrorKind.External,
         message: expect.stringContaining("Couldn't create the Supabase"),
       });
     });
@@ -743,7 +748,7 @@ describe("Supabase handlers", () => {
 
       await expect(
         harness.invokeHandler("supabase:create-project", INPUT),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.External });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.External });
     });
 
     // A 429 is exhausted by fetchWithRetry and rethrown as a RateLimitError,
@@ -759,7 +764,7 @@ describe("Supabase handlers", () => {
 
       await expect(
         harness.invokeHandler("supabase:create-project", INPUT),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.RateLimited });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.RateLimited });
     });
   });
 });

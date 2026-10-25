@@ -261,7 +261,7 @@ testSetup.describe("Setup Flow", () => {
         .fill("test-google-key-12345");
       await po.page.getByRole("button", { name: "Save Key" }).click();
 
-      await expect(po.page.getByText("[[dyad-dump-path=")).toBeVisible({
+      await expect(po.page.getByText("[[nextbillion-dump-path=")).toBeVisible({
         timeout: Timeout.EXTRA_LONG,
       });
       await po.chatActions.waitForChatCompletion({
@@ -279,7 +279,7 @@ testSetup.describe("Setup Flow", () => {
       // Prove the resumed turn persisted both the logical mapping and payload
       // used by attachment-aware agent tools such as read_file.
       const appPath = await po.appManagement.getCurrentAppPath();
-      const mediaDir = path.join(appPath, ".dyad", "media");
+      const mediaDir = path.join(appPath, ".nextbillion", "media");
       const manifest = JSON.parse(
         fs.readFileSync(
           path.join(mediaDir, "attachments-manifest.json"),
@@ -307,14 +307,14 @@ testSetup.describe("Setup Flow", () => {
   );
 
   testSetup(
-    "Dyad Pro return deep link switches the pending first prompt from Build to Agent",
+    "NextBillion Pro return deep link switches the pending first prompt from Build to Agent",
     async ({ po, electronApp }) => {
       await expectInitialBuildMode(po);
       const prompt = "Build a tiny workout planner";
       await openAiSetupDialog(po, prompt);
       await restoreLocalAgentDefault(po);
 
-      await triggerDyadProReturnDeepLink(electronApp);
+      await triggerNextBillionProReturnDeepLink(electronApp);
 
       await expect(
         po.page.getByTestId("messages-list").getByText(prompt),
@@ -323,7 +323,9 @@ testSetup.describe("Setup Flow", () => {
         timeout: Timeout.EXTRA_LONG,
       });
       await expect(po.page.getByRole("dialog")).not.toBeVisible();
-      await expect(po.page.getByText("Welcome to Dyad Pro!")).not.toBeVisible();
+      await expect(
+        po.page.getByText("Welcome to NextBillion Pro!"),
+      ).not.toBeVisible();
       await expectSelectedApp(po);
       await expectLocalAgentMode(po, "Agent");
     },
@@ -446,12 +448,14 @@ async function seedFakeModelSelection(po: PageObject) {
   }, po.fakeLlmPort);
 }
 
-async function triggerDyadProReturnDeepLink(electronApp: ElectronApplication) {
+async function triggerNextBillionProReturnDeepLink(
+  electronApp: ElectronApplication,
+) {
   await electronApp.evaluate(({ app }) => {
     app.emit(
       "open-url",
       { preventDefault: () => {} },
-      "dyad://dyad-pro-return?key=test-dyad-pro-key",
+      "nextbillion://nextbillion-pro-return?key=test-nextbillion-pro-key",
     );
   });
 }
@@ -533,11 +537,11 @@ async function readLastServerDump(po: PageObject) {
     .getByTestId("messages-list")
     .textContent();
   const dumpPathMatches =
-    messagesListText?.match(/\[\[dyad-dump-path=([^\]]+)\]\]/g) ?? [];
+    messagesListText?.match(/\[\[nextbillion-dump-path=([^\]]+)\]\]/g) ?? [];
   expect(dumpPathMatches.length).toBeGreaterThan(0);
 
   const lastDumpPath = dumpPathMatches[dumpPathMatches.length - 1].match(
-    /\[\[dyad-dump-path=([^\]]+)\]\]/,
+    /\[\[nextbillion-dump-path=([^\]]+)\]\]/,
   )?.[1];
   if (!lastDumpPath) {
     throw new Error("No dump file path found");

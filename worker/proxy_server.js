@@ -29,8 +29,8 @@ let previewOrigin;
 let rememberedOrigin = null; // e.g. "http://localhost:5173"
 let rememberedBaseUrl = null;
 
-/* ---------- hosted-deployment public base path (see context/dyad-web-deployment.md) ---- */
-/* When DYAD_PREVIEW_PUBLIC_URL_BASE is set (e.g. "https://<host>/preview"), teammates'
+/* ---------- hosted-deployment public base path (see context/nextbillion-web-deployment.md) ---- */
+/* When NEXTBILLION_PREVIEW_PUBLIC_URL_BASE is set (e.g. "https://<host>/preview"), teammates'
  * browsers reach this worker through a reverse proxy at <base>/<boundPort>/... instead
  * of http://<PREVIEW_HOSTNAME>:<boundPort>/. Desktop/dev mode strips that
  * prefix inbound; hosted mode keeps it (Vite runs with matching --base) and
@@ -41,7 +41,7 @@ let publicBasePath = null; // e.g. "/preview" — path-only
 let publicPrefix = null; // e.g. "https://host/preview/42113" — full URL, for outbound rewriting
 let publicPrefixPath = null; // e.g. "/preview/42113" — path-only, for inbound matching
 {
-  const raw = process.env.DYAD_PREVIEW_PUBLIC_URL_BASE;
+  const raw = process.env.NEXTBILLION_PREVIEW_PUBLIC_URL_BASE;
   if (raw) {
     try {
       const parsed = new URL(raw);
@@ -49,7 +49,7 @@ let publicPrefixPath = null; // e.g. "/preview/42113" — path-only, for inbound
       publicBasePath = parsed.pathname.replace(/\/$/, "");
     } catch {
       throw new Error(
-        `Invalid DYAD_PREVIEW_PUBLIC_URL_BASE "${raw}". Must be an absolute http/https URL.`,
+        `Invalid NEXTBILLION_PREVIEW_PUBLIC_URL_BASE "${raw}". Must be an absolute http/https URL.`,
       );
     }
   }
@@ -114,14 +114,14 @@ const authBootstrapToken = workerData?.authBootstrapToken;
 /* ---------- optional resources for HTML injection ---------------------- */
 
 let stacktraceJsContent = null;
-let dyadShimContent = null;
-let dyadComponentSelectorClientContent = null;
-let dyadRecorderClientContent = null;
-let dyadAuthBootstrapContent = null;
-let dyadScreenshotClientContent = null;
+let nextBillionShimContent = null;
+let nextBillionComponentSelectorClientContent = null;
+let nextBillionRecorderClientContent = null;
+let nextBillionAuthBootstrapContent = null;
+let nextBillionScreenshotClientContent = null;
 let htmlToImageContent = null;
-let dyadVisualEditorClientContent = null;
-let dyadLogsContent = null;
+let nextBillionVisualEditorClientContent = null;
+let nextBillionLogsContent = null;
 
 try {
   const htmlToImagePath = path.join(
@@ -160,127 +160,148 @@ try {
 }
 
 try {
-  const dyadShimPath = path.join(__dirname, "dyad-shim.js");
-  dyadShimContent = fs.readFileSync(dyadShimPath, "utf-8");
-  parentPort?.postMessage("[proxy-worker] dyad-shim.js loaded.");
+  const nextBillionShimPath = path.join(__dirname, "nextbillion-shim.js");
+  nextBillionShimContent = fs.readFileSync(nextBillionShimPath, "utf-8");
+  parentPort?.postMessage("[proxy-worker] nextbillion-shim.js loaded.");
 } catch (error) {
   parentPort?.postMessage(
-    `[proxy-worker] Failed to read dyad-shim.js: ${error.message}`,
+    `[proxy-worker] Failed to read nextbillion-shim.js: ${error.message}`,
   );
 }
 
 try {
-  const dyadComponentSelectorClientPath = path.join(
+  const nextBillionComponentSelectorClientPath = path.join(
     __dirname,
-    "dyad-component-selector-client.js",
+    "nextbillion-component-selector-client.js",
   );
-  dyadComponentSelectorClientContent = fs.readFileSync(
-    dyadComponentSelectorClientPath,
+  nextBillionComponentSelectorClientContent = fs.readFileSync(
+    nextBillionComponentSelectorClientPath,
     "utf-8",
   );
   parentPort?.postMessage(
-    "[proxy-worker] dyad-component-selector-client.js loaded.",
+    "[proxy-worker] nextbillion-component-selector-client.js loaded.",
   );
 } catch (error) {
   parentPort?.postMessage(
-    `[proxy-worker] Failed to read dyad-component-selector-client.js: ${error.message}`,
+    `[proxy-worker] Failed to read nextbillion-component-selector-client.js: ${error.message}`,
   );
 }
 
 try {
-  const dyadRecorderClientPath = path.join(
+  const nextBillionRecorderClientPath = path.join(
     __dirname,
-    "dyad-recorder-client.js",
+    "nextbillion-recorder-client.js",
   );
-  dyadRecorderClientContent = fs.readFileSync(dyadRecorderClientPath, "utf-8");
-  parentPort?.postMessage("[proxy-worker] dyad-recorder-client.js loaded.");
-} catch (error) {
-  parentPort?.postMessage(
-    `[proxy-worker] Failed to read dyad-recorder-client.js: ${error.message}`,
-  );
-}
-
-try {
-  const dyadAuthBootstrapPath = path.join(__dirname, "dyad-auth-bootstrap.js");
-  dyadAuthBootstrapContent = fs.readFileSync(dyadAuthBootstrapPath, "utf-8");
-  parentPort?.postMessage("[proxy-worker] dyad-auth-bootstrap.js loaded.");
-} catch (error) {
-  parentPort?.postMessage(
-    `[proxy-worker] Failed to read dyad-auth-bootstrap.js: ${error.message}`,
-  );
-}
-
-try {
-  const dyadScreenshotClientPath = path.join(
-    __dirname,
-    "dyad-screenshot-client.js",
-  );
-  dyadScreenshotClientContent = fs.readFileSync(
-    dyadScreenshotClientPath,
-    "utf-8",
-  );
-  parentPort?.postMessage("[proxy-worker] dyad-screenshot-client.js loaded.");
-} catch (error) {
-  parentPort?.postMessage(
-    `[proxy-worker] Failed to read dyad-screenshot-client.js: ${error.message}`,
-  );
-}
-
-try {
-  const dyadVisualEditorClientPath = path.join(
-    __dirname,
-    "dyad-visual-editor-client.js",
-  );
-  dyadVisualEditorClientContent = fs.readFileSync(
-    dyadVisualEditorClientPath,
+  nextBillionRecorderClientContent = fs.readFileSync(
+    nextBillionRecorderClientPath,
     "utf-8",
   );
   parentPort?.postMessage(
-    "[proxy-worker] dyad-visual-editor-client.js loaded.",
+    "[proxy-worker] nextbillion-recorder-client.js loaded.",
   );
 } catch (error) {
   parentPort?.postMessage(
-    `[proxy-worker] Failed to read dyad-visual-editor-client.js: ${error.message}`,
+    `[proxy-worker] Failed to read nextbillion-recorder-client.js: ${error.message}`,
   );
 }
 
 try {
-  const dyadLogsPath = path.join(__dirname, "dyad_logs.js");
-  dyadLogsContent = fs.readFileSync(dyadLogsPath, "utf-8");
-  parentPort?.postMessage("[proxy-worker] dyad_logs.js loaded.");
+  const nextBillionAuthBootstrapPath = path.join(
+    __dirname,
+    "nextbillion-auth-bootstrap.js",
+  );
+  nextBillionAuthBootstrapContent = fs.readFileSync(
+    nextBillionAuthBootstrapPath,
+    "utf-8",
+  );
+  parentPort?.postMessage(
+    "[proxy-worker] nextbillion-auth-bootstrap.js loaded.",
+  );
 } catch (error) {
   parentPort?.postMessage(
-    `[proxy-worker] Failed to read dyad_logs.js: ${error.message}`,
+    `[proxy-worker] Failed to read nextbillion-auth-bootstrap.js: ${error.message}`,
+  );
+}
+
+try {
+  const nextBillionScreenshotClientPath = path.join(
+    __dirname,
+    "nextbillion-screenshot-client.js",
+  );
+  nextBillionScreenshotClientContent = fs.readFileSync(
+    nextBillionScreenshotClientPath,
+    "utf-8",
+  );
+  parentPort?.postMessage(
+    "[proxy-worker] nextbillion-screenshot-client.js loaded.",
+  );
+} catch (error) {
+  parentPort?.postMessage(
+    `[proxy-worker] Failed to read nextbillion-screenshot-client.js: ${error.message}`,
+  );
+}
+
+try {
+  const nextBillionVisualEditorClientPath = path.join(
+    __dirname,
+    "nextbillion-visual-editor-client.js",
+  );
+  nextBillionVisualEditorClientContent = fs.readFileSync(
+    nextBillionVisualEditorClientPath,
+    "utf-8",
+  );
+  parentPort?.postMessage(
+    "[proxy-worker] nextbillion-visual-editor-client.js loaded.",
+  );
+} catch (error) {
+  parentPort?.postMessage(
+    `[proxy-worker] Failed to read nextbillion-visual-editor-client.js: ${error.message}`,
+  );
+}
+
+try {
+  const nextBillionLogsPath = path.join(__dirname, "nextbillion_logs.js");
+  nextBillionLogsContent = fs.readFileSync(nextBillionLogsPath, "utf-8");
+  parentPort?.postMessage("[proxy-worker] nextbillion_logs.js loaded.");
+} catch (error) {
+  parentPort?.postMessage(
+    `[proxy-worker] Failed to read nextbillion_logs.js: ${error.message}`,
   );
 }
 
 // Load Service Worker files
-let dyadSwContent = null;
-let dyadSwRegisterContent = null;
+let nextBillionSwContent = null;
+let nextBillionSwRegisterContent = null;
 
 try {
-  const dyadSwPath = path.join(__dirname, "dyad-sw.js");
-  dyadSwContent = fs.readFileSync(dyadSwPath, "utf-8");
-  parentPort?.postMessage("[proxy-worker] dyad-sw.js loaded.");
+  const nextBillionSwPath = path.join(__dirname, "nextbillion-sw.js");
+  nextBillionSwContent = fs.readFileSync(nextBillionSwPath, "utf-8");
+  parentPort?.postMessage("[proxy-worker] nextbillion-sw.js loaded.");
 } catch (error) {
   parentPort?.postMessage(
-    `[proxy-worker] Failed to read dyad-sw.js: ${error.message}`,
+    `[proxy-worker] Failed to read nextbillion-sw.js: ${error.message}`,
   );
 }
 
 try {
-  const dyadSwRegisterPath = path.join(__dirname, "dyad-sw-register.js");
-  dyadSwRegisterContent = fs.readFileSync(dyadSwRegisterPath, "utf-8");
-  parentPort?.postMessage("[proxy-worker] dyad-sw-register.js loaded.");
+  const nextBillionSwRegisterPath = path.join(
+    __dirname,
+    "nextbillion-sw-register.js",
+  );
+  nextBillionSwRegisterContent = fs.readFileSync(
+    nextBillionSwRegisterPath,
+    "utf-8",
+  );
+  parentPort?.postMessage("[proxy-worker] nextbillion-sw-register.js loaded.");
 } catch (error) {
   parentPort?.postMessage(
-    `[proxy-worker] Failed to read dyad-sw-register.js: ${error.message}`,
+    `[proxy-worker] Failed to read nextbillion-sw-register.js: ${error.message}`,
   );
 }
 
 if (publicUrlBase) {
   // Hosted mode: the register script uses scope "/" at the public origin, which
-  // would let this app's service worker intercept the Dyad UI's paths (all
+  // would let this app's service worker intercept the NextBillion UI's paths (all
   // previews share one public origin). Rewrite to register under the app's
   // public prefix; the bound port is appended once known (see injectHTML).
   // ponytail: prefix is port-dependent, so the scope string is patched per-response
@@ -288,10 +309,11 @@ if (publicUrlBase) {
 }
 
 function swRegisterContentForPrefix() {
-  if (!publicPrefix || !dyadSwRegisterContent) return dyadSwRegisterContent;
-  return dyadSwRegisterContent.replace(
-    /register\(\s*["']\/dyad-sw\.js["']\s*,\s*\{\s*scope:\s*["']\/["']\s*\}\s*\)/,
-    `register("${publicPrefix}/dyad-sw.js", { scope: "${publicPrefix}/" })`,
+  if (!publicPrefix || !nextBillionSwRegisterContent)
+    return nextBillionSwRegisterContent;
+  return nextBillionSwRegisterContent.replace(
+    /register\(\s*["']\/nextbillion-sw\.js["']\s*,\s*\{\s*scope:\s*["']\/["']\s*\}\s*\)/,
+    `register("${publicPrefix}/nextbillion-sw.js", { scope: "${publicPrefix}/" })`,
   );
 }
 
@@ -304,7 +326,7 @@ function needsInjection(pathname) {
 
 /* Hosted mode only: rewrite root-absolute asset URLs in HTML to the public
  * prefix. Under <base>/<port>/... the browser resolves src="/@vite/client"
- * against the origin root, which routes to the Dyad UI instead of this app —
+ * against the origin root, which routes to the NextBillion UI instead of this app —
  * the preview loads blank. Rewriting to "<prefix>/@vite/client" lets Caddy
  * route back here, where stripPublicPrefix removes the prefix again.
  * Skips protocol-relative (//) and already-prefixed paths.
@@ -326,8 +348,8 @@ function rewriteHtmlAssetPaths(txt) {
 
 function injectHTML(buf) {
   let txt = buf.toString("utf8");
-  // These are strings that were used since the first version of the dyad shim.
-  // If the dyad shim is used from legacy apps which came pre-baked with the shim
+  // These are strings that were used since the first version of the nextbillion shim.
+  // If the nextbillion shim is used from legacy apps which came pre-baked with the shim
   // as a vite plugin, then do not inject the shim twice to avoid weird behaviors.
   const legacyAppWithShim =
     txt.includes("window-error") && txt.includes("unhandled-rejection");
@@ -351,45 +373,50 @@ function injectHTML(buf) {
       );
     }
 
-    if (dyadShimContent) {
-      // Fill the hosted-preview URL shim's prefix (see dyad-shim.js head):
+    if (nextBillionShimContent) {
+      // Fill the hosted-preview URL shim's prefix (see nextbillion-shim.js head):
       // null on desktop/dev, "/preview/<port>" in hosted mode.
       const shimContent = publicPrefixPath
-        ? dyadShimContent.replace(
-            "__DYAD_PUBLIC_PREFIX_PATH__",
+        ? nextBillionShimContent.replace(
+            "__NEXTBILLION_PUBLIC_PREFIX_PATH__",
             JSON.stringify(publicPrefixPath),
           )
-        : dyadShimContent.replace("__DYAD_PUBLIC_PREFIX_PATH__", "null");
+        : nextBillionShimContent.replace(
+            "__NEXTBILLION_PUBLIC_PREFIX_PATH__",
+            "null",
+          );
       scripts.push(`<script>${shimContent}</script>`);
     } else {
       scripts.push(
-        '<script>console.warn("[proxy-worker] dyad shim was not injected.");</script>',
+        '<script>console.warn("[proxy-worker] nextbillion shim was not injected.");</script>',
       );
     }
   }
-  if (dyadComponentSelectorClientContent) {
-    scripts.push(`<script>${dyadComponentSelectorClientContent}</script>`);
+  if (nextBillionComponentSelectorClientContent) {
+    scripts.push(
+      `<script>${nextBillionComponentSelectorClientContent}</script>`,
+    );
   } else {
     scripts.push(
-      '<script>console.warn("[proxy-worker] dyad component selector client was not injected.");</script>',
+      '<script>console.warn("[proxy-worker] nextbillion component selector client was not injected.");</script>',
     );
   }
-  if (dyadRecorderClientContent) {
+  if (nextBillionRecorderClientContent) {
     scripts.push(
-      `<script data-dyad-recorder-token="${escapedProxyToken}">${dyadRecorderClientContent}</script>`,
+      `<script data-nextbillion-recorder-token="${escapedProxyToken}">${nextBillionRecorderClientContent}</script>`,
     );
   } else {
     scripts.push(
-      '<script>console.warn("[proxy-worker] dyad recorder client was not injected.");</script>',
+      '<script>console.warn("[proxy-worker] nextbillion recorder client was not injected.");</script>',
     );
   }
-  if (dyadAuthBootstrapContent) {
+  if (nextBillionAuthBootstrapContent) {
     scripts.push(
-      `<script data-dyad-auth-token="${escapedProxyToken}">${dyadAuthBootstrapContent}</script>`,
+      `<script data-nextbillion-auth-token="${escapedProxyToken}">${nextBillionAuthBootstrapContent}</script>`,
     );
   } else {
     scripts.push(
-      '<script>console.warn("[proxy-worker] dyad auth bootstrap was not injected.");</script>',
+      '<script>console.warn("[proxy-worker] nextbillion auth bootstrap was not injected.");</script>',
     );
   }
   if (htmlToImageContent) {
@@ -405,32 +432,32 @@ function injectHTML(buf) {
       "[proxy-worker] WARNING: html-to-image not injected!",
     );
   }
-  if (dyadScreenshotClientContent) {
-    scripts.push(`<script>${dyadScreenshotClientContent}</script>`);
+  if (nextBillionScreenshotClientContent) {
+    scripts.push(`<script>${nextBillionScreenshotClientContent}</script>`);
   } else {
     scripts.push(
-      '<script>console.warn("[proxy-worker] dyad screenshot client was not injected.");</script>',
+      '<script>console.warn("[proxy-worker] nextbillion screenshot client was not injected.");</script>',
     );
   }
-  if (dyadVisualEditorClientContent) {
-    scripts.push(`<script>${dyadVisualEditorClientContent}</script>`);
+  if (nextBillionVisualEditorClientContent) {
+    scripts.push(`<script>${nextBillionVisualEditorClientContent}</script>`);
   } else {
     scripts.push(
-      '<script>console.warn("[proxy-worker] dyad visual editor client was not injected.");</script>',
+      '<script>console.warn("[proxy-worker] nextbillion visual editor client was not injected.");</script>',
     );
   }
-  if (dyadLogsContent) {
-    scripts.push(`<script>${dyadLogsContent}</script>`);
+  if (nextBillionLogsContent) {
+    scripts.push(`<script>${nextBillionLogsContent}</script>`);
   } else {
     scripts.push(
-      '<script>console.warn("[proxy-worker] dyad_logs.js was not injected.");</script>',
+      '<script>console.warn("[proxy-worker] nextbillion_logs.js was not injected.");</script>',
     );
   }
   if (swRegisterContentForPrefix()) {
     scripts.push(`<script>${swRegisterContentForPrefix()}</script>`);
   } else {
     scripts.push(
-      '<script>console.warn("[proxy-worker] dyad-sw-register.js was not injected.");</script>',
+      '<script>console.warn("[proxy-worker] nextbillion-sw-register.js was not injected.");</script>',
     );
   }
   const allScripts = scripts.join("\n");
@@ -501,7 +528,7 @@ function buildTargetURL(clientReq) {
 /* ----------------------------------------------------------------------- */
 /* Cookie rewriting for the embedded preview iframe                        */
 /*                                                                         */
-/* In a packaged build the Dyad shell loads from file://, a cross-site     */
+/* In a packaged build the NextBillion shell loads from file://, a cross-site     */
 /* top-level ancestor to the http://localhost preview. That makes the      */
 /* request's "site for cookies" cross-site, so the browser withholds       */
 /* default Lax/Strict cookies and auth sessions fail to stick. (Dev mode   */
@@ -588,18 +615,18 @@ const server = http.createServer((clientReq, clientRes) => {
   }
   // Special handling for Service Worker file
   const swPath = stripPublicPrefix(clientReq.url);
-  if (swPath !== null && swPath === "/dyad-sw.js") {
-    if (dyadSwContent) {
+  if (swPath !== null && swPath === "/nextbillion-sw.js") {
+    if (nextBillionSwContent) {
       clientRes.writeHead(200, {
         "content-type": "application/javascript",
         // Scoped to the public prefix when hosted so this app's SW can never
-        // intercept the Dyad UI origin's paths.
+        // intercept the NextBillion UI origin's paths.
         "service-worker-allowed": publicPrefixPath
           ? `${publicPrefixPath}/`
           : "/",
         "cache-control": "no-cache",
       });
-      clientRes.end(dyadSwContent);
+      clientRes.end(nextBillionSwContent);
       return;
     } else {
       clientRes.writeHead(404, { "content-type": "text/plain" });
@@ -695,7 +722,7 @@ const server = http.createServer((clientReq, clientRes) => {
         // Never cache an injected document. The scripts above are stamped with
         // this proxy instance's capability token, and a restart mints a new one
         // — so a cached copy carries a token the proxy no longer honors, and
-        // recorder control and `dyad-auth-login` messages sent with it are
+        // recorder control and `nextbillion-auth-login` messages sent with it are
         // rejected with nothing on screen explaining why. `last-modified` and
         // `expires` go too: left behind they still permit heuristic freshness
         // and conditional revalidation into the same stale document.

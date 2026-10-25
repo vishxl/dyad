@@ -14,7 +14,8 @@ describe("subscription status banner (integration)", () => {
   let previousSubscriptionStatusUrl: string | undefined;
 
   beforeAll(async () => {
-    previousSubscriptionStatusUrl = process.env.DYAD_SUBSCRIPTION_STATUS_URL;
+    previousSubscriptionStatusUrl =
+      process.env.NEXTBILLION_SUBSCRIPTION_STATUS_URL;
     server = createServer((request, response) => {
       receivedAuthorization = request.headers.authorization;
       response.writeHead(200, { "Content-Type": "application/json" });
@@ -33,7 +34,7 @@ describe("subscription status banner (integration)", () => {
     if (!address || typeof address === "string") {
       throw new Error("Failed to start subscription status test server");
     }
-    process.env.DYAD_SUBSCRIPTION_STATUS_URL = `http://127.0.0.1:${address.port}/subscription-status`;
+    process.env.NEXTBILLION_SUBSCRIPTION_STATUS_URL = `http://127.0.0.1:${address.port}/subscription-status`;
 
     harness = await setupHybridChatHarness({
       electronMock: h,
@@ -55,9 +56,10 @@ describe("subscription status banner (integration)", () => {
       server.close((error) => (error ? reject(error) : resolve())),
     );
     if (previousSubscriptionStatusUrl === undefined) {
-      delete process.env.DYAD_SUBSCRIPTION_STATUS_URL;
+      delete process.env.NEXTBILLION_SUBSCRIPTION_STATUS_URL;
     } else {
-      process.env.DYAD_SUBSCRIPTION_STATUS_URL = previousSubscriptionStatusUrl;
+      process.env.NEXTBILLION_SUBSCRIPTION_STATUS_URL =
+        previousSubscriptionStatusUrl;
     }
   });
 
@@ -69,7 +71,7 @@ describe("subscription status banner (integration)", () => {
     const banner = await screen.findByTestId("subscription-status-banner");
     expect(banner.dataset.alert).toBe("subscription_paused");
     expect(banner.textContent).toContain(
-      "Your Dyad Pro subscription is paused.",
+      "Your NextBillion Pro subscription is paused.",
     );
     expect(receivedAuthorization).toBe("Bearer integration-pro-key");
   });

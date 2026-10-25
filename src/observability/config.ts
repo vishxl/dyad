@@ -1,6 +1,6 @@
 /**
  * Central observability configuration — the single source of truth for all
- * logging/tracing switching and backend integration in dyad.
+ * logging/tracing switching and backend integration in nextbillion.
  *
  * Every observability consumer (provider modules, call sites, the Settings
  * toggle, shutdown hooks) reads from this file. Adding a new backend later

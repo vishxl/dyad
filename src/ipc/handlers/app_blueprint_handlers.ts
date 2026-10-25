@@ -8,7 +8,10 @@ import {
   type AppBlueprintVisual,
 } from "../types/app_blueprint";
 import { broadcastToRegisteredWindows } from "../utils/window_broadcast";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { db } from "../../db";
 import { apps, chats } from "../../db/schema";
 
@@ -96,9 +99,9 @@ export function registerAppBlueprintHandlers() {
     }
 
     if (plan.approved) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Cannot edit approved app blueprint for chat ${params.chatId}`,
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 
@@ -133,9 +136,9 @@ export function registerAppBlueprintHandlers() {
     }
 
     if (plan.approved) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Cannot edit approved app blueprint for chat ${params.chatId}`,
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 
@@ -153,16 +156,16 @@ export function registerAppBlueprintHandlers() {
   createTypedHandler(appBlueprintContracts.addVisual, async (_, params) => {
     const plan = appBlueprintStore.get(params.chatId);
     if (!plan) {
-      throw new DyadError(
+      throw new NextBillionError(
         `No app blueprint found for chat ${params.chatId} when adding visual`,
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
 
     if (plan.approved) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Cannot add visual to approved app blueprint for chat ${params.chatId}`,
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 
@@ -187,9 +190,9 @@ export function registerAppBlueprintHandlers() {
     }
 
     if (plan.approved) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Cannot remove visual from approved app blueprint for chat ${params.chatId}`,
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 

@@ -25,7 +25,7 @@ vi.mock("./neon_context", async () => {
 });
 
 vi.mock("../paths/paths", () => ({
-  getDyadAppPath: (appPath: string) => appPath,
+  getNextBillionAppPath: (appPath: string) => appPath,
 }));
 
 vi.mock("../ipc/utils/framework_utils", () => ({
@@ -222,7 +222,7 @@ describe("buildNeonPromptAdditions", () => {
     });
 
     expect(additions).toContain("<neon-system-prompt>");
-    expect(additions).not.toContain("<dyad-execute-sql>");
+    expect(additions).not.toContain("<nextbillion-execute-sql>");
     expect(additions).toContain("reconnect or select a Neon branch");
     expect(additions).toContain("until a Neon branch is selected");
     expect(additions).not.toContain("inspect the live Neon Auth configuration");

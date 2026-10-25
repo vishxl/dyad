@@ -17,7 +17,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/db", () => ({
   db: { query: { apps: { findFirst: mocks.findApp } } },
 }));
-vi.mock("@/paths/paths", () => ({ getDyadAppPath: (value: string) => value }));
+vi.mock("@/paths/paths", () => ({
+  getNextBillionAppPath: (value: string) => value,
+}));
 
 vi.mock("electron-log", () => ({
   default: {
@@ -589,7 +591,9 @@ describe("reconcileDeferredFunctionOperations", () => {
 
 describe("supabaseFunctionEntryExists", () => {
   it("requires the concrete index.ts entry point", async () => {
-    const appPath = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-functions-"));
+    const appPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-functions-"),
+    );
     const functionPath = path.join(appPath, "supabase", "functions", "hello");
     try {
       await fs.mkdir(functionPath, { recursive: true });

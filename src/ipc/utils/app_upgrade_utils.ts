@@ -3,7 +3,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { gitAddAll, gitCommit } from "./git_utils";
 import { simpleSpawn } from "./simpleSpawn";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   isPnpmIgnoredBuildsError,
   PNPM_PM_ON_FAIL_IGNORE_ARG,
@@ -118,9 +121,9 @@ export async function applyComponentTagger(
   const viteConfigPath = findViteConfigPath(appPath);
 
   if (!viteConfigPath) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Could not find vite.config.js or vite.config.ts",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 
@@ -132,7 +135,7 @@ export async function applyComponentTagger(
 
   if (
     !content.includes(
-      "import dyadComponentTagger from '@dyad-sh/react-vite-component-tagger';",
+      "import nextBillionComponentTagger from '@dyad-sh/react-vite-component-tagger';",
     )
   ) {
     const lines = content.split("\n");
@@ -146,7 +149,7 @@ export async function applyComponentTagger(
     lines.splice(
       lastImportIndex + 1,
       0,
-      "import dyadComponentTagger from '@dyad-sh/react-vite-component-tagger';",
+      "import nextBillionComponentTagger from '@dyad-sh/react-vite-component-tagger';",
     );
     content = lines.join("\n");
   }
@@ -173,17 +176,17 @@ export async function applyComponentTagger(
   }
 
   if (pluginsIdx !== -1) {
-    if (!content.includes("dyadComponentTagger()")) {
+    if (!content.includes("nextBillionComponentTagger()")) {
       const bracketIdx = pluginsIdx + matchStr.indexOf("[");
       content =
         content.slice(0, bracketIdx) +
-        "[dyadComponentTagger(), " +
+        "[nextBillionComponentTagger(), " +
         content.slice(bracketIdx + 1);
     }
   } else {
-    throw new DyadError(
+    throw new NextBillionError(
       `Could not find 'plugins: [' in ${path.basename(viteConfigPath)}. Manual installation required.`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 
@@ -219,9 +222,9 @@ export async function applyComponentTagger(
         } catch (rollbackErr) {
           logger.error("Failed to rollback vite config changes", rollbackErr);
         }
-        throw new DyadError(
+        throw new NextBillionError(
           "Failed to install component tagger dependency",
-          DyadErrorKind.Internal,
+          NextBillionErrorKind.Internal,
         );
       }
     }
@@ -254,9 +257,9 @@ export async function applyComponentTagger(
       } catch (rollbackErr) {
         logger.error("Failed to rollback vite config changes", rollbackErr);
       }
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to update package.json for component tagger: ${err instanceof Error ? err.message : String(err)}`,
-        DyadErrorKind.Internal,
+        NextBillionErrorKind.Internal,
       );
     }
     logger.info("Skipping dependency install for component tagger");
@@ -267,7 +270,7 @@ export async function applyComponentTagger(
     await gitAddAll({ path: appPath });
     await gitCommit({
       path: appPath,
-      message: "add Dyad component tagger",
+      message: "add NextBillion component tagger",
     });
     logger.info("Successfully committed component tagger modifications");
   } catch (err) {

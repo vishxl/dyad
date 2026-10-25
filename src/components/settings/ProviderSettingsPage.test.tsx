@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { PropsWithChildren } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { ProviderSettingsPage } from "./ProviderSettingsPage";
 
 const mocks = vi.hoisted(() => ({
@@ -16,7 +16,7 @@ const mocks = vi.hoisted(() => ({
   sendFirstPrompt: vi.fn(),
   settings: {
     providerSettings: {},
-    enableDyadPro: false,
+    enableNextBillionPro: false,
     defaultChatMode: "build",
   } as any,
 }));
@@ -90,7 +90,7 @@ vi.mock("@/ipc/types", () => ({
   },
 }));
 
-function validationError(message: string, kind: DyadErrorKind) {
+function validationError(message: string, kind: NextBillionErrorKind) {
   return Object.assign(new Error(message), { kind });
 }
 
@@ -137,14 +137,17 @@ describe("ProviderSettingsPage", () => {
     mocks.sendFirstPrompt.mockReset();
     mocks.settings = {
       providerSettings: {},
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       defaultChatMode: "build",
     };
   });
 
   it("titles auth validation errors as rejected API keys", async () => {
     mocks.validateProviderApiKey.mockRejectedValue(
-      validationError("Google rejected this API key.", DyadErrorKind.Auth),
+      validationError(
+        "Google rejected this API key.",
+        NextBillionErrorKind.Auth,
+      ),
     );
 
     renderProviderSettingsPage();
@@ -167,7 +170,7 @@ describe("ProviderSettingsPage", () => {
         providerSettings: {
           google: { apiKey: { value: "test-google-key" } },
         },
-        enableDyadPro: false,
+        enableNextBillionPro: false,
         defaultChatMode: "build",
       }),
     );
@@ -178,20 +181,20 @@ describe("ProviderSettingsPage", () => {
     });
   });
 
-  it("resumes an implicit first prompt with the new Dyad Pro default", async () => {
+  it("resumes an implicit first prompt with the new NextBillion Pro default", async () => {
     mocks.hasArmedPayload = true;
     mocks.validateProviderApiKey.mockResolvedValue(undefined);
     mocks.updateSettings.mockResolvedValue(undefined);
 
     renderProviderSettingsPage("auto");
-    await saveApiKey("Dyad", "auto");
+    await saveApiKey("NextBillion", "auto");
 
     await waitFor(() =>
       expect(mocks.sendFirstPrompt).toHaveBeenCalledWith({
         providerSettings: {
           auto: { apiKey: { value: "test-google-key" } },
         },
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         defaultChatMode: "local-agent",
       }),
     );
@@ -235,9 +238,12 @@ describe("ProviderSettingsPage", () => {
   });
 
   it.each([
-    [DyadErrorKind.RateLimited, "Google rate limited the API key check."],
     [
-      DyadErrorKind.External,
+      NextBillionErrorKind.RateLimited,
+      "Google rate limited the API key check.",
+    ],
+    [
+      NextBillionErrorKind.External,
       "Google did not respond while checking this API key.",
     ],
   ])(

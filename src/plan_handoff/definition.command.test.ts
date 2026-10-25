@@ -78,7 +78,7 @@ vi.mock("@/ipc/services/chat_actor_deletion_fence", () => ({
   assertChatActorAdmissionOpen: vi.fn(),
 }));
 vi.mock("@/paths/paths", () => ({
-  getDyadAppPath: (path: string) => path,
+  getNextBillionAppPath: (path: string) => path,
 }));
 
 import { planHandoffDefinition } from "./definition";

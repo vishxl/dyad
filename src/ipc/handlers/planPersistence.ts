@@ -1,8 +1,11 @@
 import fs from "node:fs";
 import path from "node:path";
 import { buildFrontmatter, parsePlanFile, validatePlanId } from "./planUtils";
-import { ensureDyadGitignored } from "./gitignoreUtils";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import { ensureNextBillionGitignored } from "./gitignoreUtils";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 /** Shared current-draft selection for UI and acceptance. Immutable handoff
  * snapshots are references, not revisions of the editable plan. */
@@ -66,7 +69,7 @@ export function normalizePlanStatus(raw: string | undefined): PlanStatus {
 }
 
 export function planDirForAppPath(appPath: string): string {
-  return path.join(appPath, ".dyad", "plans");
+  return path.join(appPath, ".nextbillion", "plans");
 }
 
 /**
@@ -84,7 +87,8 @@ export async function readPlanFromDisk(params: {
   chatId: number;
 }): Promise<{ title: string; summary?: string; content: string }> {
   const plan = await loadPlanForChat(params.appPath, params.chatId);
-  if (!plan) throw new DyadError("Plan not found", DyadErrorKind.NotFound);
+  if (!plan)
+    throw new NextBillionError("Plan not found", NextBillionErrorKind.NotFound);
   const { meta, content } = plan;
   return {
     title: meta.title ?? "",
@@ -94,7 +98,7 @@ export async function readPlanFromDisk(params: {
 }
 
 /**
- * Upserts the plan file for a chat under `.dyad/plans/`. Returns the plan slug.
+ * Upserts the plan file for a chat under `.nextbillion/plans/`. Returns the plan slug.
  *
  * Used when a plan is drafted and accepted. Preserves the original `createdAt`
  * when a file already exists so status promotion doesn't reset it.
@@ -112,15 +116,15 @@ export async function savePlanToDisk(params: {
   const { appPath, chatId, title, summary, content, status } = params;
   const planDir = planDirForAppPath(appPath);
   await fs.promises.mkdir(planDir, { recursive: true });
-  await ensureDyadGitignored(appPath);
+  await ensureNextBillionGitignored(appPath);
 
   if (
     params.immutableVersion &&
     !/^[a-f0-9]{64}$/.test(params.immutableVersion)
   )
-    throw new DyadError(
+    throw new NextBillionError(
       "Invalid immutable plan version",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   const slug = params.immutableVersion
     ? `${planSlugForChat(chatId)}-${params.immutableVersion}`
@@ -163,9 +167,9 @@ export async function savePlanToDisk(params: {
         existing.meta.title !== title ||
         (existing.meta.summary ?? "") !== (summary ?? "")
       )
-        throw new DyadError(
+        throw new NextBillionError(
           "Immutable plan version conflicts with stored content",
-          DyadErrorKind.Conflict,
+          NextBillionErrorKind.Conflict,
         );
     }
   } else await fs.promises.writeFile(filePath, frontmatter + content, "utf-8");

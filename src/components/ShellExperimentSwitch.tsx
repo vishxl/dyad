@@ -1,11 +1,11 @@
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { useSettings } from "@/hooks/useSettings";
-import { isDyadProEnabled } from "@/lib/schemas";
+import { isNextBillionProEnabled } from "@/lib/schemas";
 
 export function ShellExperimentSwitch() {
   const { settings, updateSettings } = useSettings();
-  const isPro = !!settings && isDyadProEnabled(settings);
+  const isPro = !!settings && isNextBillionProEnabled(settings);
   return (
     <div className="space-y-1">
       <div className="flex items-center space-x-2">

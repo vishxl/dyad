@@ -17,7 +17,7 @@ import { readSettings } from "@/main/settings";
 function isForbiddenInspectionSegment(part: string): boolean {
   return (
     part === ".." ||
-    /^\.env(?:\.|$)|secret|credential|^\.(?:git|dyad|ssh|aws|npmrc|pypirc)$|^id_(?:rsa|ed25519)$|\.(?:pem|key)$/i.test(
+    /^\.env(?:\.|$)|secret|credential|^\.(?:git|nextbillion|ssh|aws|npmrc|pypirc)$|^id_(?:rsa|ed25519)$|\.(?:pem|key)$/i.test(
       part,
     )
   );

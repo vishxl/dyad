@@ -43,7 +43,7 @@ async function startVirtualizedStream(
   // A renderer reload retains the isolated test profile but exercises the real
   // production Virtuoso branch, not MessagesList's test-mode plain list.
   await po.page.evaluate(() => {
-    sessionStorage.setItem("dyad:e2e:virtualized-chat", "true");
+    sessionStorage.setItem("nextbillion:e2e:virtualized-chat", "true");
   });
   const appPath = await electronApp.evaluate(({ app }) => app.getAppPath());
   await electronApp.evaluate(
@@ -191,7 +191,7 @@ test("existing long virtualized chat opens at the bottom without flashing its fi
   }
   const chatId = new URL(po.page.url()).searchParams.get("id");
   await po.page.evaluate(() => {
-    sessionStorage.setItem("dyad:e2e:virtualized-chat", "true");
+    sessionStorage.setItem("nextbillion:e2e:virtualized-chat", "true");
   });
   // Observe every rendering frame, not just the eventual settled position.
   await po.page.addInitScript((targetChatId) => {

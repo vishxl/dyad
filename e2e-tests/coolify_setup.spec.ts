@@ -12,7 +12,7 @@ import {
  * Installing Coolify onto a server, through the packaged app.
  *
  * Two tests, both of which need real Chromium and the shipped build: the whole
- * chain through to a stored token, and a server Dyad refuses. Everything that
+ * chain through to a stored token, and a server NextBillion refuses. Everything that
  * does not look at the screen belongs in
  * src/coolify_setup/setup_flow.integration.test.ts, which drives the same SSH
  * server in a fraction of the time.
@@ -45,8 +45,8 @@ const electronConfig: ElectronConfig = {
     sshServer = await startFakeSshServer();
     // The form asks for an address, not a port, so both of these travel
     // through the same e2e seam as every other test-only behaviour here.
-    process.env.DYAD_E2E_SSH_PORT = String(sshServer.port);
-    process.env.DYAD_E2E_DASHBOARD_PORT = String(fakeLlmPort);
+    process.env.NEXTBILLION_E2E_SSH_PORT = String(sshServer.port);
+    process.env.NEXTBILLION_E2E_DASHBOARD_PORT = String(fakeLlmPort);
     // Whatever another spec left in the shared fake is not this test's setup.
     await resetCoolify(fakeLlmPort);
   },
@@ -61,8 +61,8 @@ function server(): FakeSshServer {
 }
 
 test.afterEach(async () => {
-  delete process.env.DYAD_E2E_SSH_PORT;
-  delete process.env.DYAD_E2E_DASHBOARD_PORT;
+  delete process.env.NEXTBILLION_E2E_SSH_PORT;
+  delete process.env.NEXTBILLION_E2E_DASHBOARD_PORT;
   await sshServer?.close();
   sshServer = null;
 });
@@ -91,7 +91,7 @@ async function openInstaller(po: any) {
 async function fillAndInstall(po: any) {
   await po.page.getByTestId("coolify-setup-host").fill("127.0.0.1");
   await po.page.getByTestId("coolify-setup-email").fill("me@gmail.com");
-  // Install is offered only for a server Dyad has looked at, so this is the
+  // Install is offered only for a server NextBillion has looked at, so this is the
   // ordinary path rather than an extra step for the test.
   await po.page.getByTestId("coolify-setup-inspect").click();
   await expect(po.page.getByTestId("coolify-setup-inspection")).toBeVisible({
@@ -131,7 +131,7 @@ test("installs Coolify onto a server and connects to it", async ({ po }) => {
     timeout: Timeout.MEDIUM,
   });
   // The picker being present says only that a token was stored. This says the
-  // address stored with it is one Dyad can actually talk to: the servers came
+  // address stored with it is one NextBillion can actually talk to: the servers came
   // back from the instance the install pointed it at.
   await po.page.getByTestId("coolify-server-select").click();
   // Named, not "the first option": while discovery is in flight the picker
@@ -141,7 +141,7 @@ test("installs Coolify onto a server and connects to it", async ({ po }) => {
     { timeout: Timeout.MEDIUM },
   );
 
-  // Dyad offered a key rather than a password, and the installer really ran.
+  // NextBillion offered a key rather than a password, and the installer really ran.
   expect(server().state.keyOffered).toBe(true);
   expect(server().state.commands.some((c) => c.includes("install.sh"))).toBe(
     true,

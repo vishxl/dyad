@@ -4,9 +4,12 @@ import { z } from "zod";
 import log from "electron-log";
 import type { LanguageModelV3Usage } from "@ai-sdk/provider";
 import { readSettings } from "@/main/settings";
-import { isDyadProEnabled } from "@/lib/schemas";
-import { getDyadEngineBaseUrl } from "@/ipc/utils/dyad_engine_url";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import { isNextBillionProEnabled } from "@/lib/schemas";
+import { getNextBillionEngineBaseUrl } from "@/ipc/utils/nextbillion_engine_url";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import type { SubscriptionTokens } from "@/lib/subscriptionUsage";
 import {
   consumeExternalModelAdmission,
@@ -44,27 +47,27 @@ export async function startExternalModelUsage(
   admission?: ExternalModelAdmission,
 ) {
   if (signal?.aborted)
-    throw new DyadError(
+    throw new NextBillionError(
       "External model request cancelled.",
-      DyadErrorKind.UserCancelled,
+      NextBillionErrorKind.UserCancelled,
     );
   // null is an explicitly accepted free request; never consult live settings.
   if (apiKey === null && billing.connection === "subscription")
     return undefined;
   const settings = apiKey === undefined ? readSettings() : undefined;
-  // Free subscription requests never check or report Dyad credits. Explicit
+  // Free subscription requests never check or report NextBillion credits. Explicit
   // billing keys still belong to the already-resolved Pro request.
   if (
     billing.connection === "subscription" &&
     settings &&
-    !isDyadProEnabled(settings)
+    !isNextBillionProEnabled(settings)
   )
     return undefined;
   const key = apiKey ?? settings?.providerSettings?.auto?.apiKey?.value;
   if (!key)
-    throw new DyadError(
-      "Add your Dyad Pro key before using Pro with an external model.",
-      DyadErrorKind.Auth,
+    throw new NextBillionError(
+      "Add your NextBillion Pro key before using Pro with an external model.",
+      NextBillionErrorKind.Auth,
     );
   if (!consumeExternalModelAdmission(admission, key))
     await checkSubscriptionCredits(key, signal);
@@ -118,7 +121,7 @@ export async function finishExternalModelUsageBatch(
       try {
         const tokens = normalizeExternalModelUsage(usage);
         const response = await fetch(
-          `${getDyadEngineBaseUrl().replace(/\/$/, "")}/track-usage`,
+          `${getNextBillionEngineBaseUrl().replace(/\/$/, "")}/track-usage`,
           {
             method: "POST",
             redirect: "error",

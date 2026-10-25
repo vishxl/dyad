@@ -15,7 +15,7 @@ import {
 } from "@/components/ui/tooltip";
 import { useSettings } from "@/hooks/useSettings";
 import { ipc } from "@/ipc/types";
-import { hasDyadProKey } from "@/lib/schemas";
+import { hasNextBillionProKey } from "@/lib/schemas";
 import { useQuery } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 
@@ -36,11 +36,11 @@ export function ProModeSelector() {
 
   const toggleProEnabled = () => {
     updateSettings({
-      enableDyadPro: !settings?.enableDyadPro,
+      enableNextBillionPro: !settings?.enableNextBillionPro,
     });
   };
 
-  const hasProKey = settings ? hasDyadProKey(settings) : false;
+  const hasProKey = settings ? hasNextBillionProKey(settings) : false;
 
   return (
     <Popover>
@@ -53,14 +53,14 @@ export function ProModeSelector() {
           <Sparkles className="h-3.5 w-3.5" />
           <span className="font-medium">Pro</span>
         </TooltipTrigger>
-        <TooltipContent>Configure Dyad Pro settings</TooltipContent>
+        <TooltipContent>Configure NextBillion Pro settings</TooltipContent>
       </Tooltip>
       <PopoverContent className="w-80 border-primary/20">
         <div className="space-y-4">
           <div className="space-y-1">
             <h4 className="font-medium flex items-center gap-1.5">
               <Sparkles className="h-4 w-4 text-primary" />
-              <span className="text-primary font-medium">Dyad Pro</span>
+              <span className="text-primary font-medium">NextBillion Pro</span>
             </h4>
             <div className="h-px bg-gradient-to-r from-primary/50 via-primary/20 to-transparent" />
           </div>
@@ -117,10 +117,10 @@ export function ProModeSelector() {
           )}
           <SelectorRow
             id="pro-enabled"
-            label="Enable Dyad Pro"
-            tooltip="Uses your selected model usage source and Dyad Pro credits for Pro features."
+            label="Enable NextBillion Pro"
+            tooltip="Uses your selected model usage source and NextBillion Pro credits for Pro features."
             isTogglable={hasProKey}
-            settingEnabled={Boolean(settings?.enableDyadPro)}
+            settingEnabled={Boolean(settings?.enableNextBillionPro)}
             toggle={toggleProEnabled}
           />
         </div>

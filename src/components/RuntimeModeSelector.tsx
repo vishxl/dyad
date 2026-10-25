@@ -115,7 +115,7 @@ export function RuntimeModeSelector() {
       </SettingField>
       {showCloudSandboxOption && !hasCloudSandboxAccess && (
         <div className="text-sm text-muted-foreground bg-muted/40 p-2 rounded">
-          Cloud sandboxes are a Dyad Pro feature.
+          Cloud sandboxes are a NextBillion Pro feature.
         </div>
       )}
       {isDockerMode && (

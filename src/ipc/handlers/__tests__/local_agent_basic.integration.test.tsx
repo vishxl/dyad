@@ -30,8 +30,8 @@ describe("local-agent basic flows (integration)", () => {
       chatMode: "local-agent",
       settings: {
         isTestMode: true,
-        enableDyadPro: true,
-        providerSettings: { auto: { apiKey: { value: "testdyadkey" } } },
+        enableNextBillionPro: true,
+        providerSettings: { auto: { apiKey: { value: "testnextbillionkey" } } },
       },
     });
   }, 60_000);
@@ -256,7 +256,7 @@ describe("local-agent basic flows (integration)", () => {
     harness.mount({ chatId: app.chatId, appId: app.appId });
 
     // Draft the blueprint through the real streamed path (write_app_blueprint ->
-    // app-blueprint:update + <dyad-app-blueprint> assistant message) instead of
+    // app-blueprint:update + <nextbillion-app-blueprint> assistant message) instead of
     // seeding state + a hand-inserted message + a synthetic bridge send.
     const { send } = await harness.typeInChat(
       "tc=local-agent/app-blueprint-rename",

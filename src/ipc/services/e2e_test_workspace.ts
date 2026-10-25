@@ -6,7 +6,10 @@ import log from "electron-log";
 import { getUserDataPath } from "@/paths/paths";
 import type { TestIsolation } from "@/ipc/types/tests";
 import { sendTelemetryEvent } from "@/ipc/utils/telemetry";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   createGitOverlayWorkspace,
   isGitOverlayWorkspaceActive,
@@ -101,7 +104,7 @@ export interface E2eTestWorkspace {
  * `process.cwd()`, which the OS hands back with symlinks already collapsed — so
  * an un-resolved root silently fails to match whenever any ancestor is a link
  * (`/var` → `/private/var` on macOS, which is exactly what `os.tmpdir()` and so
- * `DYAD_DEV_USER_DATA_DIR` give). `rewriteE2eArtifactPath` would then answer
+ * `NEXTBILLION_DEV_USER_DATA_DIR` give). `rewriteE2eArtifactPath` would then answer
  * `undefined` for every screenshot and the failures would lose their thumbnails
  * and page snapshots with nothing logged. `test_screenshot.ts` resolves both
  * sides of its own check for the same reason.
@@ -141,7 +144,10 @@ export async function createE2eTestWorkspace({
   signal?: AbortSignal;
 }): Promise<E2eTestWorkspace> {
   if (signal?.aborted)
-    throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+    throw new NextBillionError(
+      "Test run stopped.",
+      NextBillionErrorKind.UserCancelled,
+    );
 
   const sandboxRoot = await realpathRoot(
     path.join(getUserDataPath(), E2E_TEST_SANDBOX_DIR),
@@ -193,7 +199,10 @@ export async function createE2eTestWorkspace({
 
   try {
     if (signal?.aborted)
-      throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+      throw new NextBillionError(
+        "Test run stopped.",
+        NextBillionErrorKind.UserCancelled,
+      );
     // Custom installs can reach ancestor workspace packages too. Discover the
     // root without selecting a Node package manager for non-Node custom apps.
     const { packageManager, sourceInstallPath } = hasCustomCommands
@@ -267,7 +276,7 @@ export async function createE2eTestWorkspace({
  * loudly, which is the right way round.
  */
 /**
- * Every dotenv file an install script may load, not just the one Dyad writes.
+ * Every dotenv file an install script may load, not just the one NextBillion writes.
  *
  * `ENV_FILE_NAME` is the only file provider isolation rewrites, but a
  * `postinstall` that calls `dotenv.config()` reads `.env` by default, and
@@ -389,7 +398,10 @@ export async function installE2eTestWorkspaceDependencies({
   const { dependencyInstallPath, packageManager } = workspace;
   const packageRootPath = workspace.packageRootPath ?? dependencyInstallPath;
   if (signal?.aborted)
-    throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+    throw new NextBillionError(
+      "Test run stopped.",
+      NextBillionErrorKind.UserCancelled,
+    );
 
   const startedAt = Date.now();
   // Every package this one install touches. The manager installs all workspace
@@ -423,7 +435,7 @@ export async function installE2eTestWorkspaceDependencies({
       packageManager,
       // Unconditional, unlike the file rewrite above. `dotenv` leaves an
       // already-set variable alone, so a `DATABASE_URL` inherited from the
-      // shell that launched Dyad would override the isolated value the
+      // shell that launched NextBillion would override the isolated value the
       // sandbox wrote — including the Neon branch URL a `prisma migrate` in
       // a lifecycle script is supposed to run against.
       env: getPackageManagerCommandEnv(withoutInheritedDatabaseEnv()),
@@ -471,19 +483,22 @@ export async function installE2eTestWorkspaceDependencies({
     }
   }
   if (installResult.aborted || signal?.aborted) {
-    throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+    throw new NextBillionError(
+      "Test run stopped.",
+      NextBillionErrorKind.UserCancelled,
+    );
   }
   const output = installOutputTail(installResult.stdout, installResult.stderr);
   if (installResult.timedOut) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Installing dependencies in the isolated test workspace timed out after 15 minutes.${output ? `\n\n${output}` : ""}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   if (installResult.code !== 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Could not install dependencies in the isolated test workspace (exit code ${installResult.code}).${output ? `\n\n${output}` : ""}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   sendTelemetryEvent("e2e_test_workspace_dependencies_installed", {
@@ -620,7 +635,7 @@ export function rewriteE2eArtifactPath(
  * hand-rolled prefix test in either place is how the two drift apart.
  *
  * The delimiter and a non-empty suffix are both required. Without them a bare
- * `7` in the user-data directory — something Dyad never creates and has no
+ * `7` in the user-data directory — something NextBillion never creates and has no
  * claim on — would parse as an app-7 run and be swept away by the prune.
  */
 export function runDirectoryAppId(name: string): number | null {

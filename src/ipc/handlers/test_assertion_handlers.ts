@@ -8,7 +8,7 @@ import { eq } from "drizzle-orm";
 
 import { db } from "../../db";
 import { apps, chats, messages } from "../../db/schema";
-import { getDyadAppPath } from "../../paths/paths";
+import { getNextBillionAppPath } from "../../paths/paths";
 import { createTypedHandler } from "./base";
 import { E2E_TEST_DIR, testsContracts } from "../types/tests";
 import type { ApplyTestAssertionsResult } from "../types/tests";
@@ -35,7 +35,10 @@ import {
   restoreRecordedTestDraft,
 } from "../services/recorded_test_drafts";
 import { readSettings } from "@/main/settings";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   countAssertions,
   isAssertionItem,
@@ -87,7 +90,7 @@ const LLM_TIMEOUT_MS = 60_000;
 
 const FIXTURE_PATH = `${E2E_TEST_DIR}/fixtures/test-user.ts`;
 
-const RECORDED_DRAFT_MARKER_PREFIX = "// dyad-recording-draft-id: ";
+const RECORDED_DRAFT_MARKER_PREFIX = "// nextbillion-recording-draft-id: ";
 
 /** How many `recorded-<slug>-N.spec.ts` variants to try before giving up. */
 const MAX_SPEC_NAME_ATTEMPTS = 100;
@@ -122,9 +125,12 @@ const rawCodeSchema = z.object({
 async function getAppPath(appId: number): Promise<string> {
   const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
   if (!app) {
-    throw new DyadError(`App ${appId} not found`, DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      `App ${appId} not found`,
+      NextBillionErrorKind.NotFound,
+    );
   }
-  return getDyadAppPath(app.path);
+  return getNextBillionAppPath(app.path);
 }
 
 async function fileExists(absolutePath: string): Promise<boolean> {
@@ -532,9 +538,9 @@ async function writeSpecToFreePath(
       if ((error as NodeJS.ErrnoException).code !== "EEXIST") throw error;
     }
   }
-  throw new DyadError(
+  throw new NextBillionError(
     `Couldn't find a free filename for "${testName}" under ${E2E_TEST_DIR}/.`,
-    DyadErrorKind.Precondition,
+    NextBillionErrorKind.Precondition,
   );
 }
 
@@ -691,7 +697,7 @@ async function callStructuredModel<T>({
       })(),
       timeout,
     ]);
-    const dyadRequestId = crypto.randomUUID();
+    const nextBillionRequestId = crypto.randomUUID();
 
     const stream = streamText({
       output: fastTextOutput(),
@@ -703,9 +709,9 @@ async function callStructuredModel<T>({
         builtinProviderId: modelClient.builtinProviderId,
       }),
       providerOptions: getProviderOptions({
-        dyadAppId: appId,
-        dyadRequestId,
-        dyadDisableFiles: true,
+        nextBillionAppId: appId,
+        nextBillionRequestId,
+        nextBillionDisableFiles: true,
         files: [],
         mentionedAppsCodebases: [],
         builtinProviderId: modelClient.builtinProviderId,
@@ -828,9 +834,9 @@ function assertStepsMatch(
       .map((item) => (item as { stepIndex: number }).stepIndex)
       .join(",");
   if (indices(submitted) !== indices(stored)) {
-    throw new DyadError(
+    throw new NextBillionError(
       "The approved plan doesn't match the recorded steps.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 }
@@ -909,9 +915,9 @@ async function persistApproval({
   );
   if (approvedContent === null) {
     // The message matched on proposal-id, so the tag must be there.
-    throw new DyadError(
+    throw new NextBillionError(
       "This assertion proposal is corrupted and can't be applied.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   await db
@@ -959,9 +965,9 @@ async function persistPendingWrite({
     proposalId,
   );
   if (content === null) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This assertion proposal is corrupted and can't be applied.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   await db.update(messages).set({ content }).where(eq(messages.id, row.id));
@@ -973,12 +979,15 @@ async function persistPendingWrite({
 async function assertChatOwnsApp(chatId: number, appId: number): Promise<void> {
   const chat = await db.query.chats.findFirst({ where: eq(chats.id, chatId) });
   if (!chat) {
-    throw new DyadError(`Chat ${chatId} not found`, DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      `Chat ${chatId} not found`,
+      NextBillionErrorKind.NotFound,
+    );
   }
   if (chat.appId !== appId) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Chat ${chatId} does not belong to app ${appId}`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 }
@@ -1002,9 +1011,9 @@ export function registerTestAssertionHandlers() {
           messageHasAssertionsProposal(message.content, proposalId),
         );
         if (!row) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This assertion proposal no longer exists.",
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
         const status = readAssertionsTagAttribute(
@@ -1023,15 +1032,15 @@ export function registerTestAssertionHandlers() {
           proposalId,
         );
         if (!stored) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This assertion proposal is corrupted and can't be discarded.",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
         if (stored.appId !== appId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This assertion proposal belongs to a different app.",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
 
@@ -1045,9 +1054,9 @@ export function registerTestAssertionHandlers() {
           proposalId,
         );
         if (discardedContent === null) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This assertion proposal is corrupted and can't be discarded.",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
         await db
@@ -1082,9 +1091,9 @@ export function registerTestAssertionHandlers() {
           messageHasAssertionsProposal(message.content, proposalId),
         );
         if (!row) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This assertion proposal no longer exists.",
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
 
@@ -1093,15 +1102,15 @@ export function registerTestAssertionHandlers() {
           proposalId,
         );
         if (!stored) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This assertion proposal is corrupted and can't be applied.",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
         if (stored.appId !== appId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This assertion proposal belongs to a different app.",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
 
@@ -1145,9 +1154,9 @@ export function registerTestAssertionHandlers() {
         // possible because the discard is durable but the card that wrote it
         // isn't the only copy on screen.
         if (status === "discarded") {
-          throw new DyadError(
+          throw new NextBillionError(
             "This assertion plan was closed, so it can't be applied. Ask for assertions again to get a fresh one.",
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         }
 

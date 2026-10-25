@@ -42,8 +42,8 @@ describe("local-agent consent banner (integration)", () => {
       chatMode: "local-agent",
       settings: {
         isTestMode: true,
-        enableDyadPro: true,
-        providerSettings: { auto: { apiKey: { value: "testdyadkey" } } },
+        enableNextBillionPro: true,
+        providerSettings: { auto: { apiKey: { value: "testnextbillionkey" } } },
         agentToolConsents: { add_dependency: "ask" },
       },
     });
@@ -337,7 +337,7 @@ describe("local-agent consent banner (integration)", () => {
     // the invalid package spec — proving the tool ran past the gate rather than
     // being blocked. The turn then continued to its final text.
     const content = await lastAssistantContent(chatId);
-    expect(content).toContain('<dyad-output type="error"');
+    expect(content).toContain('<nextbillion-output type="error"');
     expect(content).toContain("Invalid npm package spec");
     expect(content).toContain("Dependency step finished.");
   }, 60_000);
@@ -374,7 +374,7 @@ describe("local-agent consent banner (integration)", () => {
 
     // Declining threw before executeAddDependency ran, so nothing was installed.
     const content = await lastAssistantContent(chatId);
-    expect(content).toContain('<dyad-output type="error"');
+    expect(content).toContain('<nextbillion-output type="error"');
     expect(content).toContain("User denied permission for add_dependency");
     expect(content).not.toContain("Successfully installed");
   }, 60_000);

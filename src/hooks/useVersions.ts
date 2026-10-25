@@ -1,7 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { ipc, type Version } from "@/ipc/types";
 import { queryKeys } from "@/lib/queryKeys";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 export function useVersions(appId: number | null) {
   const queryClient = useQueryClient();
@@ -42,7 +45,10 @@ export function useVersions(appId: number | null) {
     mutationFn: async ({ appId: mutationAppId, versionId, isFavorite }) => {
       const targetAppId = mutationAppId === undefined ? appId : mutationAppId;
       if (targetAppId === null) {
-        throw new DyadError("App ID is null", DyadErrorKind.External);
+        throw new NextBillionError(
+          "App ID is null",
+          NextBillionErrorKind.External,
+        );
       }
       return ipc.version.setVersionFavorite({
         appId: targetAppId,
@@ -68,7 +74,10 @@ export function useVersions(appId: number | null) {
     mutationFn: async ({ appId: mutationAppId, versionId, note }) => {
       const targetAppId = mutationAppId === undefined ? appId : mutationAppId;
       if (targetAppId === null) {
-        throw new DyadError("App ID is null", DyadErrorKind.External);
+        throw new NextBillionError(
+          "App ID is null",
+          NextBillionErrorKind.External,
+        );
       }
       return ipc.version.setVersionNote({
         appId: targetAppId,

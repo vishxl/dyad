@@ -12,9 +12,9 @@ Three properties none of the other apps measure:
 
 Every element that displays money carries a pinned `data-cents` integer attribute, so no assertion ever parses `"$17.97"` — the same move Slotline makes with ISO instants.
 
-### Alignment with Dyad's system prompt (constraints these prompts respect)
+### Alignment with NextBillion's system prompt (constraints these prompts respect)
 
-Identical to App 1 (`design/app-1-relay-crm.md`, "Alignment with Dyad's system prompt"): no prompt says _how_ to do auth beyond "the project's managed email/password authentication service"; schema is created by executing SQL, never migration files; authorization is asked for in server code with a plain `DATABASE_URL` connection (never RLS, so `no-rls-without-jwt` is never triggered); custom sign-up/sign-in forms carry pinned test ids and the auth SDK note ships identically in the template's `AI_RULES.md`/`AGENTS.md`; email verification is off in the shim; `E2E_TEST_BUILD` unset; prompts never mention Dyad, tags or tools.
+Identical to App 1 (`design/app-1-relay-crm.md`, "Alignment with NextBillion's system prompt"): no prompt says _how_ to do auth beyond "the project's managed email/password authentication service"; schema is created by executing SQL, never migration files; authorization is asked for in server code with a plain `DATABASE_URL` connection (never RLS, so `no-rls-without-jwt` is never triggered); custom sign-up/sign-in forms carry pinned test ids and the auth SDK note ships identically in the template's `AI_RULES.md`/`AGENTS.md`; email verification is off in the shim; `E2E_TEST_BUILD` unset; prompts never mention NextBillion, tags or tools.
 
 One addition specific to this app, stated in the M1 prompt: **the session user id is an opaque 32-character string and must be stored as `text`.** This is a direct response to a measured failure — a model declared `uuid` columns for auth ids in Portalis, so every query threw `invalid input syntax for type uuid` and the app scored 0/52 while building cleanly.
 

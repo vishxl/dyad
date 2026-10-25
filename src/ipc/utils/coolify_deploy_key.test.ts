@@ -10,9 +10,9 @@ vi.mock("@/paths/paths", () => ({
   getUserDataPath: () => testHome.dir,
 }));
 import {
-  isDyadError,
-  isDyadErrorKindFilteredFromTelemetry,
-} from "@/errors/dyad_error";
+  isNextBillionError,
+  isNextBillionErrorKindFilteredFromTelemetry,
+} from "@/errors/nextbillion_error";
 import {
   coolifyKeyName,
   ensureDeployKey,
@@ -60,7 +60,7 @@ const hasSshSigning = (() => {
 })();
 
 /**
- * A throwaway directory standing in for Dyad's userData, so these never
+ * A throwaway directory standing in for NextBillion's userData, so these never
  * touch anything real.
  *
  * This is the one module in the feature that writes keys to disk, and the
@@ -70,7 +70,7 @@ const hasSshSigning = (() => {
 let home: string;
 
 beforeEach(() => {
-  home = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-keytest-"));
+  home = fs.mkdtempSync(path.join(os.tmpdir(), "nextbillion-keytest-"));
   testHome.dir = home;
 });
 
@@ -118,7 +118,8 @@ describe("generateDeployKeyPair", () => {
   it.skipIf(!hasSshKeygen)(
     "writes a private key that OpenSSH reads as the pair we generated",
     () => {
-      const { publicKey, privateKey } = generateDeployKeyPair("dyad-deploy");
+      const { publicKey, privateKey } =
+        generateDeployKeyPair("nextbillion-deploy");
       const keyPath = keyFile("interop");
       fs.mkdirSync(path.dirname(keyPath), { recursive: true });
       fs.writeFileSync(keyPath, privateKey, { mode: 0o600 });
@@ -141,7 +142,8 @@ describe("generateDeployKeyPair", () => {
   it.skipIf(!hasSshSigning)(
     "signs for the public key that goes to GitHub",
     () => {
-      const { publicKey, privateKey } = generateDeployKeyPair("dyad-deploy");
+      const { publicKey, privateKey } =
+        generateDeployKeyPair("nextbillion-deploy");
       const keyPath = keyFile("signing");
       fs.mkdirSync(path.dirname(keyPath), { recursive: true });
       fs.writeFileSync(keyPath, privateKey, { mode: 0o600 });
@@ -180,25 +182,30 @@ describe("generateDeployKeyPair", () => {
   it.skipIf(!hasSshKeygen)("stores the comment where OpenSSH finds it", () => {
     const keyPath = keyFile("commented");
     fs.mkdirSync(path.dirname(keyPath), { recursive: true });
-    fs.writeFileSync(keyPath, generateDeployKeyPair("dyad-deploy").privateKey, {
-      mode: 0o600,
-    });
+    fs.writeFileSync(
+      keyPath,
+      generateDeployKeyPair("nextbillion-deploy").privateKey,
+      {
+        mode: 0o600,
+      },
+    );
 
     const derived = execFileSync("ssh-keygen", ["-y", "-f", keyPath], {
       encoding: "utf8",
     });
-    expect(derived.trim().split(/\s+/)[2]).toBe("dyad-deploy");
+    expect(derived.trim().split(/\s+/)[2]).toBe("nextbillion-deploy");
   });
 
   it("gives every call its own key", () => {
-    const a = generateDeployKeyPair("dyad-deploy");
-    const b = generateDeployKeyPair("dyad-deploy");
+    const a = generateDeployKeyPair("nextbillion-deploy");
+    const b = generateDeployKeyPair("nextbillion-deploy");
     expect(a.publicKey).not.toBe(b.publicKey);
     expect(a.privateKey).not.toBe(b.privateKey);
   });
 
   it("round-trips through the reader", () => {
-    const { publicKey, privateKey } = generateDeployKeyPair("dyad-deploy");
+    const { publicKey, privateKey } =
+      generateDeployKeyPair("nextbillion-deploy");
     expect(publicKeyFromPrivate(privateKey)).toBe(publicKey);
   });
 });
@@ -217,7 +224,7 @@ describe("publicKeyFromPrivate", () => {
   });
 
   it("refuses a truncated key rather than guessing at it", () => {
-    const { privateKey } = generateDeployKeyPair("dyad-deploy");
+    const { privateKey } = generateDeployKeyPair("nextbillion-deploy");
     const lines = privateKey.split("\n");
     const truncated = [lines[0], lines[1]?.slice(0, 20), lines.at(-2)].join(
       "\n",
@@ -230,7 +237,7 @@ describe("publicKeyFromPrivate", () => {
     // truncation that destroys the private half. Accepting it would write a
     // .pub for a key Coolify cannot clone with, and the deploy would fail
     // inside the build as an unexplained missing repository.
-    const { privateKey } = generateDeployKeyPair("dyad-deploy");
+    const { privateKey } = generateDeployKeyPair("nextbillion-deploy");
     const lines = privateKey.trim().split("\n");
     const body = lines.slice(1, -1).join("");
     const bytes = Buffer.from(body, "base64");
@@ -283,10 +290,10 @@ describe("coolifyKeyName", () => {
 
 describe("ensureDeployKey", () => {
   it("generates a usable pair and returns the public half", async () => {
-    const publicKey = await ensureDeployKey("dyad_deploy_test_a");
+    const publicKey = await ensureDeployKey("nextbillion_deploy_test_a");
     expect(publicKey.startsWith("ssh-ed25519 ")).toBe(true);
-    expect(fs.existsSync(keyFile("dyad_deploy_test_a"))).toBe(true);
-    expect(fs.existsSync(keyFile("dyad_deploy_test_a.pub"))).toBe(true);
+    expect(fs.existsSync(keyFile("nextbillion_deploy_test_a"))).toBe(true);
+    expect(fs.existsSync(keyFile("nextbillion_deploy_test_a.pub"))).toBe(true);
   });
 
   it("reports an unreadable key as a failure telemetry does not collect", async () => {
@@ -295,22 +302,25 @@ describe("ensureDeployKey", () => {
     // the OS username on macOS and Windows plus the owner and repo in the
     // filename. The kind is what decides whether that reaches PostHog, and a
     // corrupt local file is user state rather than a third-party fault.
-    await ensureDeployKey("dyad_deploy_test_leak");
-    fs.rmSync(keyFile("dyad_deploy_test_leak.pub"));
-    fs.writeFileSync(keyFile("dyad_deploy_test_leak"), "not a key at all");
+    await ensureDeployKey("nextbillion_deploy_test_leak");
+    fs.rmSync(keyFile("nextbillion_deploy_test_leak.pub"));
+    fs.writeFileSync(
+      keyFile("nextbillion_deploy_test_leak"),
+      "not a key at all",
+    );
 
-    const error = await ensureDeployKey("dyad_deploy_test_leak").catch(
+    const error = await ensureDeployKey("nextbillion_deploy_test_leak").catch(
       (e) => e,
     );
 
-    expect(isDyadError(error)).toBe(true);
-    expect(error.message).toContain("dyad_deploy_test_leak");
-    expect(isDyadErrorKindFilteredFromTelemetry(error.kind)).toBe(true);
+    expect(isNextBillionError(error)).toBe(true);
+    expect(error.message).toContain("nextbillion_deploy_test_leak");
+    expect(isNextBillionErrorKindFilteredFromTelemetry(error.kind)).toBe(true);
   });
 
   it("reuses an existing pair rather than rotating it", async () => {
-    const first = await ensureDeployKey("dyad_deploy_test_b");
-    const second = await ensureDeployKey("dyad_deploy_test_b");
+    const first = await ensureDeployKey("nextbillion_deploy_test_b");
+    const second = await ensureDeployKey("nextbillion_deploy_test_b");
     expect(second).toBe(first);
   });
 
@@ -318,17 +328,17 @@ describe("ensureDeployKey", () => {
     // Generation writes the private half first, so an interrupted run leaves
     // exactly this. The private half is what GitHub authorised and Coolify
     // stored, so rotating the pair would orphan a key still in use.
-    const first = await ensureDeployKey("dyad_deploy_test_c");
+    const first = await ensureDeployKey("nextbillion_deploy_test_c");
     const privateBefore = fs.readFileSync(
-      keyFile("dyad_deploy_test_c"),
+      keyFile("nextbillion_deploy_test_c"),
       "utf8",
     );
-    fs.rmSync(keyFile("dyad_deploy_test_c.pub"));
+    fs.rmSync(keyFile("nextbillion_deploy_test_c.pub"));
 
-    const recovered = await ensureDeployKey("dyad_deploy_test_c");
+    const recovered = await ensureDeployKey("nextbillion_deploy_test_c");
 
     expect(recovered).toBe(first);
-    expect(fs.readFileSync(keyFile("dyad_deploy_test_c"), "utf8")).toBe(
+    expect(fs.readFileSync(keyFile("nextbillion_deploy_test_c"), "utf8")).toBe(
       privateBefore,
     );
   });
@@ -336,8 +346,8 @@ describe("ensureDeployKey", () => {
   it("gives concurrent callers the same pair", async () => {
     // Two deploys starting together must not each generate a pair.
     const [a, b] = await Promise.all([
-      ensureDeployKey("dyad_deploy_test_d"),
-      ensureDeployKey("dyad_deploy_test_d"),
+      ensureDeployKey("nextbillion_deploy_test_d"),
+      ensureDeployKey("nextbillion_deploy_test_d"),
     ]);
     expect(a).toBe(b);
   });

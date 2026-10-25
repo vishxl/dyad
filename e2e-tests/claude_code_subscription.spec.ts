@@ -8,7 +8,7 @@ import { startClaudeBillingFixture } from "../testing/claude-code-billing-fixtur
 
 // Explicit opt-in: consumes the operator's real Claude subscription.
 test.skip(
-  process.env.DYAD_REAL_CLAUDE_SMOKE !== "1",
+  process.env.NEXTBILLION_REAL_CLAUDE_SMOKE !== "1",
   "Real subscription smoke test is opt-in",
 );
 let billing: Awaited<ReturnType<typeof startClaudeBillingFixture>>;
@@ -25,13 +25,13 @@ test.afterEach(() => {
 
 async function configureBilling(po: PageObject) {
   await po.electronApp.evaluate((_, url) => {
-    process.env.DYAD_ENGINE_URL = url;
-    process.env.DYAD_USER_INFO_URL = `http://localhost:${process.env.FAKE_LLM_PORT}/api/user/info`;
+    process.env.NEXTBILLION_ENGINE_URL = url;
+    process.env.NEXTBILLION_USER_INFO_URL = `http://localhost:${process.env.FAKE_LLM_PORT}/api/user/info`;
   }, billing.url);
 }
 
 async function selectSubscription(po: PageObject) {
-  await po.setUpDyadPro({
+  await po.setUpNextBillionPro({
     localAgent: true,
     localAgentUseAutoModel: true,
     autoApprove: false,
@@ -100,7 +100,7 @@ test("real Claude subscription: picker, approvals, edit, MCP, resume, attributio
   test.setTimeout(480_000);
   const cliStatus = await selectSubscription(po);
   await po.sendPrompt(
-    "Remember violet lighthouse. In src/App.tsx replace Minimal imported app with Claude prototype preview using search_replace, then call the Dyad run_type_checks tool. Do not use shell commands or edit other files.",
+    "Remember violet lighthouse. In src/App.tsx replace Minimal imported app with Claude prototype preview using search_replace, then call the NextBillion run_type_checks tool. Do not use shell commands or edit other files.",
     { skipWaitForCompletion: true },
   );
   await po.page
@@ -219,7 +219,7 @@ test("real Claude edit: change review and undo refresh the preview", async ({
   test.setTimeout(180_000);
   await selectSubscription(po);
   await po.sendPrompt(
-    "In src/App.tsx replace Minimal imported app with Claude undo probe. Use the Dyad search_replace tool; do not change other files.",
+    "In src/App.tsx replace Minimal imported app with Claude undo probe. Use the NextBillion search_replace tool; do not change other files.",
     { skipWaitForCompletion: true },
   );
   await po.page
@@ -263,7 +263,7 @@ test("real Claude cancellation preserves an interrupted session without replay",
   test.setTimeout(120_000);
   await selectSubscription(po);
   await po.sendPrompt(
-    "In src/App.tsx replace Minimal imported app with Cancelled change. Use the Dyad search_replace tool; do not change other files.",
+    "In src/App.tsx replace Minimal imported app with Cancelled change. Use the NextBillion search_replace tool; do not change other files.",
     { skipWaitForCompletion: true },
   );
   await expect(

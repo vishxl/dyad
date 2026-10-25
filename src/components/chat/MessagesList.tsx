@@ -48,7 +48,7 @@ const MemoizedChatMessage = React.memo(ChatMessage);
 
 // Context type for Virtuoso
 interface FooterContext {
-  executionBackend?: "dyad" | "claude-code";
+  executionBackend?: "nextbillion" | "claude-code";
   messages: Message[];
   isStreaming: boolean;
   isUndoLoading: boolean;
@@ -808,7 +808,7 @@ export const MessagesList = forwardRef<HTMLDivElement, MessagesListProps>(
     // so E2E tests can query all messages in the DOM
     if (
       isTestMode &&
-      sessionStorage.getItem("dyad:e2e:virtualized-chat") !== "true"
+      sessionStorage.getItem("nextbillion:e2e:virtualized-chat") !== "true"
     ) {
       return (
         <div

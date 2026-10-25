@@ -90,7 +90,7 @@ it.skipIf(process.platform === "win32")(
     const os = await import("node:os");
     const path = await import("node:path");
     const directory = await fs.mkdtemp(
-      path.join(os.tmpdir(), "dyad-shell-cancel-"),
+      path.join(os.tmpdir(), "nextbillion-shell-cancel-"),
     );
     const controller = new AbortController();
     try {
@@ -129,7 +129,7 @@ it("uses Continue for Windows native stderr while preserving exit codes", () => 
     "utf16le",
   );
   expect(script).toContain("$ErrorActionPreference = 'Continue'");
-  expect(script).toContain("$dyadShellSucceeded = $?");
+  expect(script).toContain("$nextBillionShellSucceeded = $?");
   expect(script).not.toContain("exit $LASTEXITCODE");
 });
 it.skipIf(process.platform !== "win32")(
@@ -172,11 +172,11 @@ it("preserves cloud profiles, proxies, trust stores, and Windows context", () =>
   };
   expect(shellEnvironment(context)).toEqual(context);
 });
-it("denies Dyad/provider secrets and startup injection case-insensitively", () => {
+it("denies NextBillion/provider secrets and startup injection case-insensitively", () => {
   expect(
     shellEnvironment({
-      DYAD_PRO_API_KEY: "secret",
-      dyad_engine_key: "secret",
+      NEXTBILLION_PRO_API_KEY: "secret",
+      nextbillion_engine_key: "secret",
       ANTHROPIC_API_KEY: "secret",
       GEMINI_API_KEY: "secret",
       BASH_ENV: "/hook",
@@ -197,7 +197,7 @@ it.skipIf(process.platform !== "win32")(
     const nodePath = process.execPath.replaceAll("'", "''");
     for (const [command, code] of [
       [
-        `& '${nodePath}' -e 'process.exit(0)'; Get-Item __dyad_missing_file__`,
+        `& '${nodePath}' -e 'process.exit(0)'; Get-Item __nextbillion_missing_file__`,
         1,
       ],
       [`& '${nodePath}' -e 'process.exit(7)'; Write-Output ok`, 0],

@@ -30,9 +30,11 @@ describe.runIf(process.platform !== "win32")(
     let outsidePath: string;
 
     beforeEach(async () => {
-      appPath = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-delete-app-"));
+      appPath = await fs.mkdtemp(
+        path.join(os.tmpdir(), "nextbillion-delete-app-"),
+      );
       outsidePath = await fs.mkdtemp(
-        path.join(os.tmpdir(), "dyad-delete-outside-"),
+        path.join(os.tmpdir(), "nextbillion-delete-outside-"),
       );
       gitRemove.mockResolvedValue(undefined);
     });

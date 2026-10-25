@@ -5,7 +5,7 @@ const path = require("path");
 const { execFileSync } = require("child_process");
 
 const DEFAULT_OWNER = "dyad-sh";
-const DEFAULT_REPO = "dyad";
+const DEFAULT_REPO = "nextbillion";
 
 class GithubRequestError extends Error {
   constructor({ path, response, text }) {
@@ -33,7 +33,7 @@ async function githubRequest({ owner, path, repo, token }) {
         Authorization: `Bearer ${token}`,
         Accept: "application/vnd.github+json",
         "Content-Type": "application/json",
-        "User-Agent": "dyad-release-tag-preparer",
+        "User-Agent": "nextbillion-release-tag-preparer",
         "X-GitHub-Api-Version": "2022-11-28",
       },
     },

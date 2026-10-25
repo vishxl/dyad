@@ -7,8 +7,8 @@
 //    the threat being defended against is a web page open in any browser on
 //    this machine driving the server cross-origin, and non-browser localhost
 //    clients already run with the user's own privileges.
-// 2. Optional shared token — when DYAD_RPC_TOKEN is set, every request must
-//    present it (x-dyad-rpc-token header on /rpc, ?token= query on /ws). The
+// 2. Optional shared token — when NEXTBILLION_RPC_TOKEN is set, every request must
+//    present it (x-nextbillion-rpc-token header on /rpc, ?token= query on /ws). The
 //    renderer bridge picks it up from VITE_RPC_TOKEN, which the
 //    headless:browser launcher passes through.
 
@@ -19,10 +19,10 @@ export const DEFAULT_RPC_ALLOWED_ORIGINS = [
 
 export function getAllowedRpcOrigins(
   env: {
-    DYAD_RPC_ALLOWED_ORIGINS?: string;
+    NEXTBILLION_RPC_ALLOWED_ORIGINS?: string;
   } = process.env,
 ): Set<string> {
-  const raw = env.DYAD_RPC_ALLOWED_ORIGINS?.trim();
+  const raw = env.NEXTBILLION_RPC_ALLOWED_ORIGINS?.trim();
   const list = raw ? raw.split(",") : DEFAULT_RPC_ALLOWED_ORIGINS;
   return new Set(
     list.map((origin) => origin.trim().replace(/\/$/, "")).filter(Boolean),

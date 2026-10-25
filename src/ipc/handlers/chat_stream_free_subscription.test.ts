@@ -45,7 +45,7 @@ beforeAll(async () => {
     selectedModel: { provider: "openai", name: "gpt-5" },
     chatMode: "local-agent",
     settings: {
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       proModelUsage: "subscription",
       providerSettings: {},
     },
@@ -56,7 +56,7 @@ beforeEach(async () => {
     .mockReset()
     .mockResolvedValue({ connected: true, models: ["gpt-5"] });
   writeSettings({
-    enableDyadPro: false,
+    enableNextBillionPro: false,
     selectedChatMode: "local-agent",
     defaultChatMode: "local-agent",
     providerSettings: {},
@@ -112,7 +112,7 @@ it.each(["build", "ask", "plan", "local-agent"] as const)(
   "uses the stored %s mode for Pro subscription billing rather than the default",
   async (chatMode) => {
     writeSettings({
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       selectedChatMode: chatMode === "local-agent" ? "build" : "local-agent",
       providerSettings: { auto: { apiKey: { value: "pro-key" } } },
     });
@@ -142,7 +142,7 @@ it.each(["build", "local-agent"] as const)(
   "retries admission when the implicit default changes to %s during preflight",
   async (defaultChatMode) => {
     writeSettings({
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       defaultChatMode: defaultChatMode === "build" ? "local-agent" : "build",
       providerSettings: { auto: { apiKey: { value: "pro-key" } } },
     });
@@ -189,7 +189,7 @@ it("accepts a free subscription turn and records Basic Agent quota usage", async
 }, 30_000);
 
 it("blocks exhausted Basic Agent quota before subscription inference and preserves Agent mode", async () => {
-  vi.stubEnv("DYAD_SIMULATE_FREE_AGENT_QUOTA_EXCEEDED", "true");
+  vi.stubEnv("NEXTBILLION_SIMULATE_FREE_AGENT_QUOTA_EXCEEDED", "true");
   try {
     const result = await harness.streamChat("This turn must not run.");
     expect(JSON.stringify(result.eventsFor("chat:response:error"))).toContain(

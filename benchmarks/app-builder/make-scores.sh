@@ -18,8 +18,8 @@ const R = (...p) => path.join(BENCH, "results", ...p);
 
 // Mirrors report.mjs: registered models and per-app suite composition.
 const MODELS = [
-  {"name":"GPT-6.1 Sol","slug":"gpt-6.1-sol","vendor":"OpenAI","effort":"medium","note":"Benchmark-local catalog entry at official API default medium; not a verified Dyad product default. 128000 output limit."},
-  {"name":"Claude Sonnet 5.5","slug":"claude-sonnet-5-5","vendor":"Anthropic","effort":"medium","note":"Explicit medium via benchmark-local catalog pin; not a verified Dyad default (Anthropic API defaults to high). 128000 output limit. Fresh r2 after repairing cache-token recording; interrupted attempt excluded."},
+  {"name":"GPT-6.1 Sol","slug":"gpt-6.1-sol","vendor":"OpenAI","effort":"medium","note":"Benchmark-local catalog entry at official API default medium; not a verified NextBillion product default. 128000 output limit."},
+  {"name":"Claude Sonnet 5.5","slug":"claude-sonnet-5-5","vendor":"Anthropic","effort":"medium","note":"Explicit medium via benchmark-local catalog pin; not a verified NextBillion default (Anthropic API defaults to high). 128000 output limit. Fresh r2 after repairing cache-token recording; interrupted attempt excluded."},
   {"name":"GPT-6 Luna","slug":"gpt-6-luna","vendor":"OpenAI","effort":"medium"},
   {"name":"GPT-6 Sol","slug":"gpt-6-sol","vendor":"OpenAI","effort":"medium"},
   {"name":"Claude Opus 5.5","slug":"claude-opus-5-5","vendor":"Anthropic","effort":"medium"},
@@ -41,10 +41,10 @@ const MODELS = [
   { name: "GLM 5.3 Flash", slug: "z-ai_glm-5.3-flash", vendor: "Z-AI", effort: "provider default" },
   { name: "Gemini 3.8 Flash", slug: "gemini-3.8-flash", vendor: "Google", effort: "medium" },
   { name: "Muse Spark 1.3", slug: "meta_muse-spark-1.3", vendor: "Meta", effort: "provider default" },
-  { name: "Auto Sidekick", slug: "auto-sidekick", vendor: "Dyad", effort: "medium", note: "Sol orchestrator + Luna implementer" },
+  { name: "Auto Sidekick", slug: "auto-sidekick", vendor: "NextBillion", effort: "medium", note: "Sol orchestrator + Luna implementer" },
 ];
 // `effort` is what the recording proxy saw on the wire for every request of
-// the cell (`reasoning.effort` for OpenAI, `effort` for Anthropic; Dyad's
+// the cell (`reasoning.effort` for OpenAI, `effort` for Anthropic; NextBillion's
 // product default = medium). OpenRouter-routed models are sent no effort field
 // and run at the provider's default; grok-4.6's catalog default is medium.
 const APPS = {
@@ -81,11 +81,11 @@ const APPS = {
 };
 // Vendor colors: validated with dataviz validate_palette.js against the dark
 // surface (all six checks pass; see report.mjs for the light set).
-const VENDOR_COLOR = { OpenAI: "#3987e5", Anthropic: "#d95926", xAI: "#199e70", Dyad: "#9678f0", "Z-AI": "#e0568f", Google: "#e3a72f", Meta: "#2cc4d9", DeepSeek: "#9299ed", Xiaomi: "#ffad42" };
+const VENDOR_COLOR = { OpenAI: "#3987e5", Anthropic: "#d95926", xAI: "#199e70", NextBillion: "#9678f0", "Z-AI": "#e0568f", Google: "#e3a72f", Meta: "#2cc4d9", DeepSeek: "#9299ed", Xiaomi: "#ffad42" };
 
 // Mirrors CELL_OVERRIDES in report.mjs; recovery and user-selected repeat reasons recorded there.
 const CELL_OVERRIDES = {
-  // Sonnet 5.5: explicitly medium; benchmark-local catalog pin pending Dyad catalog support.
+  // Sonnet 5.5: explicitly medium; benchmark-local catalog pin pending NextBillion catalog support.
   "claude-sonnet-5-5-relay-crm": "claude-sonnet-5-5-relay-crm-medium-r2",
   "claude-sonnet-5-5-deskhero": "claude-sonnet-5-5-deskhero-medium-r2",
   "claude-sonnet-5-5-portalis": "claude-sonnet-5-5-portalis-medium-r2",
@@ -158,7 +158,7 @@ try { const p = localStorage.getItem('appbench.theme') || 'system'; document.doc
 </script>
 <style>${fs.readFileSync(path.join(DIR, "../../site/scores.css"), "utf8")}</style>
 <div class="wrap">
-<div class="topbar"><a class="brand" href="#">dyad<span>/ benchmarks</span></a><nav class="topnav" aria-label="Page navigation"><a href="#results">Results</a><a href="#demos">App demos</a><a href="#methodology">Methodology</a><label class="theme-label"><span>Appearance</span><select id="theme" aria-label="Color theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label></nav></div>
+<div class="topbar"><a class="brand" href="#">nextbillion<span>/ benchmarks</span></a><nav class="topnav" aria-label="Page navigation"><a href="#results">Results</a><a href="#demos">App demos</a><a href="#methodology">Methodology</a><label class="theme-label"><span>Appearance</span><select id="theme" aria-label="Color theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label></nav></div>
 <header><div><p class="eyebrow">Real apps. Measured results.</p><h1>App-builder benchmark</h1></div><a class="btn" href="#demos">▶ Watch app demos</a></header>
 <p class="lead">How well can AI build a working app? Compare quality, cost, and speed across three real full-stack projects — then watch the results for yourself.</p>
 
@@ -186,7 +186,7 @@ try { const p = localStorage.getItem('appbench.theme') || 'system'; document.doc
 
 <details class="methodology" id="methodology"><summary>What are we measuring?</summary>
 <section class="apps" id="apps"></section>
-<p class="note">September 2026 audit: saved app checkpoints reevaluated with repaired UI interactions and token accounting. Generated code, scoring weights, and selected runs are unchanged. Judge verdicts are refreshed when their test evidence changes. Missing archives or judges remain unscored; incomplete token costs are labelled ≥.</p><p class="note" id="note"></p></details><footer class="footer"><span>Dyad · App-builder benchmark</span><span>One sample per run. Small score differences may be noise.</span></footer>
+<p class="note">September 2026 audit: saved app checkpoints reevaluated with repaired UI interactions and token accounting. Generated code, scoring weights, and selected runs are unchanged. Judge verdicts are refreshed when their test evidence changes. Missing archives or judges remain unscored; incomplete token costs are labelled ≥.</p><p class="note" id="note"></p></details><footer class="footer"><span>NextBillion · App-builder benchmark</span><span>One sample per run. Small score differences may be noise.</span></footer>
 </div>
 <script>
 const DATA = ${JSON.stringify(DATA)};
@@ -289,7 +289,7 @@ document.getElementById("apps").innerHTML = APPS.map((a, i) => { const A = DATA.
     + '<p class="blurb">' + A.blurb + "</p><p class=\\"ml\\">Milestones</p><ol>"
     + A.milestones.map((m, j) => "<li><b>M" + (j + 1) + "</b>" + m + "</li>").join("")
     + "</ol><p class=\\"suite\\">Scored by " + A.cujs + " customer-journey tests and " + A.probes + " security probes across three checkpoints, plus an LLM judge.</p></section>"; }).join("");
-document.getElementById("note").textContent = "Composite = 60% customer-journey pass rate + 25% security-probe pass rate across all three checkpoints + 15% mean LLM-judge score. Overall = mean of the three apps, shown only once all three are scored. One run per cell — differences of a few points are within run-to-run variance. The effort badge is the reasoning effort recorded on the wire for every request of the cell (Dyad product default = medium); OpenRouter-routed models (Grok, GLM) are sent no effort field and run at the provider default. Generated " + DATA.generated + ".";
+document.getElementById("note").textContent = "Composite = 60% customer-journey pass rate + 25% security-probe pass rate across all three checkpoints + 15% mean LLM-judge score. Overall = mean of the three apps, shown only once all three are scored. One run per cell — differences of a few points are within run-to-run variance. The effort badge is the reasoning effort recorded on the wire for every request of the cell (NextBillion product default = medium); OpenRouter-routed models (Grok, GLM) are sent no effort field and run at the provider default. Generated " + DATA.generated + ".";
 
 function update() { save(); renderFilters(); renderTiles(); renderChart(); renderTable(); }
 update();

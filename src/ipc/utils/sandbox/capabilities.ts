@@ -2,12 +2,15 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import { assertMutationPathAllowed, safeJoin } from "@/ipc/utils/path_utils";
 import {
-  getDyadMediaDir,
+  getNextBillionMediaDir,
   listStoredAttachments,
   resolveAttachmentLogicalPath,
   toAttachmentLogicalPath,
 } from "@/ipc/utils/media_path_utils";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { readContainedTextFile } from "@/ipc/utils/bounded_text_file";
 import { isDotenvFilePath, redactDotenvValues } from "@/utils/dotenv_redaction";
 import { SANDBOX_READ_FILE_LIMIT_BYTES } from "./limits";
@@ -119,9 +122,9 @@ function parseOptionalNonNegativeInteger(
     return undefined;
   }
   if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       `read_file ${name} must be a non-negative integer.`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   return value;
@@ -132,9 +135,9 @@ function parseReadOptions(value: unknown): SandboxReadFileOptions {
     return {};
   }
   if (!isStructuredObject(value)) {
-    throw new DyadError(
+    throw new NextBillionError(
       "read_file options must be an object.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
@@ -143,9 +146,9 @@ function parseReadOptions(value: unknown): SandboxReadFileOptions {
   const encoding = value.encoding;
 
   if (encoding !== undefined && encoding !== "utf8" && encoding !== "base64") {
-    throw new DyadError(
+    throw new NextBillionError(
       "read_file encoding must be 'utf8' or 'base64'.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
@@ -161,30 +164,33 @@ function assertSandboxGuestPath(
   options?: { allowDotenvFile?: boolean },
 ): void {
   if (!guestPath || typeof guestPath !== "string") {
-    throw new DyadError("File path is required.", DyadErrorKind.Validation);
+    throw new NextBillionError(
+      "File path is required.",
+      NextBillionErrorKind.Validation,
+    );
   }
   if (path.isAbsolute(guestPath) || /^[A-Za-z]:[/\\]/.test(guestPath)) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Absolute paths are not allowed in sandbox scripts.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   if (guestPath.startsWith("~/") || guestPath.startsWith("\\\\")) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Home and UNC paths are not allowed in sandbox scripts.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   if (/(^|[/\\])\.\.([/\\]|$)/.test(guestPath)) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Path traversal is not allowed in sandbox scripts.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   if (isDeniedSandboxPath(guestPath, options)) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Sandbox scripts cannot access protected path: ${guestPath}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 }
@@ -207,9 +213,9 @@ export async function assertSandboxWritePathAllowed(params: {
     relativePath: params.guestPath,
   });
   if (isDeniedSandboxPath(normalized)) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Sandbox scripts cannot access protected path: ${params.guestPath}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 }
@@ -225,9 +231,9 @@ async function resolveSandboxPath(params: {
       params.guestPath,
     );
     if (!attachment) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Attachment not found: ${params.guestPath}`,
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
     return {
@@ -259,27 +265,29 @@ async function assertResolvedPathAllowed(params: {
     realFilePath = await fs.realpath(params.filePath);
   } catch (error) {
     if (isNodeErrorWithCode(error, "ENOENT")) {
-      throw new DyadError(
+      throw new NextBillionError(
         `File not found: ${params.displayPath}`,
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
     throw error;
   }
   const relative = path.relative(realAppPath, realFilePath);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Sandbox scripts cannot access files outside the app: ${params.displayPath}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   if (params.displayPath.startsWith("attachments:")) {
-    const realMediaPath = await fs.realpath(getDyadMediaDir(params.appPath));
+    const realMediaPath = await fs.realpath(
+      getNextBillionMediaDir(params.appPath),
+    );
     const mediaRelative = path.relative(realMediaPath, realFilePath);
     if (mediaRelative.startsWith("..") || path.isAbsolute(mediaRelative)) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Sandbox scripts cannot access files outside attachment storage: ${params.displayPath}`,
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     return { realFilePath, isDotenv: isDotenvFilePath(params.displayPath) };
@@ -290,9 +298,9 @@ async function assertResolvedPathAllowed(params: {
       allowDotenvFile: params.allowDotenvRead,
     })
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Sandbox scripts cannot access protected path: ${params.displayPath}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const isDotenv =
@@ -321,9 +329,9 @@ export async function sandboxReadFile(
     options.length !== undefined &&
     options.length > SANDBOX_READ_FILE_LIMIT_BYTES
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       `read_file length ${options.length} exceeds the ${SANDBOX_READ_FILE_LIMIT_BYTES} byte limit. Read the file in chunks with start and length instead.`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
@@ -346,9 +354,9 @@ export async function sandboxReadFile(
     const remainingBytes = sanitized.length - start;
     const length = options.length ?? remainingBytes;
     if (length > SANDBOX_READ_FILE_LIMIT_BYTES) {
-      throw new DyadError(
+      throw new NextBillionError(
         `read_file would read ${length} sanitized bytes from ${resolved.displayPath}, exceeding the ${SANDBOX_READ_FILE_LIMIT_BYTES} byte limit. Use file_stats to get the source size, then read bounded chunks with start and length.`,
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
     const bytes = sanitized.subarray(start, start + length);
@@ -359,9 +367,9 @@ export async function sandboxReadFile(
 
   const stat = await fs.stat(realFilePath);
   if (!stat.isFile()) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Path is not a file: ${resolved.displayPath}`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   const start = options.start ?? 0;
@@ -371,9 +379,9 @@ export async function sandboxReadFile(
   const remainingBytes = stat.size - start;
   const length = options.length ?? remainingBytes;
   if (length > SANDBOX_READ_FILE_LIMIT_BYTES) {
-    throw new DyadError(
+    throw new NextBillionError(
       `read_file would read ${length} bytes from ${resolved.displayPath}, exceeding the ${SANDBOX_READ_FILE_LIMIT_BYTES} byte limit. Use file_stats to get the size, then read bounded chunks with start and length.`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
@@ -407,9 +415,9 @@ export async function sandboxFileStats(
   });
   const stat = await fs.stat(realFilePath);
   if (!stat.isFile()) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Path is not a file: ${resolved.displayPath}`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   return {
@@ -439,18 +447,18 @@ export async function sandboxListFiles(
     realDirPath = await fs.realpath(dirPath);
   } catch (error) {
     if (isNodeErrorWithCode(error, "ENOENT")) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Directory not found: ${dir}`,
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
     throw error;
   }
   const relative = path.relative(realAppPath, realDirPath);
   if (relative.startsWith("..") || path.isAbsolute(relative)) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Sandbox scripts cannot list files outside the app: ${dir}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const entries = await fs.readdir(realDirPath, { withFileTypes: true });
@@ -473,9 +481,9 @@ export function buildSandboxCapabilitiesWithObserver(
   return {
     read_file: (guestPath: unknown, options?: unknown) => {
       if (typeof guestPath !== "string") {
-        throw new DyadError(
+        throw new NextBillionError(
           "read_file path must be a string.",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       onHostCall?.({ name: "read_file", path: guestPath });
@@ -483,9 +491,9 @@ export function buildSandboxCapabilitiesWithObserver(
     },
     list_files: (dir?: unknown) => {
       if (dir !== undefined && typeof dir !== "string") {
-        throw new DyadError(
+        throw new NextBillionError(
           "list_files directory must be a string.",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       onHostCall?.({ name: "list_files", path: dir });
@@ -493,9 +501,9 @@ export function buildSandboxCapabilitiesWithObserver(
     },
     file_stats: (guestPath: unknown) => {
       if (typeof guestPath !== "string") {
-        throw new DyadError(
+        throw new NextBillionError(
           "file_stats path must be a string.",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       onHostCall?.({ name: "file_stats", path: guestPath });

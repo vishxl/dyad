@@ -250,16 +250,18 @@ export class Settings {
     await expect(this.page.getByText(/test.+2345/)).toBeVisible();
   }
 
-  async setUpDyadProvider() {
+  async setUpNextBillionProvider() {
     await this.page
       .locator("div")
-      .filter({ hasText: /^DyadNeeds Setup$/ })
+      .filter({ hasText: /^NextBillionNeeds Setup$/ })
       .nth(1)
       .click();
-    await this.page.getByRole("textbox", { name: "Set Dyad API Key" }).click();
     await this.page
-      .getByRole("textbox", { name: "Set Dyad API Key" })
-      .fill("testdyadkey");
+      .getByRole("textbox", { name: "Set NextBillion API Key" })
+      .click();
+    await this.page
+      .getByRole("textbox", { name: "Set NextBillion API Key" })
+      .fill("testnextbillionkey");
     await this.page.getByRole("button", { name: "Save Key" }).click();
   }
 }

@@ -36,7 +36,7 @@ vi.mock("../../main/settings", () => ({
 }));
 
 vi.mock("@/paths/paths", () => ({
-  getDyadAppPath: (appPath: string) => `/apps/${appPath}`,
+  getNextBillionAppPath: (appPath: string) => `/apps/${appPath}`,
 }));
 
 vi.mock("./github_handlers", () => ({
@@ -505,7 +505,7 @@ describe("a target installed with pnpm", () => {
       handlers.handleConnectWorker({ appId, ...CONNECT, mode: "existing" }),
     ).rejects.toThrow(/simulated failure/);
 
-    // The Worker was already there and stays; the rule was Dyad's and goes.
+    // The Worker was already there and stays; the rule was NextBillion's and goes.
     expect(cloudflare.workers.has("shop-api")).toBe(true);
     expect(cloudflare.triggers).toHaveLength(0);
     expect(connectionRows()).toHaveLength(0);
@@ -520,7 +520,7 @@ describe("a target not installed with pnpm", () => {
 });
 
 describe("reading the target", () => {
-  it("fails when GitHub does not accept Dyad's token", async () => {
+  it("fails when GitHub does not accept NextBillion's token", async () => {
     holder.settings.githubAccessToken = { value: "stale-token" };
     await expect(
       handlers.handleConnectWorker({ appId, ...CONNECT }),
@@ -547,7 +547,7 @@ describe("asking GitHub about the repository", () => {
     await expect(
       handlers.handleCheckRepoAccess({ appId, accountId: ACCOUNT }),
     ).rejects.toMatchObject({
-      name: "DyadError",
+      name: "NextBillionError",
       message: expect.stringMatching(/Could not reach GitHub/),
     });
   });
@@ -627,7 +627,7 @@ describe("refusing before anything is created", () => {
     await expect(
       handlers.handleConnectWorker({ appId, ...CONNECT }),
     ).rejects.toThrow(/already exists/);
-    // The Worker that was already there is not Dyad's to remove.
+    // The Worker that was already there is not NextBillion's to remove.
     expect(cloudflare.workers.has("shop-api")).toBe(true);
     expect(connectionRows()).toHaveLength(0);
   });
@@ -840,7 +840,7 @@ describe("connecting to a Worker that already exists", () => {
     ).rejects.toThrow(/simulated failure/);
 
     // Otherwise the rule would go on deploying this folder with no row in
-    // Dyad to show for it.
+    // NextBillion to show for it.
     expect(cloudflare.triggers).toEqual([ruleBefore]);
     expect(connectionRows()).toHaveLength(0);
   });
@@ -1118,7 +1118,7 @@ describe("disconnecting", () => {
       handlers.handleDisconnect({ appId, rootDirectory: "worker" }),
     ).rejects.toThrow(/deploy rule/);
 
-    // Otherwise Dyad would say "disconnected" while pushes keep deploying.
+    // Otherwise NextBillion would say "disconnected" while pushes keep deploying.
     expect(connectionRows()).toHaveLength(1);
   });
 

@@ -27,7 +27,7 @@ vi.mock("./git_utils", () => ({ gitAdd }));
 vi.mock("@/db", () => ({
   db: { query: { apps: { findFirst: findApp } } },
 }));
-vi.mock("@/paths/paths", () => ({ getDyadAppPath: resolveAppPath }));
+vi.mock("@/paths/paths", () => ({ getNextBillionAppPath: resolveAppPath }));
 vi.mock("../../supabase_admin/supabase_management_client", () => ({
   deploySupabaseFunction,
 }));
@@ -38,7 +38,9 @@ describe.runIf(process.platform !== "win32")(
     let appPath: string;
 
     beforeEach(async () => {
-      appPath = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-copy-app-"));
+      appPath = await fs.mkdtemp(
+        path.join(os.tmpdir(), "nextbillion-copy-app-"),
+      );
       await fs.mkdir(
         path.join(appPath, "supabase", "functions", "hello-world"),
         { recursive: true },

@@ -129,7 +129,7 @@ describe("Anthropic preserved thinking", () => {
     const result = await withAnthropicPreservedThinking(async () =>
       Response.json(payload),
     )("https://example.test", {
-      headers: { "X-Dyad-Request-Id": "dyad-1" },
+      headers: { "X-Dyad-Request-Id": "nextbillion-1" },
       body: JSON.stringify({
         model: "claude-test",
         thinking: { type: "enabled" },
@@ -138,7 +138,7 @@ describe("Anthropic preserved thinking", () => {
     expect(await result.json()).toEqual(payload);
     expect(debug).toHaveBeenCalledWith("input_transformations", {
       model: "claude-test",
-      requestId: "dyad-1",
+      requestId: "nextbillion-1",
       input_transformations: [dropped],
     });
     expect(JSON.stringify(debug.mock.calls)).not.toContain("secret");

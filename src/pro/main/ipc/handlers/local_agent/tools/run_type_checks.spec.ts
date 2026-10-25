@@ -44,7 +44,9 @@ describe("runTypeChecksTool precondition guidance", () => {
   });
 
   async function makeApp(packageJson: object): Promise<string> {
-    const appPath = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-tsc-"));
+    const appPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-tsc-"),
+    );
     tempDirs.push(appPath);
     await fs.writeFile(
       path.join(appPath, "package.json"),
@@ -68,9 +70,9 @@ describe("runTypeChecksTool precondition guidance", () => {
     expect(ctx.onXmlComplete).toHaveBeenCalledTimes(1);
     const output = vi.mocked(ctx.onXmlComplete).mock.calls[0][0];
     expect(output).toContain(
-      '<dyad-output type="warning" message="Type checking unavailable">',
+      '<nextbillion-output type="warning" message="Type checking unavailable">',
     );
-    expect(output).not.toContain("<dyad-status");
+    expect(output).not.toContain("<nextbillion-status");
     expect(output).not.toContain('type="error"');
     return output;
   }
@@ -147,7 +149,7 @@ describe("runTypeChecksTool precondition guidance", () => {
     expect(result).toMatch(/^Type checking could not run/);
     expect(result).toContain("TypeScript is listed in package.json");
     expect(result).toContain("Call `reinstall_and_restart_app`");
-    expect(result).not.toContain('<dyad-command type="rebuild">');
+    expect(result).not.toContain('<nextbillion-command type="rebuild">');
     expect(result).not.toContain("add_dependency");
     expect(result).toContain("retry `run_type_checks`");
     expect(safeSend).toHaveBeenCalledWith(
@@ -182,7 +184,7 @@ describe("runTypeChecksTool precondition guidance", () => {
     const result = await runTypeChecksTool.execute({}, ctx);
 
     expect(result).toContain("use Rebuild");
-    expect(result).toContain('<dyad-command type="rebuild">');
+    expect(result).toContain('<nextbillion-command type="rebuild">');
     expect(result).not.toContain("Call `reinstall_and_restart_app`");
   });
 
@@ -201,9 +203,9 @@ describe("runTypeChecksTool precondition guidance", () => {
     expect(result).toMatch(/^Type checking is unavailable/);
     expect(result).toContain("does not use TypeScript");
     expect(result).toContain("Do not call `run_type_checks` again");
-    expect(result).toContain('<dyad-command type="add-typescript">');
+    expect(result).toContain('<nextbillion-command type="add-typescript">');
     expect(expectWarningOutput(ctx)).toContain(
-      '&lt;dyad-command type="add-typescript"',
+      '&lt;nextbillion-command type="add-typescript"',
     );
   });
 
@@ -287,7 +289,7 @@ describe("runTypeChecksTool precondition guidance", () => {
     expect(result).not.toContain("No type errors found");
     expect(ctx.onXmlComplete).toHaveBeenCalledWith(
       expect.stringContaining(
-        '<dyad-status title="Type check incomplete" state="warning">',
+        '<nextbillion-status title="Type check incomplete" state="warning">',
       ),
     );
   });
@@ -312,7 +314,7 @@ describe("runTypeChecksTool precondition guidance", () => {
     );
     expect(ctx.onXmlComplete).toHaveBeenCalledWith(
       expect.stringContaining(
-        '<dyad-status title="Type errors found" state="finished">',
+        '<nextbillion-status title="Type errors found" state="finished">',
       ),
     );
   });
@@ -360,7 +362,7 @@ describe("runTypeChecksTool precondition guidance", () => {
     expect(result).toContain("src/Other.tsx:1:1");
     expect(result).not.toContain("outside this scope");
     expect(ctx.onXmlStream).toHaveBeenCalledWith(
-      '<dyad-status title="Type checking all files"></dyad-status>',
+      '<nextbillion-status title="Type checking all files"></nextbillion-status>',
     );
   });
 
@@ -382,7 +384,7 @@ describe("runTypeChecksTool precondition guidance", () => {
     expect(result).toBe("No type errors found in `src/App.tsx`.");
     expect(ctx.onXmlComplete).toHaveBeenCalledWith(
       expect.stringContaining(
-        '<dyad-status title="Type check passed" state="finished">',
+        '<nextbillion-status title="Type check passed" state="finished">',
       ),
     );
   });

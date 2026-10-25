@@ -1,26 +1,32 @@
-import { DyadError, DyadErrorKind } from "../errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "../errors/nextbillion_error";
 
 export const SUBSCRIPTION_BILLING_ERRORS = {
   OUT_OF_CREDITS: {
     title: "You’re out of AI credits",
     description: "Add credits to continue using your subscription.",
     message:
-      "You're out of Dyad credits. Add credits to continue using your subscription.",
+      "You're out of NextBillion credits. Add credits to continue using your subscription.",
   },
   KEY_REJECTED: {
-    title: "Your Dyad Pro key was rejected",
+    title: "Your NextBillion Pro key was rejected",
     description: "Check your Pro key in settings.",
-    message: "Your Dyad Pro key was rejected. Check your Pro key in settings.",
+    message:
+      "Your NextBillion Pro key was rejected. Check your Pro key in settings.",
   },
 } as const;
 
 type SubscriptionBillingErrorCode = keyof typeof SUBSCRIPTION_BILLING_ERRORS;
 
-export class SubscriptionBillingError extends DyadError {
+export class SubscriptionBillingError extends NextBillionError {
   constructor(readonly code: SubscriptionBillingErrorCode) {
     super(
       SUBSCRIPTION_BILLING_ERRORS[code].message,
-      code === "KEY_REJECTED" ? DyadErrorKind.Auth : DyadErrorKind.Precondition,
+      code === "KEY_REJECTED"
+        ? NextBillionErrorKind.Auth
+        : NextBillionErrorKind.Precondition,
     );
   }
 

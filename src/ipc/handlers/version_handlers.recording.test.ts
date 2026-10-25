@@ -2,13 +2,15 @@ import path from "node:path";
 import os from "node:os";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { activeRecordings } from "@/ipc/services/recording_registry";
 
 vi.mock("electron", () => ({
   ipcMain: { handle: vi.fn(), on: vi.fn() },
   app: {
-    getPath: vi.fn(() => path.join(os.tmpdir(), "dyad-version-user-data")),
+    getPath: vi.fn(() =>
+      path.join(os.tmpdir(), "nextbillion-version-user-data"),
+    ),
     getAppPath: vi.fn(() => process.cwd()),
   },
 }));
@@ -42,7 +44,7 @@ describe("version recording admission", () => {
         chatId: 1,
         messageId: 1,
       }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
   });
 
   it("refuses version checkout while recording", async () => {
@@ -54,6 +56,6 @@ describe("version recording admission", () => {
         purpose: "preview",
         versionId: "abc123",
       }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
   });
 });

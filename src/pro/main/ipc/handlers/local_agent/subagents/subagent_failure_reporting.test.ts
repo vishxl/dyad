@@ -57,7 +57,8 @@ it("reports stored thread error and the latest activity without tool output", ()
         toolCallId: "call-test",
         toolName: "run_tests",
         status: "error",
-        presentationXml: "<dyad-command>very large output</dyad-command>",
+        presentationXml:
+          "<nextbillion-command>very large output</nextbillion-command>",
         error: "Test command exited with code 1.",
         startedAt: new Date(),
         completedAt: new Date(),
@@ -161,7 +162,7 @@ it("does not label a completed latest activity as the failure action", () => {
         toolCallId: "call-test",
         toolName: "run_tests",
         status: "completed",
-        presentationXml: "<dyad-command />",
+        presentationXml: "<nextbillion-command />",
         error: null,
         startedAt: new Date(),
         completedAt: new Date(),

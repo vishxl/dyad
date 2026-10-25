@@ -21,7 +21,10 @@ import { userInputRegistry } from "@/user_input/main";
 import { db } from "@/db";
 import { chats } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   PLAN_HANDOFF_MACHINE_ID,
   planHandoffKey,
@@ -131,7 +134,10 @@ export function observeChatSubmissionStopPolicy(chatId: number): number {
     .where(eq(chats.id, chatId))
     .get();
   if (!chat) {
-    throw new DyadError(`Chat ${chatId} not found`, DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      `Chat ${chatId} not found`,
+      NextBillionErrorKind.NotFound,
+    );
   }
   return remoteMachineHost
     .localRef(chatStreamDefinition, chatStreamKey(chatId))

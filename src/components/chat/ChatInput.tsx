@@ -110,7 +110,7 @@ import { useRouter } from "@tanstack/react-router";
 import { showError as showErrorToast } from "@/lib/toast";
 import { cn } from "@/lib/utils";
 import { useVoiceToText } from "@/hooks/useVoiceToText";
-import { isDyadProEnabled, isLocalAgentBackedMode } from "@/lib/schemas";
+import { isNextBillionProEnabled, isLocalAgentBackedMode } from "@/lib/schemas";
 import { isFreeProModel } from "@/lib/freeProModel";
 import { ReferencedAppsBar } from "./ReferencedAppsBar";
 import { useChatMode } from "@/hooks/useChatMode";
@@ -322,7 +322,7 @@ export function ChatInput({ chatId }: { chatId?: number }) {
   }, [messages]);
 
   const { userBudget } = useUserBudgetInfo();
-  const isProEnabled = settings ? isDyadProEnabled(settings) : false;
+  const isProEnabled = settings ? isNextBillionProEnabled(settings) : false;
 
   const handleTranscription = useCallback(
     (text: string) => {
@@ -381,7 +381,7 @@ export function ChatInput({ chatId }: { chatId?: number }) {
     // Clear overlays in the preview iframe
     if (previewIframeRef?.contentWindow) {
       previewIframeRef.contentWindow.postMessage(
-        { type: "clear-dyad-component-overlays" },
+        { type: "clear-nextbillion-component-overlays" },
         "*",
       );
     }
@@ -687,7 +687,7 @@ export function ChatInput({ chatId }: { chatId?: number }) {
         setVisualEditingSelectedComponent(null);
         if (previewIframeRef?.contentWindow) {
           previewIframeRef.contentWindow.postMessage(
-            { type: "clear-dyad-component-overlays" },
+            { type: "clear-nextbillion-component-overlays" },
             "*",
           );
         }
@@ -861,7 +861,7 @@ export function ChatInput({ chatId }: { chatId?: number }) {
         <ChatErrorBox
           onDismiss={dismissError}
           error={error}
-          isDyadProEnabled={isProEnabled}
+          isNextBillionProEnabled={isProEnabled}
           onStartNewChat={handleNewChat}
           onSwitchToBuildMode={
             isFreeProModel(selectedModel)
@@ -1039,7 +1039,7 @@ export function ChatInput({ chatId }: { chatId?: number }) {
               onChange={setInputValue}
               onSubmit={handleSubmit}
               onPaste={handlePaste}
-              placeholder={t("askDyadToBuild")}
+              placeholder={t("askNextBillionToBuild")}
               excludeCurrentApp={true}
               disableSendButton={disableSendButton}
               messageHistory={userMessageHistory}
@@ -1254,7 +1254,7 @@ function WriteCodeProperlyButton() {
       return;
     }
     streamMessage({
-      prompt: `Write the code in the previous message in the correct format using \`<dyad-write>\` tags!`,
+      prompt: `Write the code in the previous message in the correct format using \`<nextbillion-write>\` tags!`,
       chatId,
       redo: false,
     });

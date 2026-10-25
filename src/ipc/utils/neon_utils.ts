@@ -5,7 +5,10 @@ import { getNeonClient } from "../../neon_admin/neon_management_client";
 import { getConnectionUri } from "../../neon_admin/neon_context";
 import { db } from "../../db";
 import { apps } from "../../db/schema";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   generateCookieSecret,
   readEnvVarsOrEmpty,
@@ -14,7 +17,7 @@ import {
 import { detectFrameworkType } from "./framework_utils";
 import { reconcileTrustedDomains } from "./vercel_neon_sync_helpers";
 import { retryOnLocked } from "./retryOnLocked";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 import { abortable } from "./abortable";
 
 export type NeonBranchType = "production" | "development";
@@ -54,26 +57,26 @@ export async function getAppWithNeonBranch(appId: number): Promise<{
   const app = await db.select().from(apps).where(eq(apps.id, appId)).limit(1);
 
   if (app.length === 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       `App with ID ${appId} not found`,
-      DyadErrorKind.NotFound,
+      NextBillionErrorKind.NotFound,
     );
   }
 
   const appData = app[0];
   if (!appData.neonProjectId) {
-    throw new DyadError(
+    throw new NextBillionError(
       `No Neon project found for app ${appId}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 
   const branchId =
     appData.neonActiveBranchId ?? appData.neonDevelopmentBranchId;
   if (!branchId) {
-    throw new DyadError(
+    throw new NextBillionError(
       `No active Neon branch found for app ${appId}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 
@@ -262,9 +265,9 @@ export async function autoInjectNeonEnvVars({
       .where(eq(apps.id, appId))
       .limit(1);
     if (rows.length === 0) {
-      throw new DyadError(
+      throw new NextBillionError(
         `App with ID ${appId} not found`,
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
     cookieSecret = await getOrCreateNeonAuthCookieSecret({
@@ -280,7 +283,7 @@ export async function autoInjectNeonEnvVars({
     appPath,
     connectionUri,
     neonAuthBaseUrl,
-    frameworkType: detectFrameworkType(getDyadAppPath(appPath)),
+    frameworkType: detectFrameworkType(getNextBillionAppPath(appPath)),
     cookieSecret,
     preserveExistingAuth: !neonAuthBaseUrl,
   });
@@ -306,9 +309,9 @@ export async function assertNoSupabaseProject(appId: number): Promise<void> {
     .where(eq(apps.id, appId))
     .limit(1);
   if (existingApp[0]?.supabaseProjectId) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Cannot connect Neon: this app already has a Supabase project. Disconnect Supabase first.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 }
@@ -324,9 +327,9 @@ export async function assertNoNeonProject(appId: number): Promise<void> {
     .where(eq(apps.id, appId))
     .limit(1);
   if (existingApp[0]?.neonProjectId) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This app already has a Neon project linked. Disconnect it first.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 }
@@ -343,17 +346,17 @@ export async function getProductionBranchId(
   const response = await neonClient.listProjectBranches({ projectId });
 
   if (!response.data.branches) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Failed to list branches: No branch data returned.",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 
   const prodBranch = response.data.branches.find((b) => b.default);
   if (!prodBranch) {
-    throw new DyadError(
+    throw new NextBillionError(
       "No production (default) branch found for this Neon project.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 
@@ -507,9 +510,9 @@ export async function resolveNeonBranchEnvVars({
   branchType: NeonBranchType;
 }): Promise<ResolvedNeonBranchEnvVars> {
   if (!appData.neonProjectId) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This app is not connected to a Neon project.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const projectId = appData.neonProjectId;
@@ -519,9 +522,9 @@ export async function resolveNeonBranchEnvVars({
     branchId = (await getProductionBranchId(projectId)).branchId;
   } else {
     if (!appData.neonDevelopmentBranchId) {
-      throw new DyadError(
+      throw new NextBillionError(
         "This app has no development branch. Create one in Neon before requesting a development connection URI.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     branchId = appData.neonDevelopmentBranchId;
@@ -540,7 +543,7 @@ export async function resolveNeonBranchEnvVars({
   }
 
   const isNextJs =
-    detectFrameworkType(getDyadAppPath(appData.path)) === "nextjs";
+    detectFrameworkType(getNextBillionAppPath(appData.path)) === "nextjs";
 
   let neonAuthCookieSecret: string | undefined;
   if (neonAuthBaseUrl && isNextJs) {

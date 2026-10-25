@@ -3,15 +3,15 @@
  * Compaction-benchmark fixture generator.
  *
  * Reads a scenario spec (see AUTHORING.md), has gpt-5.6-sol author the
- * session narrative phase-by-phase, materializes a Dyad-format message list
- * (full <dyad-write> contents, MCP tool tags), amplifies to the target
+ * session narrative phase-by-phase, materializes a NextBillion-format message list
+ * (full <nextbillion-write> contents, MCP tool tags), amplifies to the target
  * transcript size with deterministic bulk-asset/filler turns, validates that
  * every manifest evidence string landed, and writes <name>.json + stats.
  *
  * Usage:
  *   node generate.mjs --spec specs/<name>.spec.json [--target 180000] [--force]
  *
- * Env: DYAD_PRO_KEY or DYAD_PRO_API_KEY (required), DYAD_ENGINE_URL (optional),
+ * Env: NEXTBILLION_PRO_KEY or NEXTBILLION_PRO_API_KEY (required), NEXTBILLION_ENGINE_URL (optional),
  *      CMPGEN_MODEL (default gpt-5.6-sol).
  */
 import fs from "node:fs";
@@ -34,12 +34,15 @@ const MIN_TOKENS = Number(argValue("--min", "165000"));
 const MAX_TOKENS = Number(argValue("--max", "210000"));
 const FORCE = argv.includes("--force");
 
-const API_KEY = process.env.DYAD_PRO_API_KEY || process.env.DYAD_PRO_KEY;
-const ENGINE_URL = process.env.DYAD_ENGINE_URL || "https://engine.dyad.sh/v1";
+const API_KEY =
+  process.env.NEXTBILLION_PRO_API_KEY || process.env.NEXTBILLION_PRO_KEY;
+const ENGINE_URL =
+  process.env.NEXTBILLION_ENGINE_URL || "https://engine.dyad.sh/v1";
 const MODEL = process.env.CMPGEN_MODEL || "gpt-5.6-sol";
 
 if (!SPEC_PATH) fail("Missing --spec <path>");
-if (!API_KEY) fail("Missing DYAD_PRO_KEY / DYAD_PRO_API_KEY in env");
+if (!API_KEY)
+  fail("Missing NEXTBILLION_PRO_KEY / NEXTBILLION_PRO_API_KEY in env");
 
 function fail(msg) {
   console.error(`[generate] FATAL: ${msg}`);
@@ -57,11 +60,11 @@ const TOOL_RESULT_TRUNCATION_LIMIT = 1000;
 
 function transformToolTags(content) {
   let result = content.replace(
-    /<dyad-mcp-tool-call\b[^>]*?\bserver="([^"]*)"[^>]*?\btool="([^"]*)"[^>]*>\n([\s\S]*?)\n<\/dyad-mcp-tool-call>/g,
+    /<nextbillion-mcp-tool-call\b[^>]*?\bserver="([^"]*)"[^>]*?\btool="([^"]*)"[^>]*>\n([\s\S]*?)\n<\/nextbillion-mcp-tool-call>/g,
     '<tool-use name="$2" server="$1">\n$3\n</tool-use>',
   );
   result = result.replace(
-    /<dyad-mcp-tool-result\b[^>]*?\bserver="([^"]*)"[^>]*?\btool="([^"]*)"[^>]*>\n([\s\S]*?)\n<\/dyad-mcp-tool-result>/g,
+    /<nextbillion-mcp-tool-result\b[^>]*?\bserver="([^"]*)"[^>]*?\btool="([^"]*)"[^>]*>\n([\s\S]*?)\n<\/nextbillion-mcp-tool-result>/g,
     (_m, server, tool, rc) => {
       const truncated = rc.length > TOOL_RESULT_TRUNCATION_LIMIT;
       const body = truncated
@@ -263,19 +266,19 @@ function synthAsset(bulk, scale = 1) {
 // ---------------------------------------------------------------------------
 function toolCallXml(tool, args, result) {
   return (
-    `<dyad-mcp-tool-call server="dyad" tool="${tool}">\n${JSON.stringify(args)}\n</dyad-mcp-tool-call>\n` +
-    `<dyad-mcp-tool-result server="dyad" tool="${tool}">\n${result}\n</dyad-mcp-tool-result>`
+    `<nextbillion-mcp-tool-call server="nextbillion" tool="${tool}">\n${JSON.stringify(args)}\n</nextbillion-mcp-tool-call>\n` +
+    `<nextbillion-mcp-tool-result server="nextbillion" tool="${tool}">\n${result}\n</nextbillion-mcp-tool-result>`
   );
 }
 
-function dyadWriteXml(p, description, content) {
-  return `<dyad-write path="${p}" description="${description}">\n${content}\n</dyad-write>`;
+function nextBillionWriteXml(p, description, content) {
+  return `<nextbillion-write path="${p}" description="${description}">\n${content}\n</nextbillion-write>`;
 }
 
 // ---------------------------------------------------------------------------
 // Phase authoring
 // ---------------------------------------------------------------------------
-const AUTHOR_SYSTEM = `You are authoring one phase of a realistic, long AI-pair-programming session transcript for Dyad (an AI app builder). The session is between a USER (a real developer: terse, sometimes changes their mind, pastes errors) and an ASSISTANT (a coding agent that narrates briefly, calls tools, and writes full files).
+const AUTHOR_SYSTEM = `You are authoring one phase of a realistic, long AI-pair-programming session transcript for NextBillion (an AI app builder). The session is between a USER (a real developer: terse, sometimes changes their mind, pastes errors) and an ASSISTANT (a coding agent that narrates briefly, calls tools, and writes full files).
 
 You will receive: the app domain, a recap of the session so far, the current contents of the files this phase works on, this phase's goal, REQUIRED evidence strings, and how many turns to produce.
 
@@ -350,7 +353,7 @@ function materializeTurns(turns, fileState, bulkByPath) {
       } else if (action.type === "write") {
         fileState[action.path] = action.content;
         parts.push(
-          dyadWriteXml(
+          nextBillionWriteXml(
             action.path,
             action.description ?? "Update file",
             action.content,
@@ -362,7 +365,7 @@ function materializeTurns(turns, fileState, bulkByPath) {
         const content = synthAsset(bulk, 1);
         fileState[bulk.path] = content;
         parts.push(
-          dyadWriteXml(
+          nextBillionWriteXml(
             bulk.path,
             `Generate ${bulk.asset} (${bulk.count} entries)`,
             content,
@@ -406,7 +409,7 @@ function fillerCycle(spec, fileState, cycleIdx) {
       role: "assistant",
       content: [
         `Regenerating ${bulk.path} with ${n} entries.`,
-        dyadWriteXml(
+        nextBillionWriteXml(
           bulk.path,
           `Expand generated ${kindLabel} to ${n} entries`,
           content,

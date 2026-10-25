@@ -1,6 +1,6 @@
 # App-Builder Benchmark — Methodology and Results
 
-A cost-effectiveness benchmark for building full-stack apps with Dyad, across
+A cost-effectiveness benchmark for building full-stack apps with NextBillion, across
 seven frontier models. It measures three things per app build: **cost** in
 list-price dollars from exact wire-captured token counts, **quality** from fixed
 Playwright suites plus adversarial security probes plus an LLM judge, and
@@ -13,7 +13,7 @@ things that went wrong, and the reasons to distrust particular numbers.
 
 ## 1. Results
 
-Seven models × three apps × three milestone prompts. N=1 per cell, Dyad
+Seven models × three apps × three milestone prompts. N=1 per cell, NextBillion
 local-agent mode, product-default reasoning effort (`medium`, verified at the
 wire on every request).
 
@@ -53,7 +53,7 @@ cannot serve a request.
 
 ### Reasoning effort (luna and terra)
 
-Effort is applied at the recording proxy, because Dyad's `thinkingBudget`
+Effort is applied at the recording proxy, because NextBillion's `thinkingBudget`
 setting exposes only low/medium/high while the engine accepts `xhigh`. These
 rows therefore do **not** use a product-reachable configuration and are reported
 separately.
@@ -91,7 +91,7 @@ Three apps, each specified as three sequential PRD-style milestone prompts
 (`specs/<app>/m{1,2,3}.md`). Unlike terse benchmark prompts, these pin exact
 routes, JSON field names and `data-testid` contracts — necessary because one
 fixed test suite must run unmodified against whatever seven different models
-build. Prompts run 383–620 words and never mention Dyad, tools, or tags.
+build. Prompts run 383–620 words and never mention NextBillion, tools, or tags.
 
 The three apps stress different authorization shapes: Relay CRM multi-tenant
 workspaces, Deskhero role-based workflow with a state-transition matrix,
@@ -101,9 +101,9 @@ marketplace) are specified, gated and ready but not yet run.
 
 ### Backend: neon-sim
 
-Self-hosting real Neon is not viable — Dyad calls the closed-source Neon v2
+Self-hosting real Neon is not viable — NextBillion calls the closed-source Neon v2
 control-plane API, and the OSS distribution ships only the storage layer. So
-`neon-sim` reimplements exactly the endpoint surface Dyad is proven to depend
+`neon-sim` reimplements exactly the endpoint surface NextBillion is proven to depend
 on: a v2 control-plane shim, an HTTP-SQL proxy speaking the
 `@neondatabase/serverless` fetch protocol over TLS, and a self-hosted
 better-auth instance standing in for Neon Auth with a per-branch mount. Runs are
@@ -112,7 +112,7 @@ so no run inherits another's state.
 
 ### Cost: measured, not estimated
 
-Dyad persists only a lossy per-message token high-water mark. So every engine
+NextBillion persists only a lossy per-message token high-water mark. So every engine
 request is routed through a local recording proxy that captures
 `prompt_tokens`, `prompt_tokens_details.cached_tokens`, cache-write tokens and
 `completion_tokens` per request, across all three wire formats the engine serves
@@ -121,7 +121,7 @@ chat turns via `X-Dyad-Request-Id`. Dollars are those exact counts against list
 prices pinned on 2026-07-28 in `pricing/pricing.json`, with Anthropic cache
 writes billed at their published 1.25× rate.
 
-Billing actually flows through Dyad Pro credits; list-price dollars are the
+Billing actually flows through NextBillion Pro credits; list-price dollars are the
 reported, reproducible metric.
 
 ### Scoring
@@ -316,7 +316,7 @@ APPBENCH_APP=relay-crm ./s-score.sh gpt-5.6-sol-relay-crm
 node report.mjs
 ```
 
-Requires `DYAD_PRO_KEY` and a running neon-sim (`neon-sim/README.md`).
+Requires `NEXTBILLION_PRO_KEY` and a running neon-sim (`neon-sim/README.md`).
 
 | Document                             | Contents                                          |
 | ------------------------------------ | ------------------------------------------------- |

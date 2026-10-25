@@ -3,6 +3,6 @@ export function shouldSimulateFreeAgentQuotaExceeded(
 ): boolean {
   return (
     environment.NODE_ENV === "development" &&
-    environment.DYAD_SIMULATE_FREE_AGENT_QUOTA_EXCEEDED === "true"
+    environment.NEXTBILLION_SIMULATE_FREE_AGENT_QUOTA_EXCEEDED === "true"
   );
 }

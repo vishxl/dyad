@@ -1,5 +1,8 @@
 import { createHash } from "node:crypto";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { remoteMachineHost } from "@/ipc/services/distributed_machine_actor_host";
 import { planHandoffDefinition } from "@/plan_handoff/definition";
 import {
@@ -62,17 +65,17 @@ export async function startPlanHandoffFromMain(input: {
     throw outcome.error;
   }
   if (outcome.kind === "disposed") {
-    throw new DyadError(
+    throw new NextBillionError(
       "Plan handoff admission was disposed",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   if (outcome.kind === "ignored") {
-    throw new DyadError(
+    throw new NextBillionError(
       `Plan handoff was ignored: ${outcome.reason}`,
       outcome.reason === "already-running"
-        ? DyadErrorKind.Conflict
-        : DyadErrorKind.Precondition,
+        ? NextBillionErrorKind.Conflict
+        : NextBillionErrorKind.Precondition,
     );
   }
   planDrafts.delete(input.sourceChatId);

@@ -1,3 +1,4 @@
+import "./lib/legacy-env.mjs";
 import { spawn } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { createServer } from "node:http";
@@ -72,7 +73,7 @@ server.listen(0, "127.0.0.1", () => {
   }
 
   const endpoint = `http://127.0.0.1:${address.port}/subscription-status`;
-  console.log(`Starting Dyad with subscription fixture: ${state}`);
+  console.log(`Starting NextBillion with subscription fixture: ${state}`);
   console.log(`  endpoint: ${endpoint}`);
 
   const child = spawn(npmCommand, ["start"], {
@@ -80,8 +81,8 @@ server.listen(0, "127.0.0.1", () => {
     env: {
       ...process.env,
       NODE_ENV: "development",
-      DYAD_SUBSCRIPTION_STATUS_URL: endpoint,
-      DYAD_SUBSCRIPTION_STATUS_FIXTURE_API_KEY: fixtureApiKey,
+      NEXTBILLION_SUBSCRIPTION_STATUS_URL: endpoint,
+      NEXTBILLION_SUBSCRIPTION_STATUS_FIXTURE_API_KEY: fixtureApiKey,
     },
   });
 

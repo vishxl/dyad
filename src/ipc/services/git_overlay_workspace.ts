@@ -4,15 +4,18 @@ import path from "node:path";
 
 import log from "electron-log/main";
 
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { runBufferedProcess } from "@/ipc/utils/buffered_process";
 import { getGitProcessEnvironment } from "@/ipc/utils/git_utils";
 
 const WINDOWS_COPY_CONCURRENCY = 32;
 const MAX_GIT_OUTPUT_BYTES = 4 * 1024 * 1024;
 const MARKER_SUFFIX = ".owner.json";
-const MARKER_SCHEMA = "dyad-git-overlay-worktree-v1";
-const LEGACY_BUILD_MARKER_SCHEMA = "dyad-build-worktree-v1";
+const MARKER_SCHEMA = "nextbillion-git-overlay-worktree-v1";
+const LEGACY_BUILD_MARKER_SCHEMA = "nextbillion-build-worktree-v1";
 /**
  * Roots dropped at ANY depth in the repository, and never preserved even when
  * Git tracks them.
@@ -170,7 +173,10 @@ export interface GitOverlayWorkspaceOptions {
 
 function throwIfCancelled(signal?: AbortSignal): void {
   if (signal?.aborted) {
-    throw new DyadError("Operation cancelled.", DyadErrorKind.UserCancelled);
+    throw new NextBillionError(
+      "Operation cancelled.",
+      NextBillionErrorKind.UserCancelled,
+    );
   }
 }
 
@@ -193,7 +199,10 @@ async function runWorkspaceGit(
     captureOutputOnSuccess: !onStdout,
   });
   if (result.aborted) {
-    throw new DyadError("Operation cancelled.", DyadErrorKind.UserCancelled);
+    throw new NextBillionError(
+      "Operation cancelled.",
+      NextBillionErrorKind.UserCancelled,
+    );
   }
   if (result.timedOut) {
     throw new Error(`Git command timed out: git ${args.join(" ")}`);
@@ -661,10 +670,10 @@ async function copyWindowsEntry({
   return [];
 }
 
-function externalLinkError(relativePath: string): DyadError {
-  return new DyadError(
+function externalLinkError(relativePath: string): NextBillionError {
+  return new NextBillionError(
     `Cannot isolate the linked path ${relativePath} because it points outside the Git repository. Replace the external link with a repository-local dependency before trying again.`,
-    DyadErrorKind.Precondition,
+    NextBillionErrorKind.Precondition,
   );
 }
 
@@ -798,9 +807,9 @@ export async function secureGitOverlaySymlinks(
           await fs.unlink(entry.entryPath);
           continue;
         }
-        throw new DyadError(
+        throw new NextBillionError(
           `Cannot isolate the linked path ${path.relative(workspaceRoot, entry.entryPath)} because its target is unavailable.`,
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         );
       }
       if (pathIsInside(realWorkspaceRoot, realTarget)) continue;
@@ -1358,10 +1367,10 @@ export async function createGitOverlayWorkspace({
         }
       }
     }
-    if (error instanceof DyadError) throw error;
-    throw new DyadError(
+    if (error instanceof NextBillionError) throw error;
+    throw new NextBillionError(
       `Could not prepare the isolated Git workspace: ${error instanceof Error ? error.message : String(error)}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 }

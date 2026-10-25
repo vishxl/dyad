@@ -1,4 +1,4 @@
-# Dyad hosted deployment — Caddy reverse proxy (see context/dyad-web-deployment.md)
+# NextBillion hosted deployment — Caddy reverse proxy (see context/dyad-web-deployment.md)
 #
 # Replace <HOST> with the public hostname (e.g. 123-45-67-89.sslip.io).
 # Caddy obtains Let's Encrypt certificates automatically for the hostname.
@@ -34,7 +34,7 @@
 		reverse_proxy 127.0.0.1:4180
 	}
 
-	# ── Dyad headless server: RPC + WS ───────────────────────────────────────
+	# ── NextBillion headless server: RPC + WS ───────────────────────────────────────
 	handle /rpc/* {
 		reverse_proxy 127.0.0.1:3000
 	}
@@ -60,7 +60,7 @@
 	# ── Generated-app previews: /preview/<port>/* → 127.0.0.1:<port> ─────────
 	# Placeholder upstreams require Caddy >= 2.7 (verify with `caddy version`).
 	# The path is forwarded AS-IS (no rewrite): worker/proxy_server.js strips
-	# the /preview/<port> prefix itself when DYAD_PREVIEW_PUBLIC_URL_BASE is
+	# the /preview/<port> prefix itself when NEXTBILLION_PREVIEW_PUBLIC_URL_BASE is
 	# set — one source of truth for the prefix.
 	# If placeholder upstreams are unsupported, use the Node fallback router
 	# (deploy/preview-router.mjs) and point this block at 127.0.0.1:8788.
@@ -79,7 +79,7 @@
 		}
 	}
 
-	# ── Everything else: Vite-rendered Dyad UI ───────────────────────────────
+	# ── Everything else: Vite-rendered NextBillion UI ───────────────────────────────
 	handle {
 		reverse_proxy 127.0.0.1:4173
 	}

@@ -1,8 +1,11 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { apps } from "@/db/schema";
-import { getDyadAppPath } from "@/paths/paths";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import { getNextBillionAppPath } from "@/paths/paths";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   appOperationCoordinator,
   readAppResource,
@@ -30,9 +33,9 @@ export async function withReferencedAppRead<T>(
   const appId = ctx.referencedAppIds?.get(key);
   if (appId === undefined) {
     // Legacy contexts may contain names/paths but cannot safely bind identity.
-    throw new DyadError(
+    throw new NextBillionError(
       "Referenced app identity is unavailable. Start a new turn to refresh references.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   return appOperationCoordinator.run(
@@ -45,13 +48,13 @@ export async function withReferencedAppRead<T>(
       ctx.abortSignal?.throwIfAborted();
       const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
       if (!app)
-        throw new DyadError(
+        throw new NextBillionError(
           "Referenced app no longer exists",
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       ctx.abortSignal?.throwIfAborted();
       const references = new Map(ctx.referencedApps);
-      references.set(key, getDyadAppPath(app.path));
+      references.set(key, getNextBillionAppPath(app.path));
       return invoke({ ...ctx, referencedApps: references });
     },
   );

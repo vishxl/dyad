@@ -12,7 +12,7 @@ vi.mock("node-fetch", async (importOriginal) => ({
 }));
 vi.mock("@/main/settings", () => ({
   readSettings: () => ({
-    enableDyadPro: true,
+    enableNextBillionPro: true,
     providerSettings: { auto: { apiKey: { value: mocks.key } } },
   }),
 }));
@@ -26,7 +26,7 @@ vi.mock("electron-log", () => ({
   default: { scope: () => ({ info: vi.fn(), warn: mocks.warn }) },
 }));
 import { createCodexSubscriptionModel } from "./codex_subscription_provider";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 
 const info = {
   totalCredits: 100,
@@ -63,7 +63,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 describe("BYO subscription preflight through the actual provider", () => {
-  it("runs free subscription inference without a Dyad balance check", async () => {
+  it("runs free subscription inference without a NextBillion balance check", async () => {
     mocks.key = "";
     await run();
     expect(mocks.accountFetch).not.toHaveBeenCalled();
@@ -103,7 +103,7 @@ describe("BYO subscription preflight through the actual provider", () => {
         accountResponse({ ...info, usedCredits }),
       );
       await expect(run()).rejects.toMatchObject({
-        kind: DyadErrorKind.Precondition,
+        kind: NextBillionErrorKind.Precondition,
         code: "OUT_OF_CREDITS",
       });
       expect(fetch).not.toHaveBeenCalled();
@@ -116,7 +116,10 @@ describe("BYO subscription preflight through the actual provider", () => {
         new NodeResponse("untrusted upstream detail", { status }),
       );
       await expect(run()).rejects.toMatchObject({
-        kind: status === 402 ? DyadErrorKind.Precondition : DyadErrorKind.Auth,
+        kind:
+          status === 402
+            ? NextBillionErrorKind.Precondition
+            : NextBillionErrorKind.Auth,
         code: status === 402 ? "OUT_OF_CREDITS" : "KEY_REJECTED",
       });
       expect(fetch).not.toHaveBeenCalled();
@@ -164,19 +167,19 @@ describe("BYO subscription preflight through the actual provider", () => {
   });
   it("honors user cancellation rather than treating it as a service outage", async () => {
     await expect(run(AbortSignal.abort())).rejects.toMatchObject({
-      kind: DyadErrorKind.UserCancelled,
+      kind: NextBillionErrorKind.UserCancelled,
     });
     expect(fetch).not.toHaveBeenCalled();
     expect(mocks.accountFetch).not.toHaveBeenCalled();
   });
   it("does not bypass checks in test builds and supports the existing fixture URL", async () => {
     vi.stubEnv("E2E_TEST_BUILD", "true");
-    vi.stubEnv("DYAD_USER_INFO_URL", "http://127.0.0.1:1234/account");
+    vi.stubEnv("NEXTBILLION_USER_INFO_URL", "http://127.0.0.1:1234/account");
     mocks.accountFetch.mockResolvedValue(
       accountResponse({ ...info, usedCredits: 100 }),
     );
     await expect(run()).rejects.toMatchObject({
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
     });
     expect(mocks.accountFetch.mock.calls[0][0]).toBe(
       "http://127.0.0.1:1234/account",

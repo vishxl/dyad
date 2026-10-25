@@ -1,7 +1,7 @@
 // neon-sim end-to-end smoke test. Run with the stack up:
 //   node server.mjs &
 //   NODE_EXTRA_CA_CERTS=certs/ca.pem node smoke-test.mjs
-// Mirrors Dyad's real call sequence (neon_handlers.ts create flow) using the
+// Mirrors NextBillion's real call sequence (neon_handlers.ts create flow) using the
 // REAL @neondatabase/api-client and @neondatabase/serverless packages.
 import { createApiClient } from "@neondatabase/api-client";
 import { neon } from "@neondatabase/serverless";
@@ -24,7 +24,7 @@ const api = createApiClient({
   baseURL: `${CONTROL}/api/v2`,
 });
 
-// (a) Dyad's create flow: project -> auth(main) -> dev branch -> auth(dev)
+// (a) NextBillion's create flow: project -> auth(main) -> dev branch -> auth(dev)
 //     -> preview branch -> auth(preview)
 const orgs = await api.getCurrentUserOrganizations();
 check("orgs", orgs.data.organizations?.[0]?.id === "sim-org");

@@ -17,11 +17,11 @@ import { isDeploymentInProgress } from "@/cloudflare_deploy/build_config";
 const SYNC_POLL_MS = 4_000;
 /** How often to ask Cloudflare whether it can see the repository yet. */
 const REPO_ACCESS_POLL_MS = 10_000;
-/** A push starts a build Dyad is not told about, so an idle card still polls. */
+/** A push starts a build NextBillion is not told about, so an idle card still polls. */
 const IDLE_STATUS_POLL_MS = 15_000;
 const ACTIVE_STATUS_POLL_MS = 5_000;
 /**
- * Everything here reports state that changes outside Dyad: a push, a grant in
+ * Everything here reports state that changes outside NextBillion: a push, a grant in
  * a browser, a Worker made in the dashboard. The app-wide default keeps a
  * result for a minute, which would show the tab an answer from before the
  * user went and changed it.
@@ -89,9 +89,9 @@ export function useCloudflareRepoAccess({
     // A failed check is not an answer, so it keeps asking until access is seen.
     refetchInterval: (query) =>
       query.state.data?.hasAccess === true ? false : REPO_ACCESS_POLL_MS,
-    // The user grants access in a browser that usually covers Dyad, and a
+    // The user grants access in a browser that usually covers NextBillion, and a
     // covered or minimized window counts as hidden. The poll has to run then,
-    // or Dyad could never notice and come forward while they are away.
+    // or NextBillion could never notice and come forward while they are away.
     refetchIntervalInBackground: true,
   });
 }

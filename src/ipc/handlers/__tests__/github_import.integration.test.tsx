@@ -14,7 +14,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { apps } from "@/db/schema";
 import { ipc } from "@/ipc/types";
 import { writeSettings } from "@/main/settings";
-import { invalidateDyadAppsBaseDirectoryCache } from "@/paths/paths";
+import { invalidateNextBillionAppsBaseDirectoryCache } from "@/paths/paths";
 import {
   setupHybridChatHarness,
   type HybridChatHarness,
@@ -34,7 +34,7 @@ describe("GitHub import dialog (integration)", () => {
     importAppsRoot = path.join(path.dirname(harness.appDir), "imported-apps");
     fs.mkdirSync(importAppsRoot, { recursive: true });
     writeSettings({ customAppsFolder: importAppsRoot });
-    invalidateDyadAppsBaseDirectoryCache();
+    invalidateNextBillionAppsBaseDirectoryCache();
   }, 60_000);
 
   afterEach(() => {
@@ -149,7 +149,7 @@ describe("GitHub import dialog (integration)", () => {
     ).toContain("defineConfig");
   }, 90_000);
 
-  it("skips the tagger upgrade when 'Optimize for Dyad' is unchecked", async () => {
+  it("skips the tagger upgrade when 'Optimize for NextBillion' is unchecked", async () => {
     await harness.github.resetRepos();
     writeSettings({
       githubAccessToken: { value: "fake_access_token_12345" },
@@ -173,7 +173,7 @@ describe("GitHub import dialog (integration)", () => {
       target: { value: "no-optimize-vite-app" },
     });
 
-    // Reveal the advanced options so the "Optimize for Dyad" checkbox mounts,
+    // Reveal the advanced options so the "Optimize for NextBillion" checkbox mounts,
     // then uncheck it (it defaults to checked).
     fireEvent.click(screen.getByRole("button", { name: "Advanced options" }));
     const optimizeCheckbox = await screen.findByRole("checkbox");
@@ -188,7 +188,7 @@ describe("GitHub import dialog (integration)", () => {
 
     // The inverse of the default-upgrade test: no component-tagger rewrite.
     const config = fs.readFileSync(path.join(appDir, "vite.config.ts"), "utf8");
-    expect(config).not.toContain("dyadComponentTagger");
+    expect(config).not.toContain("nextBillionComponentTagger");
 
     const pkg = fs.readFileSync(path.join(appDir, "package.json"), "utf8");
     expect(pkg).not.toContain("@dyad-sh/react-vite-component-tagger");
@@ -199,7 +199,7 @@ describe("GitHub import dialog (integration)", () => {
     const params = {
       url: "https://github.com/testuser/existing-vite-app.git",
       appName: "concurrent-github-import",
-      optimizeForDyad: false,
+      optimizeForNextBillion: false,
     };
 
     const results = await Promise.all([

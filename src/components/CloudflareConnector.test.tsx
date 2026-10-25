@@ -244,7 +244,7 @@ describe("before a Worker can be connected", () => {
     );
 
     expect(openExternalUrl).toHaveBeenCalledWith(
-      // The account chosen in Dyad, so access is not granted on another one.
+      // The account chosen in NextBillion, so access is not granted on another one.
       "https://dash.cloudflare.com/acct-1/workers-and-pages/create",
     );
     // The card's only actions: the dashboard, then Refresh.
@@ -994,7 +994,7 @@ describe("a connected Worker", () => {
     // Also shown when the branch cannot be read, so it does not claim the
     // config is gone.
     expect(warning.textContent).toMatch(
-      /Dyad cannot find a Wrangler config for worker on main\./,
+      /NextBillion cannot find a Wrangler config for worker on main\./,
     );
     expect(screen.queryByText("No Cloudflare Worker found")).toBeNull();
     // Cloudflare cannot build it, so the card must not say that it deploys.

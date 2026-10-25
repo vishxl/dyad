@@ -47,15 +47,15 @@ describe("streamingMessageParser", () => {
     });
   });
 
-  it("parses a single dyad-write tag", () => {
+  it("parses a single nextbillion-write tag", () => {
     const content =
-      'Before\n<dyad-write path="src/foo.ts" description="foo">code here</dyad-write>\nAfter';
+      'Before\n<nextbillion-write path="src/foo.ts" description="foo">code here</nextbillion-write>\nAfter';
     const { blocks } = parseFullMessage(content);
     expect(blocksToShape(blocks)).toEqual([
       { kind: "markdown", content: "Before\n", complete: true },
       {
         kind: "custom-tag",
-        tag: "dyad-write",
+        tag: "nextbillion-write",
         attributes: { path: "src/foo.ts", description: "foo" },
         content: "code here",
         complete: true,
@@ -67,12 +67,12 @@ describe("streamingMessageParser", () => {
 
   it("parses a plugin suggestion card, including one still streaming", () => {
     const content =
-      '<dyad-suggest-plugin slug="vercel" reason="Read the build logs." outcome="pending"></dyad-suggest-plugin>';
+      '<nextbillion-suggest-plugin slug="vercel" reason="Read the build logs." outcome="pending"></nextbillion-suggest-plugin>';
     const { blocks } = parseFullMessage(content);
     expect(blocksToShape(blocks)).toEqual([
       {
         kind: "custom-tag",
-        tag: "dyad-suggest-plugin",
+        tag: "nextbillion-suggest-plugin",
         attributes: {
           slug: "vercel",
           reason: "Read the build logs.",
@@ -87,20 +87,20 @@ describe("streamingMessageParser", () => {
     // A partial tag streams as an open custom-tag block, not as markdown.
     const partial = feedAll(content, [20, 60]);
     const open = getParserBlocks(partial).find(
-      (b) => b.kind === "custom-tag" && b.tag === "dyad-suggest-plugin",
+      (b) => b.kind === "custom-tag" && b.tag === "nextbillion-suggest-plugin",
     );
     expect(open).toBeDefined();
   });
 
   it("parses an inline sub-agent mount point", () => {
     const content =
-      '<dyad-subagent chat-id="7" thread-id="explorer-1" persona="explorer" task-name="Trace auth"></dyad-subagent>';
+      '<nextbillion-subagent chat-id="7" thread-id="explorer-1" persona="explorer" task-name="Trace auth"></nextbillion-subagent>';
     const { blocks } = parseFullMessage(content);
 
     expect(blocksToShape(blocks)).toEqual([
       {
         kind: "custom-tag",
-        tag: "dyad-subagent",
+        tag: "nextbillion-subagent",
         attributes: {
           "chat-id": "7",
           "thread-id": "explorer-1",
@@ -116,7 +116,7 @@ describe("streamingMessageParser", () => {
 
   it("handles xml-escaped attribute and content values", () => {
     const content =
-      '<dyad-write path="a.ts" description="A &amp; B">if (a &lt; b) {}</dyad-write>';
+      '<nextbillion-write path="a.ts" description="A &amp; B">if (a &lt; b) {}</nextbillion-write>';
     const { blocks } = parseFullMessage(content);
     expect(blocks).toHaveLength(1);
     const tag = blocks[0];
@@ -126,12 +126,12 @@ describe("streamingMessageParser", () => {
   });
 
   it("treats unclosed opening tag as in-progress", () => {
-    const content = '<dyad-write path="x.ts">partial';
+    const content = '<nextbillion-write path="x.ts">partial';
     const { blocks } = parseFullMessage(content);
     expect(blocks).toHaveLength(1);
     expect(blocks[0]).toMatchObject({
       kind: "custom-tag",
-      tag: "dyad-write",
+      tag: "nextbillion-write",
       content: "partial",
       complete: false,
       inProgress: true,
@@ -139,20 +139,20 @@ describe("streamingMessageParser", () => {
   });
 
   it("surfaces partial closing-tag bytes in the open block content", () => {
-    // Stream stops mid-closing-tag. The buffered "</dyad-wri" bytes must
+    // Stream stops mid-closing-tag. The buffered "</nextbillion-wri" bytes must
     // appear in the visible content so they stream and aren't lost.
     const cases = [
       { suffix: "<", expected: "content<" },
       { suffix: "</", expected: "content</" },
-      { suffix: "</dyad-wri", expected: "content</dyad-wri" },
+      { suffix: "</nextbillion-wri", expected: "content</nextbillion-wri" },
     ];
     for (const { suffix, expected } of cases) {
-      const content = `<dyad-write path="x.ts">content${suffix}`;
+      const content = `<nextbillion-write path="x.ts">content${suffix}`;
       const { blocks } = parseFullMessage(content);
       expect(blocks).toHaveLength(1);
       expect(blocks[0]).toMatchObject({
         kind: "custom-tag",
-        tag: "dyad-write",
+        tag: "nextbillion-write",
         content: expected,
         complete: false,
         inProgress: true,
@@ -160,7 +160,7 @@ describe("streamingMessageParser", () => {
     }
   });
 
-  it("treats non-dyad < as text", () => {
+  it("treats non-nextbillion < as text", () => {
     const content = "use <html>tag</html> in markdown";
     const { blocks } = parseFullMessage(content);
     expect(blocks).toHaveLength(1);
@@ -173,16 +173,16 @@ describe("streamingMessageParser", () => {
   it("incremental parse equals full parse for any split sequence", () => {
     const content = `Intro line.
 
-<dyad-write path="src/foo.ts" description="foo &amp; bar">
+<nextbillion-write path="src/foo.ts" description="foo &amp; bar">
 const x = 1;
 if (a &lt; b) { console.log("&amp;"); }
-</dyad-write>
+</nextbillion-write>
 
 Some prose between blocks.
 
 <think>step by step</think>
 
-<dyad-add-dependency packages="react"></dyad-add-dependency>
+<nextbillion-add-dependency packages="react"></nextbillion-add-dependency>
 
 Final words.`;
 
@@ -216,14 +216,14 @@ Final words.`;
 
   it("preserves committed block refs across updates", () => {
     const part1 =
-      'Before\n<dyad-write path="x.ts">done</dyad-write>\n<dyad-write path="y.ts">in';
+      'Before\n<nextbillion-write path="x.ts">done</nextbillion-write>\n<nextbillion-write path="y.ts">in';
     const part2 = part1 + "progress";
     let state = initialParserState();
     state = advanceParser(state, part1);
     const blocks1 = getParserBlocks(state);
     state = advanceParser(state, part2);
     const blocks2 = getParserBlocks(state);
-    // Completed dyad-write for x.ts should keep its identity.
+    // Completed nextbillion-write for x.ts should keep its identity.
     const xBefore = blocks1.find(
       (b) => b.kind === "custom-tag" && b.attributes.path === "x.ts",
     );
@@ -247,15 +247,15 @@ Final words.`;
   });
 
   it("only the open block changes ref across many small chunks (O(chunk) renderer guarantee)", () => {
-    // 50 completed dyad-write blocks followed by one open block.
+    // 50 completed nextbillion-write blocks followed by one open block.
     const completedSegments: string[] = [];
     for (let i = 0; i < 50; i++) {
       completedSegments.push(
-        `<dyad-write path="f${i}.ts">content ${i}</dyad-write>`,
+        `<nextbillion-write path="f${i}.ts">content ${i}</nextbillion-write>`,
       );
     }
     const baseContent =
-      completedSegments.join("\n") + '\n<dyad-write path="open.ts">';
+      completedSegments.join("\n") + '\n<nextbillion-write path="open.ts">';
 
     let state = initialParserState();
     state = advanceParser(state, baseContent);
@@ -285,26 +285,27 @@ Final words.`;
   });
 
   it("handles a closing-tag that doesn't match the open tag as content", () => {
-    const content = '<dyad-write path="a.ts">foo</dyad-edit>still</dyad-write>';
+    const content =
+      '<nextbillion-write path="a.ts">foo</nextbillion-edit>still</nextbillion-write>';
     const { blocks } = parseFullMessage(content);
     expect(blocks).toHaveLength(1);
     expect(blocks[0]).toMatchObject({
       kind: "custom-tag",
-      tag: "dyad-write",
-      content: "foo</dyad-edit>still",
+      tag: "nextbillion-write",
+      content: "foo</nextbillion-edit>still",
       complete: true,
     });
   });
 
   it("random-split fuzz: incremental matches full parse for many seeds", () => {
     const content = `Hello.
-<dyad-write path="a.ts" description="x">code &lt;tag&gt; here</dyad-write>
+<nextbillion-write path="a.ts" description="x">code &lt;tag&gt; here</nextbillion-write>
 mid prose
-<dyad-add-dependency packages="react vue"></dyad-add-dependency>
+<nextbillion-add-dependency packages="react vue"></nextbillion-add-dependency>
 <think>analysis &amp; plan</think>
-<dyad-write path="b.ts">b body
+<nextbillion-write path="b.ts">b body
 multi-line
-content</dyad-write>
+content</nextbillion-write>
 trailing`;
 
     const fullBlocks = blocksToShape(parseFullMessage(content).blocks);
@@ -334,13 +335,19 @@ trailing`;
 
   it("resets when content shrinks (resync)", () => {
     let state = initialParserState();
-    state = advanceParser(state, '<dyad-write path="a.ts">old</dyad-write>');
+    state = advanceParser(
+      state,
+      '<nextbillion-write path="a.ts">old</nextbillion-write>',
+    );
     expect(getParserBlocks(state)).toHaveLength(1);
-    state = advanceParser(state, "<dyad-write");
+    state = advanceParser(state, "<nextbillion-write");
     // Resync caused full reparse — synthesized markdown for partial tag.
     const blocks = getParserBlocks(state);
     expect(blocks.length).toBeGreaterThanOrEqual(0);
-    state = advanceParser(state, '<dyad-write path="b.ts">new</dyad-write>');
+    state = advanceParser(
+      state,
+      '<nextbillion-write path="b.ts">new</nextbillion-write>',
+    );
     const finalBlocks = getParserBlocks(state);
     expect(finalBlocks).toHaveLength(1);
     if (finalBlocks[0].kind !== "custom-tag")

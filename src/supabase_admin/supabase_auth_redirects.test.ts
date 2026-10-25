@@ -4,7 +4,7 @@ import {
   SUPABASE_PREVIEW_REGISTRATION_TIMEOUT_MS,
 } from "./supabase_management_client";
 import { readSettings } from "@/main/settings";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 
 vi.mock("@/main/settings", () => ({
   readSettings: vi.fn(),
@@ -177,7 +177,7 @@ describe("Supabase Auth preview redirect allowlist", () => {
       vi.mocked(fetch).mockResolvedValue(Response.json(config));
       await expect(
         ensureSupabaseAuthRedirectUrls(input()),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.External });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.External });
       expect(fetch).toHaveBeenCalledTimes(1);
     },
   );
@@ -190,7 +190,7 @@ describe("Supabase Auth preview redirect allowlist", () => {
       );
       await expect(
         ensureSupabaseAuthRedirectUrls(input()),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Auth });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Auth });
       expect(fetch).toHaveBeenCalledTimes(1);
     },
   );
@@ -202,7 +202,7 @@ describe("Supabase Auth preview redirect allowlist", () => {
         Response.json({ message: "Not authorized" }, { status: 403 }),
       );
     await expect(ensureSupabaseAuthRedirectUrls(input())).rejects.toMatchObject(
-      { kind: DyadErrorKind.Auth },
+      { kind: NextBillionErrorKind.Auth },
     );
   });
 

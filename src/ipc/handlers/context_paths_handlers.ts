@@ -10,10 +10,13 @@ import {
 import { estimateTokens } from "../utils/token_utils";
 import { createLoggedHandler } from "./safe_handle";
 import log from "electron-log";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 import { extractCodebase } from "@/utils/codebase";
 import { validateChatContext } from "../utils/context_paths_utils";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const logger = log.scope("context_paths_handlers");
 const handle = createLoggedHandler(logger);
@@ -29,13 +32,19 @@ export function registerContextPathsHandlers() {
       });
 
       if (!app) {
-        throw new DyadError("App not found", DyadErrorKind.NotFound);
+        throw new NextBillionError(
+          "App not found",
+          NextBillionErrorKind.NotFound,
+        );
       }
 
       if (!app.path) {
-        throw new DyadError("App path not set", DyadErrorKind.Precondition);
+        throw new NextBillionError(
+          "App path not set",
+          NextBillionErrorKind.Precondition,
+        );
       }
-      const appPath = getDyadAppPath(app.path);
+      const appPath = getNextBillionAppPath(app.path);
 
       const results: ContextPathResults = {
         contextPaths: [],

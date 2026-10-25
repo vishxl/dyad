@@ -13,11 +13,11 @@ export const PREVIEW_CONSOLE_OMISSION_MESSAGE =
 
 const MESSAGE_TRUNCATION_SUFFIX = "\n… [log payload truncated]";
 const SOURCE_NAME_TRUNCATION_SUFFIX = "… [source truncated]";
-const OMISSION_MARKER_SOURCE = "Dyad";
+const OMISSION_MARKER_SOURCE = "NextBillion";
 const MAX_FORMATTED_ARGUMENTS = 20;
 const MAX_FORMATTED_ARGUMENT_BYTES = 8 * 1024;
 const FORWARDED_ARGUMENT_OMISSION_PATTERN = /^… \[\d+ arguments omitted\]$/;
-const CONSOLE_OMISSION_MARKER_FIELD = "__dyadConsoleOmissionMarker";
+const CONSOLE_OMISSION_MARKER_FIELD = "__nextBillionConsoleOmissionMarker";
 
 type BufferedConsoleEntry = ConsoleEntry & {
   [CONSOLE_OMISSION_MARKER_FIELD]?: true;

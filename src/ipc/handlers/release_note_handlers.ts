@@ -1,7 +1,10 @@
 import log from "electron-log";
 import { createTypedHandler } from "./base";
 import { systemContracts } from "../types/system";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const logger = log.scope("release_note_handlers");
 
@@ -12,9 +15,9 @@ export function registerReleaseNoteHandlers() {
       const { version } = params;
 
       if (!version || typeof version !== "string") {
-        throw new DyadError(
+        throw new NextBillionError(
           "Invalid version provided",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 

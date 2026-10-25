@@ -207,7 +207,7 @@ describe("github_ops capabilities", () => {
                 request({
                   type: "connect-repo",
                   mode: "existing",
-                  owner: "dyad",
+                  owner: "nextbillion",
                   repo: "app",
                   branch: "main",
                   thenAutoPush: true,
@@ -215,7 +215,7 @@ describe("github_ops capabilities", () => {
                 request({
                   type: "connect-repo",
                   mode: "create",
-                  org: "dyad",
+                  org: "nextbillion",
                   repo: "app",
                   thenAutoPush: true,
                 }),

@@ -3,7 +3,7 @@ import { useShortcut } from "./useShortcut";
 import { usePostHog } from "posthog-js/react";
 import {
   ChatModeSchema,
-  isDyadProEnabled,
+  isNextBillionProEnabled,
   type ChatMode,
 } from "../lib/schemas";
 import { useChatMode } from "./useChatMode";
@@ -79,7 +79,7 @@ export function useChatModeToggle() {
     // Migration on read ensures currentMode is never "agent"
     const newMode = getNextAvailableChatMode({
       currentMode,
-      canUseBasicAgent: isDyadProEnabled(settings) || !isQuotaExceeded,
+      canUseBasicAgent: isNextBillionProEnabled(settings) || !isQuotaExceeded,
       canUseBuild: !isFreeProModel(selectedModel),
       skipLegacyModes: isHostedPreviewDeployment(),
     });

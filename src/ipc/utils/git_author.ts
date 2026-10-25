@@ -9,11 +9,11 @@ export async function getGitAuthor(): Promise<GitAuthor> {
   const user = await getGithubUser();
   const author = user
     ? {
-        name: "Dyad",
+        name: "NextBillion",
         email: user.email,
       }
     : {
-        name: "Dyad",
+        name: "NextBillion",
         email: "noreply@localhost",
       };
   return author;

@@ -761,7 +761,9 @@ describe("exploreCode", () => {
 });
 
 function createTempProject(files: Record<string, string>): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-code-explorer-"));
+  const dir = fs.mkdtempSync(
+    path.join(os.tmpdir(), "nextbillion-code-explorer-"),
+  );
   tempDirs.push(dir);
 
   for (const [relativePath, contents] of Object.entries(files)) {

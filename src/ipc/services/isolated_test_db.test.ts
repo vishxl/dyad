@@ -103,7 +103,7 @@ vi.mock("./app_run_actor_service", () => ({
   },
 }));
 vi.mock("../../paths/paths", () => ({
-  getDyadAppPath: (p: string) => `/apps/${p}`,
+  getNextBillionAppPath: (p: string) => `/apps/${p}`,
 }));
 vi.mock("electron-log", () => ({
   default: {
@@ -142,14 +142,14 @@ beforeEach(() => {
   mocks.readEnvFileIfExists.mockResolvedValue(null);
   mocks.createTempTestUser.mockResolvedValue({
     userId: "user-1",
-    email: "dyad-test+1@dyad.test",
+    email: "nextbillion-test+1@nextbillion.test",
     password: "pw",
     projectUrl: "https://sb-1.supabase.co",
   });
   mocks.deleteTempTestUser.mockResolvedValue(true);
   mocks.getPublishableKey.mockResolvedValue("anon-key-123");
   mocks.createNeonTestAccount.mockResolvedValue({
-    email: "neon-test@dyad.test",
+    email: "neon-test@nextbillion.test",
     password: "neon-pw",
   });
   mocks.ensureNeonAuthTrustedDomain.mockResolvedValue(null);
@@ -189,14 +189,14 @@ describe("per-case database isolation", () => {
       branchId: "temporary",
       origin: "http://127.0.0.1:52150",
     });
-    for (const email of ["first@dyad.test", "retry@dyad.test"]) {
+    for (const email of ["first@nextbillion.test", "retry@nextbillion.test"]) {
       mocks.createNeonTestAccount.mockResolvedValueOnce({
         email,
         password: "pw",
       });
       expect(await prepared.testCaseLifecycle!.beforeEach()).toEqual({
-        DYAD_TEST_USER_EMAIL: email,
-        DYAD_TEST_USER_PASSWORD: "pw",
+        NEXTBILLION_TEST_USER_EMAIL: email,
+        NEXTBILLION_TEST_USER_PASSWORD: "pw",
       });
       await prepared.testCaseLifecycle!.afterEach();
     }
@@ -231,13 +231,13 @@ describe("per-case database isolation", () => {
     for (const userId of ["first", "second"]) {
       mocks.createTempTestUser.mockResolvedValueOnce({
         userId,
-        email: `${userId}@dyad.test`,
+        email: `${userId}@nextbillion.test`,
         password: userId,
         projectUrl: "https://project.supabase.co",
       });
       expect(await lifecycle.beforeEach()).toMatchObject({
-        DYAD_TEST_USER_EMAIL: `${userId}@dyad.test`,
-        DYAD_TEST_SUPABASE_ANON_KEY: "anon-key-123",
+        NEXTBILLION_TEST_USER_EMAIL: `${userId}@nextbillion.test`,
+        NEXTBILLION_TEST_SUPABASE_ANON_KEY: "anon-key-123",
       });
       await lifecycle.afterEach();
       expect(mocks.deleteTempTestUser).toHaveBeenLastCalledWith(
@@ -323,7 +323,10 @@ describe("per-case database isolation", () => {
         });
         expect(prepared.infraError).toBeUndefined();
         expect(mocks.createNeonTestAccount).not.toHaveBeenCalled();
-        for (const email of ["first@dyad.test", "second@dyad.test"]) {
+        for (const email of [
+          "first@nextbillion.test",
+          "second@nextbillion.test",
+        ]) {
           if (withAuth)
             mocks.createNeonTestAccount.mockResolvedValueOnce({
               email,
@@ -332,7 +335,10 @@ describe("per-case database isolation", () => {
           const credentials = await prepared.testCaseLifecycle!.beforeEach();
           expect(credentials).toEqual(
             withAuth
-              ? { DYAD_TEST_USER_EMAIL: email, DYAD_TEST_USER_PASSWORD: "pw" }
+              ? {
+                  NEXTBILLION_TEST_USER_EMAIL: email,
+                  NEXTBILLION_TEST_USER_PASSWORD: "pw",
+                }
               : {},
           );
           await prepared.testCaseLifecycle!.afterEach();
@@ -487,9 +493,9 @@ describe("prepareIsolatedTestDatabase — Supabase test-user path", () => {
     expect(prepared.isolation.mode).toBe("supabase-test-user");
     expect(prepared.isolation.reason).toBeUndefined();
     expect(prepared.testCredentials).toMatchObject({
-      DYAD_TEST_USER_EMAIL: "dyad-test+1@dyad.test",
-      DYAD_TEST_USER_PASSWORD: "pw",
-      DYAD_TEST_SUPABASE_URL: "https://sb-1.supabase.co",
+      NEXTBILLION_TEST_USER_EMAIL: "nextbillion-test+1@nextbillion.test",
+      NEXTBILLION_TEST_USER_PASSWORD: "pw",
+      NEXTBILLION_TEST_SUPABASE_URL: "https://sb-1.supabase.co",
     });
     expect(prepared.infraError).toBeUndefined();
     expect(prepared.authorizeRuntimeOrigin).toBeUndefined();
@@ -613,7 +619,7 @@ describe("prepareIsolatedTestDatabase — Neon happy path", () => {
           );
           expect(prepared.authSetup).toEqual({
             mode: "neon-better-auth",
-            email: "neon-test@dyad.test",
+            email: "neon-test@nextbillion.test",
             password: "neon-pw",
           });
         } else {
@@ -717,7 +723,9 @@ describe("prepareIsolatedTestDatabase — Neon happy path", () => {
       "DATABASE_URL=postgres://live\n",
     );
     mocks.markAndDeleteTempTestBranch.mockResolvedValue(true);
-    const sandbox = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-isolation-"));
+    const sandbox = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-isolation-"),
+    );
     const envPath = path.join(sandbox, ".env.local");
     try {
       const prepared = await prepareIsolatedTestDatabase({
@@ -946,12 +954,12 @@ describe("prepareIsolatedTestDatabase — auth provisioning", () => {
           mocks.ensureNeonAuthTrustedDomain.mock.invocationCallOrder[0],
         ).toBeLessThan(mocks.createNeonTestAccount.mock.invocationCallOrder[0]);
         expect(prepared.testCredentials).toEqual({
-          DYAD_TEST_USER_EMAIL: "neon-test@dyad.test",
-          DYAD_TEST_USER_PASSWORD: "neon-pw",
+          NEXTBILLION_TEST_USER_EMAIL: "neon-test@nextbillion.test",
+          NEXTBILLION_TEST_USER_PASSWORD: "neon-pw",
         });
         expect(prepared.authSetup).toEqual({
           mode: "neon-better-auth",
-          email: "neon-test@dyad.test",
+          email: "neon-test@nextbillion.test",
           password: "neon-pw",
         });
         await prepared.authorizeRuntimeOrigin?.("http://127.0.0.1:49999");
@@ -1023,8 +1031,8 @@ describe("prepareIsolatedTestDatabase — auth provisioning", () => {
 
     expect(mocks.ensureNeonAuthTrustedDomain).not.toHaveBeenCalled();
     expect(prepared.testCredentials).toEqual({
-      DYAD_TEST_USER_EMAIL: "neon-test@dyad.test",
-      DYAD_TEST_USER_PASSWORD: "neon-pw",
+      NEXTBILLION_TEST_USER_EMAIL: "neon-test@nextbillion.test",
+      NEXTBILLION_TEST_USER_PASSWORD: "neon-pw",
     });
   });
 
@@ -1034,7 +1042,9 @@ describe("prepareIsolatedTestDatabase — auth provisioning", () => {
     // real branch the caller never got an id for. Reporting the run as having
     // left nothing behind would drop the user's only warning about it.
     mocks.createTempTestBranch.mockRejectedValue(new Error("auth blocked"));
-    mocks.trackedTestBranchId.mockResolvedValue("dyad-cleanup-only:v1:leaked");
+    mocks.trackedTestBranchId.mockResolvedValue(
+      "nextbillion-cleanup-only:v1:leaked",
+    );
     mocks.markAndDeleteTempTestBranch.mockResolvedValue(false);
 
     const prepared = await prepareIsolatedTestDatabase({
@@ -1047,7 +1057,7 @@ describe("prepareIsolatedTestDatabase — auth provisioning", () => {
 
     expect(mocks.markAndDeleteTempTestBranch).toHaveBeenCalledWith(
       expect.objectContaining({ id: 1 }),
-      "dyad-cleanup-only:v1:leaked",
+      "nextbillion-cleanup-only:v1:leaked",
     );
     await expect(prepared.teardown()).resolves.toMatchObject({
       remoteCleanupCompleted: false,
@@ -1198,11 +1208,11 @@ describe("prepareIsolatedTestDatabase — auth provisioning", () => {
       organizationSlug: "org-1",
     });
     expect(prepared.testCredentials).toMatchObject({
-      DYAD_TEST_SUPABASE_ANON_KEY: "anon-key-123",
+      NEXTBILLION_TEST_SUPABASE_ANON_KEY: "anon-key-123",
     });
     expect(prepared.authSetup).toEqual({
       mode: "supabase-password",
-      email: "dyad-test+1@dyad.test",
+      email: "nextbillion-test+1@nextbillion.test",
       password: "pw",
       projectUrl: "https://sb-1.supabase.co",
       anonKey: "anon-key-123",
@@ -1241,7 +1251,7 @@ describe("prepareIsolatedTestDatabase — auth provisioning", () => {
       stop.abort();
       return {
         userId: "user-1",
-        email: "dyad-test+1@dyad.test",
+        email: "nextbillion-test+1@nextbillion.test",
         password: "pw",
         projectUrl: "https://sb-1.supabase.co",
       };
@@ -1278,10 +1288,10 @@ describe("prepareIsolatedTestDatabase — auth provisioning", () => {
     expect(prepared.isolation.mode).toBe("supabase-test-user");
     expect(prepared.authSetup).toBeUndefined();
     expect(prepared.testCredentials).not.toHaveProperty(
-      "DYAD_TEST_SUPABASE_ANON_KEY",
+      "NEXTBILLION_TEST_SUPABASE_ANON_KEY",
     );
     expect(prepared.testCredentials).toMatchObject({
-      DYAD_TEST_USER_EMAIL: "dyad-test+1@dyad.test",
+      NEXTBILLION_TEST_USER_EMAIL: "nextbillion-test+1@nextbillion.test",
     });
   });
 });

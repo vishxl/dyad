@@ -3,7 +3,7 @@
  */
 import { escapeXmlContent } from "../../../../shared/xmlEscape";
 
-export const COMPACTION_TAG = "dyad-compaction";
+export const COMPACTION_TAG = "nextbillion-compaction";
 
 /** Both persisted summaries and inline indicators must use the same block. */
 export function buildCompactionBlock(summary?: string): string {

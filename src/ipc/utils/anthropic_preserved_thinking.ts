@@ -7,7 +7,7 @@ export const THINKING_BINDING_BETA = "thinking-binding-controls-2026-08-01";
 // The pinned AI SDK doesn't yet expose block_binding or input_transformations.
 // Apply the wire option after SDK serialization, on both BYOK and Engine paths.
 // Sonnet 4 (claude-sonnet-4-20250514) rejects this beta with "invalid beta flag"
-// through the Engine. Dyad does not support that model, so no compatibility
+// through the Engine. NextBillion does not support that model, so no compatibility
 // retry is provided; provider errors are returned unchanged.
 export function withAnthropicPreservedThinking(
   fetchFn: FetchFunction = fetch,

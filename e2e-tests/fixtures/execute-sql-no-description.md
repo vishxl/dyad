@@ -1,7 +1,7 @@
 No description!
 
-<dyad-execute-sql>
+<nextbillion-execute-sql>
 DROP TABLE users;
-</dyad-execute-sql>
+</nextbillion-execute-sql>
 
 Done.

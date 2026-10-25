@@ -1,6 +1,6 @@
-<dyad-rename from="src/App.tsx" to="src/Renamed.tsx">
-</dyad-rename>
+<nextbillion-rename from="src/App.tsx" to="src/Renamed.tsx">
+</nextbillion-rename>
 
-<dyad-write path="src/Renamed.tsx">
+<nextbillion-write path="src/Renamed.tsx">
 // newly added content to renamed file should exist
-</dyad-write>
+</nextbillion-write>

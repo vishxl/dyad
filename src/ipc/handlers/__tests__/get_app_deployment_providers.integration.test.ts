@@ -17,7 +17,7 @@ import {
 /**
  * The Publish panel opens on the first destination the app is connected to,
  * and learns which those are from the app record it already loads.
- * "Connected" is what Dyad has recorded locally for each destination.
+ * "Connected" is what NextBillion has recorded locally for each destination.
  */
 
 describe("get-app deployment providers (integration)", () => {
@@ -28,7 +28,7 @@ describe("get-app deployment providers (integration)", () => {
   // the electron mock refuses to register twice. Each case seeds its own app.
   beforeAll(() => {
     appDirectory = fs.mkdtempSync(
-      path.join(os.tmpdir(), "dyad-get-app-deployments-"),
+      path.join(os.tmpdir(), "nextbillion-get-app-deployments-"),
     );
     harness = setupHandlerTestHarness();
     registerAppHandlers();

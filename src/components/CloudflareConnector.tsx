@@ -288,9 +288,9 @@ function ConnectedAccount({ appId }: { appId: number }) {
       <div className={noticeClass} data-testid="cloudflare-no-targets">
         <p className="font-medium mb-1">No Cloudflare Worker found</p>
         <p>
-          Dyad deploys folders that contain a Wrangler config (wrangler.jsonc,
-          wrangler.json or wrangler.toml). Add a Worker to this app, then sync
-          it to GitHub and click Refresh.
+          NextBillion deploys folders that contain a Wrangler config
+          (wrangler.jsonc, wrangler.json or wrangler.toml). Add a Worker to this
+          app, then sync it to GitHub and click Refresh.
         </p>
         <RecheckButton className="mt-3" onCheck={() => status.refetch()} />
       </div>
@@ -329,8 +329,8 @@ function ConnectedAccount({ appId }: { appId: number }) {
       <p className="text-sm text-gray-600 dark:text-gray-400">
         {folders.length > 1 &&
           "Each folder here deploys to its own Worker, and each connected one deploys when a sync pushes changes to it. "}
-        Dyad finds deployable Cloudflare apps on its own, but you can click
-        Refresh to pick up recent changes.
+        NextBillion finds deployable Cloudflare apps on its own, but you can
+        click Refresh to pick up recent changes.
       </p>
       {folders.length > 1 && (
         <TargetList
@@ -361,7 +361,7 @@ function ConnectedAccount({ appId }: { appId: number }) {
               className={warningClass}
               data-testid="cloudflare-config-missing"
             >
-              Dyad cannot find a Wrangler config for {folder.label} on{" "}
+              NextBillion cannot find a Wrangler config for {folder.label} on{" "}
               {status.data.branch}. If the config is gone, Cloudflare cannot
               build it either, but its deploy rule is still there: restore the
               config, or disconnect {folder.label} to remove the rule.
@@ -454,7 +454,7 @@ function ConnectedAccount({ appId }: { appId: number }) {
   );
 }
 
-/** A folder shown in the tab. `target` is null when Dyad cannot find its Wrangler config. */
+/** A folder shown in the tab. `target` is null when NextBillion cannot find its Wrangler config. */
 interface DeployFolder {
   rootDirectory: string;
   label: string;
@@ -537,7 +537,7 @@ function TargetSetup({
   const access = useCloudflareRepoAccess({ appId, accountId });
   const workers = useCloudflareWorkers({ accountId });
   // Access arrives while the user is off in a browser, and Cloudflare gives
-  // no sign of it there. Dyad comes forward so they know to come back.
+  // no sign of it there. NextBillion comes forward so they know to come back.
   const wasBlocked = useRef(false);
   const hasAccess = access.data?.hasAccess;
   useEffect(() => {

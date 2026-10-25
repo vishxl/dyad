@@ -1,4 +1,7 @@
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { fetchLMStudioModels } from "@/ipc/handlers/local_model_lmstudio_handler";
 import { afterEach, describe, it, expect, vi } from "vitest";
 
@@ -80,7 +83,7 @@ describe("fetchLMStudioModels", () => {
     expect(models.map((model) => model.modelName)).toEqual(["chat-model"]);
   });
 
-  it("throws an external DyadError when the response is not ok", async () => {
+  it("throws an external NextBillionError when the response is not ok", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue({
@@ -90,9 +93,9 @@ describe("fetchLMStudioModels", () => {
     );
 
     await expect(fetchLMStudioModels()).rejects.toEqual(
-      new DyadError(
+      new NextBillionError(
         "Failed to fetch models from LM Studio",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       ),
     );
   });

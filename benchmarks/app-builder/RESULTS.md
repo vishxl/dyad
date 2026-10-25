@@ -2,7 +2,7 @@
 
 Updated: 2026-09-29 · 23 registered model results.
 Three primary apps (Relay CRM, Deskhero, Portalis), three milestones each.
-Dyad local-agent mode; effort settings and local catalog pins are disclosed below. Per checkpoint: fixed Playwright CUJ
+NextBillion local-agent mode; effort settings and local catalog pins are disclosed below. Per checkpoint: fixed Playwright CUJ
 suites + adversarial security probes against pinned UI contracts, plus an LLM
 judge (gpt-5.6-sol, single judge, input-capped). Composite per app =
 60% CUJ + 25% probes + 15% judge; overall = mean of scored app composites.
@@ -103,12 +103,12 @@ Artifacts: [validation](results/run-20260922-luna-deskhero-repeat/validation.jso
 ## Reasoning-effort sweep (luna + terra)
 
 The main table generally runs models at the product default (medium for every
-model except gpt-6-astra, whose default became `low` in Dyad's catalog on
+model except gpt-6-astra, whose default became `low` in NextBillion's catalog on
 2026-09-04; its headline row is the low cells and its medium run is the
 non-default tier below). This sweep
 re-runs the two cheapest models at `high` and `xhigh` — same harness, same
 controls. Effort is applied at the recording proxy (`reasoning_effort` /
-`reasoning.effort`) because Dyad's `thinkingBudget` setting exposes only
+`reasoning.effort`) because NextBillion's `thinkingBudget` setting exposes only
 low/medium/high, so these rows do **not** use a product-reachable configuration
 and are reported separately from the headline matrix.
 
@@ -167,9 +167,9 @@ diagnosis of each near-zero.
 
 ## Caveats (disclosed by design)
 
-- GPT-6.1 Sol: official API default medium via a benchmark-local 2026-09-29 catalog pin; absent from Dyad's live catalog at launch, so not a verified Dyad product default. 128000 output cap. Cache-write costs recovered from preserved raw Responses usage and verified against milestone ledger boundaries; no generated-app edits or build reruns.
+- GPT-6.1 Sol: official API default medium via a benchmark-local 2026-09-29 catalog pin; absent from NextBillion's live catalog at launch, so not a verified NextBillion product default. 128000 output cap. Cache-write costs recovered from preserved raw Responses usage and verified against milestone ledger boundaries; no generated-app edits or build reruns.
 
-- Sonnet 5.5: explicitly medium effort via a benchmark-local 2026-09-28 catalog pin (not a verified Dyad default; Anthropic API default is high), 128000 output cap. Fresh r2 cells follow an early recorder repair: engine message_stop usage had overwritten cache-token counts; the interrupted first attempt is preserved and excluded.
+- Sonnet 5.5: explicitly medium effort via a benchmark-local 2026-09-28 catalog pin (not a verified NextBillion default; Anthropic API default is high), 128000 output cap. Fresh r2 cells follow an early recorder repair: engine message_stop usage had overwritten cache-token counts; the interrupted first attempt is preserved and excluded.
 
 - N=1 per cell. Judge is gpt-5.6-sol for all candidates (user decision;
   same-vendor bias toward the gpt-5.6 family — bounded by the 15% judge weight).

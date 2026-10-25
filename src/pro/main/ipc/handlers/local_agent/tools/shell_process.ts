@@ -43,7 +43,7 @@ function registerQuitCleanup() {
   });
 }
 
-/** Preserve host CLI configuration/authentication, excluding Dyad secrets and startup injection. */
+/** Preserve host CLI configuration/authentication, excluding NextBillion secrets and startup injection. */
 export function shellEnvironment(
   source: NodeJS.ProcessEnv = process.env,
 ): NodeJS.ProcessEnv {
@@ -76,7 +76,7 @@ export function shellEnvironment(
       const normalized = key.toUpperCase();
       return (
         !denied.has(normalized) &&
-        !normalized.startsWith("DYAD_") &&
+        !normalized.startsWith("NEXTBILLION_") &&
         !normalized.startsWith("DYLD_")
       );
     }),
@@ -100,7 +100,7 @@ export function shellInvocation(command: string, platform = process.platform) {
     // Windows PowerShell 5.1 treats native stderr as error records. Continue lets
     // warnings flow. Final $? includes cmdlets; LASTEXITCODE can be stale from
     // an earlier native command. Explicit exit commands retain their own code.
-    const script = `[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)\n$ErrorActionPreference = 'Continue'\n${command}\n$dyadShellSucceeded = $?\nif ($dyadShellSucceeded) { exit 0 }\nexit 1\n`;
+    const script = `[Console]::OutputEncoding = New-Object System.Text.UTF8Encoding($false)\n$ErrorActionPreference = 'Continue'\n${command}\n$nextBillionShellSucceeded = $?\nif ($nextBillionShellSucceeded) { exit 0 }\nexit 1\n`;
     return buildWindowsCommandInvocation(
       executable,
       [

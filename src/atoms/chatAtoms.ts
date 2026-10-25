@@ -137,7 +137,7 @@ export const chatTabSessionStorageAtom = atomWithStorage<ChatTabSession>(
  * browser would silently send no packs and generated apps would miss vendor context.
  * Default all packs ON in hosted deployments; desktop stays default-off. */
 export const contextPacksAtom = atomWithStorage<ContextPackId[]>(
-  "dyad-context-packs",
+  "nextbillion-context-packs",
   isHostedPreviewDeployment() ? [...CONTEXT_PACK_IDS] : [],
 );
 

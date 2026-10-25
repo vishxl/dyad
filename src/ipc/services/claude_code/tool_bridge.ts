@@ -11,10 +11,13 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { asSchema, type ToolSet } from "ai";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
-/** Transport only. Tool callbacks are the same guarded callbacks used by Dyad. */
-export async function createDyadToolBridge(options: {
+/** Transport only. Tool callbacks are the same guarded callbacks used by NextBillion. */
+export async function createNextBillionToolBridge(options: {
   tools: ToolSet;
   signal: AbortSignal;
   invoke(name: string, args: unknown, id: string): Promise<CallToolResult>;
@@ -52,7 +55,7 @@ export async function createDyadToolBridge(options: {
       return;
     }
     const server = new Server(
-      { name: "dyad", version: "1.0.0" },
+      { name: "nextbillion", version: "1.0.0" },
       { capabilities: { tools: {} } },
     );
     servers.add(server);
@@ -92,7 +95,7 @@ export async function createDyadToolBridge(options: {
                   params: {
                     progressToken,
                     progress: ++progress,
-                    message: "Waiting for Dyad tool completion",
+                    message: "Waiting for NextBillion tool completion",
                   },
                 })
                 .catch(() => {});
@@ -130,14 +133,17 @@ export async function createDyadToolBridge(options: {
   try {
     const address = http.address();
     if (!address || typeof address === "string")
-      throw new DyadError("Missing MCP listener", DyadErrorKind.External);
-    directory = await mkdtemp(path.join(tmpdir(), "dyad-tools-"));
+      throw new NextBillionError(
+        "Missing MCP listener",
+        NextBillionErrorKind.External,
+      );
+    directory = await mkdtemp(path.join(tmpdir(), "nextbillion-tools-"));
     configPath = path.join(directory, "mcp.json");
     await writeFile(
       configPath,
       JSON.stringify({
         mcpServers: {
-          dyad: {
+          nextbillion: {
             type: "http",
             url: `http://127.0.0.1:${address.port}/mcp`,
             headers: { Authorization: `Bearer ${token}` },
@@ -153,7 +159,7 @@ export async function createDyadToolBridge(options: {
   }
   return {
     configPath,
-    names: declarations.map((tool) => `mcp__dyad__${tool.name}`),
+    names: declarations.map((tool) => `mcp__nextbillion__${tool.name}`),
     async close() {
       closing.abort();
       http.close();

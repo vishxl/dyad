@@ -15,7 +15,9 @@ it("resolves callback, promise and Playwright API requests in launched Node, pre
   const dir = await mkdtemp(
     path.join(
       os.tmpdir(),
-      process.platform === "win32" ? "dyad dns " : 'dyad dns \\ " ',
+      process.platform === "win32"
+        ? "nextbillion dns "
+        : 'nextbillion dns \\ " ',
     ),
   );
   const server = http.createServer((req, res) => res.end(req.headers.host));
@@ -39,7 +41,7 @@ const { request } = require('playwright');
   await assert.rejects(dns.promises.lookup('app-42.localhost.invalid'));
   const api = await request.newContext();
   try {
-    const response = await api.get(process.env.DYAD_TEST_BASE_URL);
+    const response = await api.get(process.env.NEXTBILLION_TEST_BASE_URL);
     assert.equal(await response.text(), 'app-42.localhost:${port}');
   } finally {
     await api.dispose();
@@ -49,7 +51,7 @@ const { request } = require('playwright');
       cwd: process.cwd(),
       env: {
         ...process.env,
-        DYAD_TEST_BASE_URL: `http://app-42.localhost:${port}`,
+        NEXTBILLION_TEST_BASE_URL: `http://app-42.localhost:${port}`,
         NODE_OPTIONS: previewTestNodeOptions(dir, "--no-warnings"),
       },
     });

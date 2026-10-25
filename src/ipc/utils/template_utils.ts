@@ -28,7 +28,10 @@ function convertApiTemplate(apiTemplate: ApiTemplate): Template {
 export async function fetchApiTemplates(): Promise<Template[]> {
   // Community templates come from the original project's API; only fetch them
   // once a gateway has been configured explicitly.
-  if (!process.env.NEXTBILLION_API_BASE_URL && !process.env.DYAD_API_BASE_URL) {
+  if (
+    !process.env.NEXTBILLION_API_BASE_URL &&
+    !process.env.NEXTBILLION_API_BASE_URL
+  ) {
     return [];
   }
 

@@ -12,7 +12,10 @@ import {
   requiresNewChatForModel,
 } from "@/shared/execution_backend";
 import { useSelectChat } from "@/hooks/useSelectChat";
-import { isDyadProEnabled, type LargeLanguageModel } from "@/lib/schemas";
+import {
+  isNextBillionProEnabled,
+  type LargeLanguageModel,
+} from "@/lib/schemas";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -45,11 +48,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import {
-  CheckIcon,
-  ChevronRightIcon,
-  LockIcon,
-} from "lucide-react";
+import { CheckIcon, ChevronRightIcon, LockIcon } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { SubscriptionModelMenu } from "@/components/SubscriptionModelMenu";
 import { useSubscriptionAccount } from "@/hooks/useSubscriptionAccount";
@@ -318,7 +317,8 @@ export function ModelPicker() {
       chat &&
       chatId &&
       (hasEstablishedChat ||
-        executionBackendForModel(model) !== (chat.executionBackend ?? "dyad"))
+        executionBackendForModel(model) !==
+          (chat.executionBackend ?? "nextbillion"))
     ) {
       await setChatSelection({
         modelSelection,
@@ -371,7 +371,7 @@ export function ModelPicker() {
     setOpen(nextOpen);
     if (nextOpen) {
       posthog.capture("model-picker:open", {
-        isDyadPro: settings ? isDyadProEnabled(settings) : false,
+        isNextBillionPro: settings ? isNextBillionProEnabled(settings) : false,
       });
     }
   };
@@ -391,7 +391,9 @@ export function ModelPicker() {
   } = useLanguageModelProviders();
 
   const loading = modelsByProvidersLoading || providersLoading;
-  const dyadProEnabled = settings ? isDyadProEnabled(settings) : false;
+  const nextBillionProEnabled = settings
+    ? isNextBillionProEnabled(settings)
+    : false;
   // Ollama Models Hook
   const {
     models: ollamaModels,
@@ -488,15 +490,19 @@ export function ModelPicker() {
     !loading && modelsByProviders && modelsByProviders["auto"]
       ? modelsByProviders["auto"].filter((model) => {
           if (model.apiName === FREE_PRO_MODEL_NAME) {
-            return dyadProEnabled && !isTrial && !isLoadingTrialStatus;
+            return nextBillionProEnabled && !isTrial && !isLoadingTrialStatus;
           }
-          if (settings && !dyadProEnabled && model.apiName === "value") {
+          if (settings && !nextBillionProEnabled && model.apiName === "value") {
             return false;
           }
-          if (settings && !dyadProEnabled && model.apiName === "balanced") {
+          if (
+            settings &&
+            !nextBillionProEnabled &&
+            model.apiName === "balanced"
+          ) {
             return false;
           }
-          if (settings && dyadProEnabled && model.apiName === "free") {
+          if (settings && nextBillionProEnabled && model.apiName === "free") {
             return false;
           }
           return true;
@@ -507,7 +513,7 @@ export function ModelPicker() {
   );
   const autoModels = regularAutoModel
     ? catalogAutoModels.flatMap((model) =>
-        model.apiName === "auto" && dyadProEnabled
+        model.apiName === "auto" && nextBillionProEnabled
           ? [
               model,
               {
@@ -584,7 +590,7 @@ export function ModelPicker() {
       : [];
   const isVisibleCatalogModel = (providerId: string, model: LanguageModel) =>
     !(
-      dyadProEnabled &&
+      nextBillionProEnabled &&
       providerId === "openrouter" &&
       isFreeOpenRouterModelName(model.apiName)
     );
@@ -802,7 +808,7 @@ export function ModelPicker() {
   };
 
   // Non-Pro users can still use any cloud model with their own API key, so a
-  // model is only locked when neither Dyad Pro nor a provider key can run it.
+  // model is only locked when neither NextBillion Pro nor a provider key can run it.
   // Custom and local providers are never locked: Pro doesn't unlock those.
   // While settings/env vars are still loading we can't tell whether a key
   // exists, so fail open rather than flash a lock at env-var-configured users.
@@ -819,7 +825,7 @@ export function ModelPicker() {
       return false;
     if (
       settingsLoading ||
-      dyadProEnabled ||
+      nextBillionProEnabled ||
       providerId === "auto" ||
       (providerId === "openai" && subscription.isLoading)
     ) {
@@ -926,7 +932,7 @@ export function ModelPicker() {
       isAutoOpenRouterFreeRow ||
       (isAutoProviderRow &&
         model.apiName === "auto" &&
-        !dyadProEnabled &&
+        !nextBillionProEnabled &&
         isProviderSetup("openrouter"));
     const freeProResetTimeLabel = freeModelQuota.resetTime
       ? new Intl.DateTimeFormat(undefined, {
@@ -1132,7 +1138,7 @@ export function ModelPicker() {
         aria-label={
           isFreeProviderRow
             ? `${model.displayName} — requires an API key from ${getProviderDisplayName(providerId)}`
-            : `${model.displayName} — requires Dyad Pro or an API key from ${getProviderDisplayName(providerId)}`
+            : `${model.displayName} — requires NextBillion Pro or an API key from ${getProviderDisplayName(providerId)}`
         }
         onClick={() => handleLockedModelClick(providerId, model)}
       >
@@ -1218,7 +1224,9 @@ export function ModelPicker() {
     const providerState =
       provider?.type === "custom"
         ? "Custom provider"
-        : provider?.type === "cloud" && !provider.secondary && dyadProEnabled
+        : provider?.type === "cloud" &&
+            !provider.secondary &&
+            nextBillionProEnabled
           ? "Pro"
           : null;
 
@@ -1242,7 +1250,9 @@ export function ModelPicker() {
               <span>{providerDisplayName}</span>
               {provider?.type === "cloud" &&
                 !provider?.secondary &&
-                dyadProEnabled && <span className={PRO_PILL_CLASS}>Pro</span>}
+                nextBillionProEnabled && (
+                  <span className={PRO_PILL_CLASS}>Pro</span>
+                )}
               {provider?.type === "custom" && (
                 <span className={cn(PILL_CLASS, "bg-amber-500 text-white")}>
                   Custom

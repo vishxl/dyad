@@ -1,3 +1,4 @@
+import "./scripts/lib/legacy-env.mjs";
 import { windowsSign } from "./windowsSign";
 import {
   removeUnusedAppPackageFiles,
@@ -89,7 +90,7 @@ const ignore = (file: string) => {
   if (file.startsWith("/node_modules/better-sqlite3")) {
     return false;
   }
-  if (file.startsWith("/node_modules/dyad-keychain-reader")) {
+  if (file.startsWith("/node_modules/nextbillion-keychain-reader")) {
     return false;
   }
   if (file.startsWith("/node_modules/node-pty")) {
@@ -137,12 +138,13 @@ const ignore = (file: string) => {
 
 const isEndToEndTestBuild = process.env.E2E_TEST_BUILD === "true";
 const isWindowsSigningEnabled = process.env.WINDOWS_SIGN === "true";
-const shouldSkipNativeRebuild = process.env.DYAD_SKIP_NATIVE_REBUILD === "true";
+const shouldSkipNativeRebuild =
+  process.env.NEXTBILLION_SKIP_NATIVE_REBUILD === "true";
 const nativeRebuildModules = [
   "better-sqlite3",
   "node-pty",
   "mustardscript",
-  ...(process.platform === "darwin" ? ["dyad-keychain-reader"] : []),
+  ...(process.platform === "darwin" ? ["nextbillion-keychain-reader"] : []),
 ];
 
 if (isWindowsSigningEnabled && !process.env.AZURE_CODE_SIGNING_DLIB) {
@@ -178,8 +180,9 @@ const config: ForgeConfig = {
     ],
     protocols: [
       {
-        name: "Dyad",
-        schemes: ["dyad"],
+        name: "NextBillion",
+        // "dyad" is the pre-rebrand scheme still used by external OAuth return pages.
+        schemes: ["nextbillion", "dyad"],
       },
     ],
     icon: "./assets/icon/logo",
@@ -205,7 +208,7 @@ const config: ForgeConfig = {
     asar: {
       // Native modules and node-pty helper binaries must be loadable from disk.
       unpackDir:
-        "{node_modules/dyad-keychain-reader,node_modules/node-pty,node_modules/mustardscript,node_modules/@mustardscript}",
+        "{node_modules/nextbillion-keychain-reader,node_modules/node-pty,node_modules/mustardscript,node_modules/@mustardscript}",
     },
     ignore,
     extraResource: ["node_modules/dugite/git", "node_modules/@vscode"],
@@ -232,13 +235,13 @@ const config: ForgeConfig = {
     new MakerZIP({}, ["darwin"]),
     new MakerRpm({
       options: {
-        mimeType: ["x-scheme-handler/dyad"],
+        mimeType: ["x-scheme-handler/nextbillion"],
         icon: "./assets/icon/logo.png",
       },
     }),
     new MakerDeb({
       options: {
-        mimeType: ["x-scheme-handler/dyad"],
+        mimeType: ["x-scheme-handler/nextbillion"],
         icon: "./assets/icon/logo.png",
       },
     }),

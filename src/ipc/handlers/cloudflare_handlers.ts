@@ -4,8 +4,11 @@ import { and, eq } from "drizzle-orm";
 import { db } from "../../db";
 import { apps, cloudflareAppConnections } from "../../db/schema";
 import { readSettings, writeSettings } from "../../main/settings";
-import { getDyadAppPath } from "@/paths/paths";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import { getNextBillionAppPath } from "@/paths/paths";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { execGit } from "../utils/git_utils";
 import { getPnpmMinimumReleaseAgeSupport } from "../utils/socket_firewall";
 import { createAppOperationHandler } from "../utils/app_mutation_lock";
@@ -46,7 +49,7 @@ import {
   setTriggerBuildToken,
   setTriggerBuildVariables,
   startBuild,
-  toCloudflareDyadError,
+  toCloudflareNextBillionError,
   triggerDeploys,
   triggerDeploysBranch,
   updateTrigger,
@@ -83,9 +86,9 @@ type ConnectionRow = typeof cloudflareAppConnections.$inferSelect;
 
 function assertCloudflareEnabled(): void {
   if (!readSettings().enableCloudflareDeployment) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Cloudflare deployment is not enabled. Turn it on in Settings > Experiments.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 }
@@ -93,9 +96,9 @@ function assertCloudflareEnabled(): void {
 function requireToken(): string {
   const token = readSettings().cloudflareAccessToken?.value;
   if (!token) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Not connected to Cloudflare. Add an API token first.",
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
   return token;
@@ -104,7 +107,7 @@ function requireToken(): string {
 async function requireApp(appId: number): Promise<AppRow> {
   const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
   if (!app) {
-    throw new DyadError("App not found", DyadErrorKind.NotFound);
+    throw new NextBillionError("App not found", NextBillionErrorKind.NotFound);
   }
   return app;
 }
@@ -158,9 +161,9 @@ async function listCommittedTargets(
   if (result.exitCode !== 0) {
     // An empty list would tell the user the app has no Worker.
     logger.warn(`Could not list the files on ${branch}:`, result.stderr);
-    throw new DyadError(
+    throw new NextBillionError(
       `Could not read the "${branch}" branch of this app's repository.`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   return detectCloudflareTargets(result.stdout.split("\0").filter(Boolean));
@@ -239,9 +242,9 @@ async function assertWorkerIsFree(
     existing.rootDirectory === ""
       ? "the app root"
       : `folder "${existing.rootDirectory}"`;
-  throw new DyadError(
+  throw new NextBillionError(
     `"${workerName}" already deploys ${folder} of ${owner?.name ?? "another app"}. A Worker can only be deployed from one folder, so pick or create a different Worker.`,
-    DyadErrorKind.Conflict,
+    NextBillionErrorKind.Conflict,
   );
 }
 
@@ -291,14 +294,17 @@ const githubIdentityCache = new Map<
 
 async function getGithubRepoIdentity(app: AppRow): Promise<GithubRepoIdentity> {
   if (!app.githubOrg || !app.githubRepo) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Connect this app to a GitHub repository before deploying to Cloudflare.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const githubToken = readSettings().githubAccessToken?.value;
   if (!githubToken) {
-    throw new DyadError("Not authenticated with GitHub.", DyadErrorKind.Auth);
+    throw new NextBillionError(
+      "Not authenticated with GitHub.",
+      NextBillionErrorKind.Auth,
+    );
   }
   // The access check polls while the user is away granting access, and would
   // otherwise ask GitHub for the same two numbers every few seconds.
@@ -314,20 +320,20 @@ async function getGithubRepoIdentity(app: AppRow): Promise<GithubRepoIdentity> {
       { headers: { Authorization: `Bearer ${githubToken}` } },
     );
   } catch (error) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Could not reach GitHub: ${error instanceof Error ? error.message : String(error)}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
   if (!response.ok) {
     // Without the repository's name, which would go out with the error report.
-    throw new DyadError(
+    throw new NextBillionError(
       `Could not read this app's repository from GitHub (${response.status}).`,
       response.status === 404
-        ? DyadErrorKind.NotFound
+        ? NextBillionErrorKind.NotFound
         : response.status === 401 || response.status === 403
-          ? DyadErrorKind.Auth
-          : DyadErrorKind.External,
+          ? NextBillionErrorKind.Auth
+          : NextBillionErrorKind.External,
     );
   }
   const repo = (await response.json()) as {
@@ -336,9 +342,9 @@ async function getGithubRepoIdentity(app: AppRow): Promise<GithubRepoIdentity> {
     owner?: { id?: number; login?: string };
   };
   if (repo.id === undefined || repo.owner?.id === undefined) {
-    throw new DyadError(
+    throw new NextBillionError(
       "GitHub did not return the repository's identifiers.",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
   const identity = {
@@ -359,7 +365,10 @@ async function getGithubRepoIdentity(app: AppRow): Promise<GithubRepoIdentity> {
 async function handleSaveToken(rawToken: string): Promise<void> {
   const token = rawToken.trim();
   if (token === "") {
-    throw new DyadError("An API token is required.", DyadErrorKind.Auth);
+    throw new NextBillionError(
+      "An API token is required.",
+      NextBillionErrorKind.Auth,
+    );
   }
 
   let info;
@@ -372,17 +381,17 @@ async function handleSaveToken(rawToken: string): Promise<void> {
       isCloudflareAuthFailure(error) ||
       (error instanceof CloudflareApiError && error.status === 400)
     ) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Cloudflare did not accept this API token. Check that you copied all of it.",
-        DyadErrorKind.Auth,
+        NextBillionErrorKind.Auth,
       );
     }
-    throw toCloudflareDyadError(error, "Could not check the API token");
+    throw toCloudflareNextBillionError(error, "Could not check the API token");
   }
   if (info.status !== "active") {
-    throw new DyadError(
+    throw new NextBillionError(
       `This API token is ${info.status}. Create a new one and try again.`,
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -390,12 +399,15 @@ async function handleSaveToken(rawToken: string): Promise<void> {
   try {
     accounts = await listAccounts(token);
   } catch (error) {
-    throw toCloudflareDyadError(error, "Could not list Cloudflare accounts");
+    throw toCloudflareNextBillionError(
+      error,
+      "Could not list Cloudflare accounts",
+    );
   }
   if (accounts.length === 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This API token cannot see any Cloudflare account. Create it with the link above so it has the right permissions.",
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -413,14 +425,14 @@ async function handleSaveToken(rawToken: string): Promise<void> {
         probe.status === "rejected" && !isCloudflareAuthFailure(probe.reason),
     );
     if (otherFailure?.status === "rejected") {
-      throw toCloudflareDyadError(
+      throw toCloudflareNextBillionError(
         otherFailure.reason,
         "Could not check the API token's permissions",
       );
     }
-    throw new DyadError(
+    throw new NextBillionError(
       "This API token is missing a permission. It needs Workers Scripts (edit) and Workers Builds Configuration (edit). Create it with the link above so both are included.",
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -468,7 +480,7 @@ async function moveDeployRulesToToken(
 
 async function handleGetAppStatus(appId: number): Promise<CloudflareAppStatus> {
   const app = await requireApp(appId);
-  const appPath = getDyadAppPath(app.path);
+  const appPath = getNextBillionAppPath(app.path);
   const branch = app.githubBranch ?? DEFAULT_BRANCH;
 
   const [synced, listing, rows] = await Promise.all([
@@ -537,7 +549,7 @@ async function handleCheckRepoAccess({
     );
     return { hasAccess };
   } catch (error) {
-    throw toCloudflareDyadError(
+    throw toCloudflareNextBillionError(
       error,
       "Could not check Cloudflare's access to the repository",
     );
@@ -550,36 +562,36 @@ async function handleConnectWorker(
   const { appId, accountId, rootDirectory, workerName, mode } = params;
   const token = requireToken();
   const app = await requireApp(appId);
-  const appPath = getDyadAppPath(app.path);
+  const appPath = getNextBillionAppPath(app.path);
   const branch = app.githubBranch ?? DEFAULT_BRANCH;
 
   if (!isValidWorkerName(workerName)) {
-    throw new DyadError(
+    throw new NextBillionError(
       "A Worker name can only contain lowercase letters, numbers and dashes, and must be 63 characters or fewer.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   if (await findConnection(appId, rootDirectory)) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This folder is already connected to a Worker.",
-      DyadErrorKind.Conflict,
+      NextBillionErrorKind.Conflict,
     );
   }
   // The tab only offers this once the app is synced, but that was a moment
   // ago. Unsynced, the folder may not be on GitHub for Cloudflare to build.
   if (!(await isBranchSynced(appPath, branch))) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Sync this app to GitHub first. The latest commit on ${branch} has not been pushed, and Cloudflare builds what is on GitHub.`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
-  // The folder ends up in a rule Cloudflare runs, so it has to be one Dyad
+  // The folder ends up in a rule Cloudflare runs, so it has to be one NextBillion
   // found in the repository rather than whatever the caller sent.
   const targets = await listCommittedTargets(appPath, branch);
   if (!targets.some((target) => target.rootDirectory === rootDirectory)) {
-    throw new DyadError(
+    throw new NextBillionError(
       "No Wrangler config was found in that folder on the synced branch.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 
@@ -591,18 +603,18 @@ async function handleConnectWorker(
   let removedForeignRule = false;
   try {
     if (!(await canCloudflareSeeRepo(token, accountId, repo, branch))) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Cloudflare cannot see this GitHub repository yet.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     const subdomain = await getAccountSubdomain(token, accountId);
     // A new Worker is served at workers.dev. An existing one may be served
     // only at its own domain, in an account that never set a subdomain up.
     if (!subdomain && mode === "create") {
-      throw new DyadError(
+      throw new NextBillionError(
         "This Cloudflare account has no workers.dev subdomain yet. Open Workers & Pages in the Cloudflare dashboard once to create it, then try again.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 
@@ -613,9 +625,9 @@ async function handleConnectWorker(
       : null;
     if (mode === "create") {
       if (worker) {
-        throw new DyadError(
+        throw new NextBillionError(
           `A Worker named "${workerName}" already exists in this account.`,
-          DyadErrorKind.Conflict,
+          NextBillionErrorKind.Conflict,
         );
       }
       worker = await createPlaceholderWorker(token, accountId, workerName);
@@ -624,9 +636,9 @@ async function handleConnectWorker(
       // its owner's decision: one kept behind a custom domain stays that way.
       await enableWorkersDevRoute(token, accountId, workerName);
     } else if (!worker) {
-      throw new DyadError(
+      throw new NextBillionError(
         `No Worker named "${workerName}" exists in this account.`,
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     } else {
       await assertWorkerIsFree(accountId, worker.tag, workerName);
@@ -743,9 +755,9 @@ async function handleConnectWorker(
       // Another connect took the Worker after the check above. Say so the
       // way that check does.
       await assertWorkerIsFree(accountId, worker.tag, workerName);
-      throw new DyadError(
+      throw new NextBillionError(
         "This folder was connected a moment ago. Reopen the Cloudflare tab to see it.",
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
     // From here the connection is real; nothing below may undo it.
@@ -766,14 +778,14 @@ async function handleConnectWorker(
   } catch (error) {
     if (rewrittenTrigger) {
       // The Worker's own rule was repointed at this folder. Left that way it
-      // would deploy the folder with nothing in Dyad to show for it.
+      // would deploy the folder with nothing in NextBillion to show for it.
       await restoreTrigger(token, accountId, rewrittenTrigger).catch(
         (cleanupError) =>
           logger.warn("Could not restore the deploy rule:", cleanupError),
       );
     }
     if (createdTriggerUuid) {
-      // A rule without a row would keep deploying with nothing in Dyad to
+      // A rule without a row would keep deploying with nothing in NextBillion to
       // show or remove it.
       await deleteTrigger(token, accountId, createdTriggerUuid).catch(
         (cleanupError) =>
@@ -787,17 +799,17 @@ async function handleConnectWorker(
           logger.warn("Could not remove the unused Worker:", cleanupError),
       );
     }
-    const failure = toCloudflareDyadError(
+    const failure = toCloudflareNextBillionError(
       error,
       "Could not connect the Worker",
     );
-    if (removedForeignRule && failure instanceof DyadError) {
+    if (removedForeignRule && failure instanceof NextBillionError) {
       // Cloudflare refuses a new rule while the old one exists, so it was
       // already gone when this failed, and its secrets cannot be read back
       // to recreate it. The user has to be told. The repository is not named:
       // they confirmed it a moment ago, and the message goes out with the
       // error report.
-      throw new DyadError(
+      throw new NextBillionError(
         `${failure.message} The rule that deployed this Worker from the other repository was already removed and has not been put back.`,
         failure.kind,
       );
@@ -834,9 +846,9 @@ async function handleGetDeploymentStatus({
   const app = await requireApp(appId);
   const row = await findConnection(appId, rootDirectory);
   if (!row) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This folder is not connected to a Worker.",
-      DyadErrorKind.NotFound,
+      NextBillionErrorKind.NotFound,
     );
   }
 
@@ -903,7 +915,10 @@ async function handleGetDeploymentStatus({
       workerUrl,
     };
   } catch (error) {
-    throw toCloudflareDyadError(error, "Could not read the deployment status");
+    throw toCloudflareNextBillionError(
+      error,
+      "Could not read the deployment status",
+    );
   }
 }
 
@@ -918,9 +933,9 @@ async function handleDisconnect({
   if (!row) {
     return;
   }
-  // Without this the Worker would keep deploying on every push after Dyad
+  // Without this the Worker would keep deploying on every push after NextBillion
   // says it is disconnected. The Worker itself stays: it may be serving traffic.
-  // With the token gone Dyad cannot reach Cloudflare, so the rule stays; the
+  // With the token gone NextBillion cannot reach Cloudflare, so the rule stays; the
   // connection is still forgotten so the app is not stuck connected.
   const token = readSettings().cloudflareAccessToken?.value;
   if (token) {
@@ -929,12 +944,12 @@ async function handleDisconnect({
     } catch (error) {
       if (isCloudflareAuthFailure(error)) {
         // The way out is not obvious from Cloudflare's own message.
-        throw new DyadError(
+        throw new NextBillionError(
           "Cloudflare refused the saved API token, so the deploy rule could not be removed. Remove the token under Settings > Integrations, then add a working one and disconnect again. Disconnecting without a token also works, but leaves the rule on Cloudflare.",
-          DyadErrorKind.Auth,
+          NextBillionErrorKind.Auth,
         );
       }
-      throw toCloudflareDyadError(
+      throw toCloudflareNextBillionError(
         error,
         "Could not remove the deploy rule from Cloudflare",
       );
@@ -954,12 +969,12 @@ async function handleListWorkers(
   } catch (error) {
     if (error instanceof CloudflareApiError && error.status === 403) {
       // A token can be good for one account and not another.
-      throw new DyadError(
+      throw new NextBillionError(
         "This API token cannot use Workers in this Cloudflare account. Pick another account, or add a token that can.",
-        DyadErrorKind.Auth,
+        NextBillionErrorKind.Auth,
       );
     }
-    throw toCloudflareDyadError(error, "Could not list Workers");
+    throw toCloudflareNextBillionError(error, "Could not list Workers");
   }
 }
 
@@ -983,7 +998,10 @@ export function registerCloudflareHandlers() {
     try {
       return await listAccounts(requireToken());
     } catch (error) {
-      throw toCloudflareDyadError(error, "Could not list Cloudflare accounts");
+      throw toCloudflareNextBillionError(
+        error,
+        "Could not list Cloudflare accounts",
+      );
     }
   });
 

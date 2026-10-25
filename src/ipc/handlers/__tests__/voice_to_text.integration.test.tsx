@@ -11,10 +11,10 @@ import {
 import { h } from "@/testing/hybrid.setup";
 
 const PRO_SETTINGS: Partial<UserSettings> = {
-  enableDyadPro: true,
+  enableNextBillionPro: true,
   providerSettings: {
     auto: {
-      apiKey: { value: "testdyadkey" },
+      apiKey: { value: "testnextbillionkey" },
     },
   },
 };
@@ -26,7 +26,7 @@ describe("voice-to-text chat input controls (integration)", () => {
     harness = await setupHybridChatHarness({
       electronMock: h,
       autoApprove: true,
-      // Tests below enable Dyad Pro, which triggers free-quota fetches; route
+      // Tests below enable NextBillion Pro, which triggers free-quota fetches; route
       // them to the fake engine instead of the real engine.dyad.sh.
       engine: true,
       settings: { isTestMode: true },
@@ -36,7 +36,7 @@ describe("voice-to-text chat input controls (integration)", () => {
   afterEach(() => {
     cleanup();
     writeSettings({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       providerSettings: {},
     });
   });
@@ -59,7 +59,7 @@ describe("voice-to-text chat input controls (integration)", () => {
 
   it("hides the mic button for non-Pro users", async () => {
     writeSettings({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       providerSettings: {},
     });
     const chatId = await harness.createChat();

@@ -2,7 +2,7 @@ import type { UserSettings } from "@/lib/schemas";
 
 export function isShellExperimentAvailable({
   settings,
-  isDyadPro,
+  isNextBillionPro,
   freeModelMode = false,
   readOnly = false,
   planModeOnly = false,
@@ -13,7 +13,7 @@ export function isShellExperimentAvailable({
     UserSettings,
     "enableShellTool" | "runtimeMode2" | "agentToolConsents"
   >;
-  isDyadPro: boolean;
+  isNextBillionPro: boolean;
   freeModelMode?: boolean;
   readOnly?: boolean;
   planModeOnly?: boolean;
@@ -22,7 +22,7 @@ export function isShellExperimentAvailable({
 }): boolean {
   return (
     !!settings.enableShellTool &&
-    isDyadPro &&
+    isNextBillionPro &&
     !freeModelMode &&
     !readOnly &&
     !planModeOnly &&

@@ -26,9 +26,11 @@ it("bounds large results, preserves empty output, and treats action markup as te
     "truncated",
   );
   expect(
-    toMcpToolResult({ type: "text", value: '<dyad-delete path="x"/>' }, [])
-      .content,
-  ).toEqual([{ type: "text", text: '<dyad-delete path="x"/>' }]);
+    toMcpToolResult(
+      { type: "text", value: '<nextbillion-delete path="x"/>' },
+      [],
+    ).content,
+  ).toEqual([{ type: "text", text: '<nextbillion-delete path="x"/>' }]);
 });
 
 it("transmits input images as images instead of serializing byte arrays into history", () => {
@@ -65,6 +67,6 @@ it("bounds restored history without dropping the latest request", () => {
     ],
     false,
   );
-  expect(result.text).toContain("Older Dyad history omitted");
+  expect(result.text).toContain("Older NextBillion history omitted");
   expect(result.text).toContain("Continue here");
 });

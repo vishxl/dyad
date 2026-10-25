@@ -329,11 +329,11 @@ async function runSpecs(
   const filesLabel = testFiles.join(", ");
   const label = grep ? `${filesLabel} › /${grep}/` : filesLabel;
   ctx.onXmlStream(
-    `<dyad-status title="${escapeXmlAttr(`Running ${label}`)}"></dyad-status>`,
+    `<nextbillion-status title="${escapeXmlAttr(`Running ${label}`)}"></nextbillion-status>`,
   );
   // Honor the modes the user picked in the Tests panel — including slow motion,
   // so a user watching the agent's runs gets the same pace as their own. With
-  // the preview experiment enabled, headed mode drives Dyad's native preview
+  // the preview experiment enabled, headed mode drives NextBillion's native preview
   // view. A preview or narrowed run must stay serial.
   const settings = readSettings();
   const preview =
@@ -652,7 +652,7 @@ export const runTestsTool: ToolDefinition<RunTestsArgs> = {
         onQueued: ctx.onToolActivity
           ? (position) =>
               ctx.onXmlStream(
-                `<dyad-status title="${escapeXmlAttr(`Queued: ${args.testFiles?.join(", ") ?? "All tests"}`)}">Position ${position} in the queue. Waiting for the previous test run to finish.</dyad-status>`,
+                `<nextbillion-status title="${escapeXmlAttr(`Queued: ${args.testFiles?.join(", ") ?? "All tests"}`)}">Position ${position} in the queue. Waiting for the previous test run to finish.</nextbillion-status>`,
               )
           : undefined,
       },

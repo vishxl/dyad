@@ -19,7 +19,7 @@ describe("hybrid chat harness guards", () => {
   it.each([undefined, "missing"])(
     "isolates Node status from the host and restores the previous override (%s)",
     async (previousStatus) => {
-      vi.stubEnv("DYAD_DEV_NODEJS_STATUS", previousStatus);
+      vi.stubEnv("NEXTBILLION_DEV_NODEJS_STATUS", previousStatus);
       try {
         const harness = await setupHybridChatHarness({
           electronMock: h,
@@ -46,7 +46,7 @@ describe("hybrid chat harness guards", () => {
           probe.mockRestore();
           await harness.dispose();
         }
-        expect(process.env.DYAD_DEV_NODEJS_STATUS).toBe(previousStatus);
+        expect(process.env.NEXTBILLION_DEV_NODEJS_STATUS).toBe(previousStatus);
       } finally {
         vi.unstubAllEnvs();
       }
@@ -65,7 +65,7 @@ describe("hybrid chat harness guards", () => {
       { route: "/settings" as const, text: "Settings" },
       {
         route: "/settings/providers/$provider" as const,
-        text: "Configure Dyad",
+        text: "Configure NextBillion",
       },
       { route: "/library/media" as const, text: "Media" },
       { route: "/import-app" as const, text: "Import App" },

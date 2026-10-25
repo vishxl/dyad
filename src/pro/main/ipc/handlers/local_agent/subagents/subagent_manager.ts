@@ -12,7 +12,11 @@ import {
   chats,
   messages,
 } from "@/db/schema";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import { getModelClient } from "@/ipc/utils/get_model_client";
 import { getAiHeaders, getProviderOptions } from "@/ipc/utils/provider_options";
 import { withLock } from "@/ipc/utils/lock_utils";
@@ -30,10 +34,10 @@ import type {
   SubagentThreadSummary,
 } from "@/ipc/types";
 import { isSubagentAcceptingMessages, isSubagentActive } from "@/ipc/types";
-import { isDyadProEnabled, type UserSettings } from "@/lib/schemas";
+import { isNextBillionProEnabled, type UserSettings } from "@/lib/schemas";
 import { getChatInferenceSettings } from "@/ipc/services/chat_inference_settings";
 import { readSettings } from "@/main/settings";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 import { sanitizeStepMessages } from "../prepare_step_utils";
 import type { AgentContext } from "../tools/types";
 import { runExploreCodeSubagent } from "../tools/explore_code_subagent";
@@ -138,9 +142,9 @@ export function raceWithAbort<T>(
     // rejection handler before returning the cancellation result.
     void promise.catch(() => {});
     return drain().then(() => {
-      throw new DyadError(
+      throw new NextBillionError(
         "Sub-agent run aborted.",
-        DyadErrorKind.UserCancelled,
+        NextBillionErrorKind.UserCancelled,
       );
     });
   }
@@ -159,9 +163,9 @@ export function raceWithAbort<T>(
         () => {
           finish(() =>
             reject(
-              new DyadError(
+              new NextBillionError(
                 "Sub-agent run aborted.",
-                DyadErrorKind.UserCancelled,
+                NextBillionErrorKind.UserCancelled,
               ),
             ),
           );
@@ -290,9 +294,9 @@ export async function settleSubagentsForChatDeletion(
             error,
           ),
         );
-      throw new DyadError(
+      throw new NextBillionError(
         "A sub-agent tool is still finishing. Try deleting again shortly.",
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
     await Promise.all(
@@ -465,9 +469,9 @@ export async function spawnModelSubagent(params: {
     params.ctx.canUseImplementerSubagent === true,
   );
   if (params.persona === "implementer" && params.scope.length === 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Implementer requires an explicit path scope.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   await preflightPersonaModel(
@@ -493,9 +497,9 @@ export async function spawnModelSubagent(params: {
         params.persona === "implementer" &&
         !params.ctx.mutationActivityOwner
       ) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Writable sub-agent is missing its owning root turn.",
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         );
       }
       const thread = await createThread({
@@ -577,9 +581,9 @@ export async function startReview(params: {
     !params.allowWhenAutoReviewDisabled &&
     readSettings().enableAutoReview !== true
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Automatic review is disabled in Settings.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const chat = await db.query.chats.findFirst({
@@ -593,9 +597,9 @@ export async function startReview(params: {
     ),
   });
   if (!chat?.app || !source || source.role !== "assistant") {
-    throw new DyadError(
+    throw new NextBillionError(
       "Assistant message or chat not found.",
-      DyadErrorKind.NotFound,
+      NextBillionErrorKind.NotFound,
     );
   }
   const { target, appPath } = await buildCoordinatedReviewTarget({
@@ -604,9 +608,9 @@ export async function startReview(params: {
     targetCommit: source.commitHash,
   });
   if (!target.diff.trim() && target.exclusions.length === 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       "There are no changes to review.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   // Every renderer window observes stream completion, but review creation is
@@ -740,9 +744,9 @@ export async function skipReviewAutoFix(
     });
     autoFixOwnerByThread.delete(threadId);
     if (result === "conflict") {
-      throw new DyadError(
+      throw new NextBillionError(
         "Review remediation changed before failure settlement.",
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
     return;
@@ -759,9 +763,9 @@ export async function skipReviewAutoFix(
       current = latest;
       continue;
     }
-    throw new DyadError(
+    throw new NextBillionError(
       "Automatic fixes have already started for this review.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   autoFixOwnerByThread.delete(threadId);
@@ -780,9 +784,9 @@ export async function buildFixFindingsPrompt(
     Number(thread.resultJson.findingCount ?? 0) <= 0 ||
     thread.status === "partial"
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This review has no findings to fix.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const sourceMessageId = Number(thread.contextJson?.sourceMessageId);
@@ -805,9 +809,9 @@ export async function buildFixFindingsPrompt(
     where: and(eq(messages.id, sourceMessageId), eq(messages.chatId, chatId)),
   });
   if (!chat?.app || !source || latest?.id !== sourceMessageId) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This review is no longer for the latest assistant message.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const { target } = await buildCoordinatedReviewTarget({
@@ -822,9 +826,9 @@ export async function buildFixFindingsPrompt(
       thread.resultJson,
       "The review target changed before remediation started.",
     );
-    throw new DyadError(
+    throw new NextBillionError(
       "The reviewed changes have changed. Run Reviewer again.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const reviewedFiles = Array.isArray(thread.contextJson?.files)
@@ -842,9 +846,9 @@ export async function buildFixFindingsPrompt(
     source: remediationSource,
   });
   if (claim !== "applied") {
-    throw new DyadError(
+    throw new NextBillionError(
       "Fixes have already been started for this review.",
-      DyadErrorKind.Conflict,
+      NextBillionErrorKind.Conflict,
     );
   }
   return prompt;
@@ -864,9 +868,9 @@ export function buildRemediationPrompt(
     reviewedFiles,
   );
   if (parsed.status !== "findings" || parsed.findingCount === 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This review does not contain valid structured findings.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const serialized = JSON.stringify(
@@ -900,7 +904,7 @@ export async function runAutoReviewBarrier(params: {
 }> {
   params.deadlineAt ??= Date.now() + AUTO_REVIEW_BARRIER_MAX_WAIT_MS;
   const settings = readSettings();
-  const isPro = isDyadProEnabled(settings);
+  const isPro = isNextBillionProEnabled(settings);
   if ((!settings.enableAutoReview && !params.verification) || !isPro) {
     return { outcome: "skipped" };
   }
@@ -926,9 +930,9 @@ export async function runAutoReviewBarrier(params: {
     });
   } catch (error) {
     if (
-      !isDyadError(error) ||
-      (error.kind !== DyadErrorKind.Precondition &&
-        error.kind !== DyadErrorKind.NotFound)
+      !isNextBillionError(error) ||
+      (error.kind !== NextBillionErrorKind.Precondition &&
+        error.kind !== NextBillionErrorKind.NotFound)
     ) {
       throw error;
     }
@@ -1121,18 +1125,18 @@ async function sendSubagentMessageAdmitted(
   const append = async () => {
     const current = await getOwnedThread(chatId, threadId);
     if (!isSubagentAcceptingMessages(current.status)) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Messages can only be sent while a sub-agent is active. Use a follow-up assignment to resume an inactive sub-agent.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     await appendThreadMessage({ threadId, role: "root", content });
     emit(current.chatId, threadId);
   };
   if (abortSignal?.aborted) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Sending the sub-agent message was cancelled.",
-      DyadErrorKind.UserCancelled,
+      NextBillionErrorKind.UserCancelled,
     );
   }
   await append();
@@ -1187,18 +1191,18 @@ async function followupSubagentAdmitted(
     currentTurn?.ctx.canUseImplementerSubagent === true,
   );
   if (thread.persona === "implementer" && !currentTurn) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Implementer follow-ups must run through an active root Agent turn so their changes are verified, deployed, and committed.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   let run = followupRunners.get(threadId);
   if (currentTurn && thread.persona !== "reviewer") {
     const persona = thread.persona;
     if (currentTurn.ctx.chatId !== chatId) {
-      throw new DyadError(
+      throw new NextBillionError(
         "The follow-up must belong to the current root chat.",
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
     const scope = Array.isArray(thread.contextJson?.scope)
@@ -1212,9 +1216,9 @@ async function followupSubagentAdmitted(
       if (persona === "implementer") {
         const rootOwner = currentTurn.ctx.mutationActivityOwner;
         if (!rootOwner) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Writable follow-up is missing its owning root turn.",
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         }
         owner = createMutationActivityOwner({
@@ -1260,9 +1264,9 @@ async function followupSubagentAdmitted(
     run = await reconstructReviewerRunner(thread);
   }
   if (!run) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This sub-agent was interrupted by an app restart and cannot resume.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const selectedRun = run;
@@ -1287,9 +1291,9 @@ export function assertSubagentFollowupAllowed(
   status: SubagentThreadSummary["status"],
 ): void {
   if (status !== "stopping") return;
-  throw new DyadError(
+  throw new NextBillionError(
     "This sub-agent is still stopping. Wait for its current tool to finish before sending a follow-up.",
-    DyadErrorKind.Precondition,
+    NextBillionErrorKind.Precondition,
   );
 }
 
@@ -1305,15 +1309,15 @@ export async function waitForSubagents(
   await Promise.all(uniqueIds.map((id) => getOwnedThread(chatId, id)));
   while (true) {
     if (abortSignal?.aborted) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Waiting for sub-agents was cancelled.",
-        DyadErrorKind.UserCancelled,
+        NextBillionErrorKind.UserCancelled,
       );
     }
     if (Date.now() >= deadlineAt) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Timed out waiting for sub-agents to finish.",
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
     const rows = await Promise.all(
@@ -1432,20 +1436,20 @@ function assertFinalizationWaitActive(
   turnId?: string,
 ): void {
   if (abortSignal?.aborted) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Waiting to finalize the app was cancelled.",
-      DyadErrorKind.UserCancelled,
+      NextBillionErrorKind.UserCancelled,
     );
   }
   if (Date.now() >= deadlineAt) {
     // Name only this turn's blocking actor/activity; unrelated chats continue.
     const blocker = turnId ? describeTurnActivity(turnId) : null;
-    throw new DyadError(
+    throw new NextBillionError(
       `Timed out waiting to finalize this turn's app changes. ${
         blocker ??
         "Owned agent work may still be active; other chats can continue."
       }`,
-      DyadErrorKind.Conflict,
+      NextBillionErrorKind.Conflict,
     );
   }
 }
@@ -1457,7 +1461,7 @@ function assertFinalizationWaitActive(
  * records the status, so the root agent has something to act on either way.
  *
  * The root agent already handles its OWN step limit this way: it appends a
- * `<dyad-step-limit>` notice and finishes the turn (see local_agent_handler).
+ * `<nextbillion-step-limit>` notice and finishes the turn (see local_agent_handler).
  * Treating the same condition in a sub-agent as fatal threw away the parent's
  * entire turn — including work unrelated to the sub-agent — over a budget the
  * caller never set. Genuine failures still surface as "failed"/"cancelled" and
@@ -1661,7 +1665,9 @@ async function runThread(
     if (controller.signal.aborted) return;
     await finishThread(
       threadId,
-      isDyadProEnabled(readSettings()) ? "failed" : "entitlement_revoked",
+      isNextBillionProEnabled(readSettings())
+        ? "failed"
+        : "entitlement_revoked",
       null,
       errorMessage(error),
     );
@@ -1751,7 +1757,9 @@ async function runReview(
     if (controller.signal.aborted) return;
     await finishThread(
       threadId,
-      isDyadProEnabled(readSettings()) ? "failed" : "entitlement_revoked",
+      isNextBillionProEnabled(readSettings())
+        ? "failed"
+        : "entitlement_revoked",
       null,
       errorMessage(error),
     );
@@ -1794,8 +1802,8 @@ async function runModel(
       builtinProviderId: modelInfo.modelClient.builtinProviderId,
     }),
     providerOptions: getProviderOptions({
-      dyadAppId: params.appId,
-      dyadDisableFiles: true,
+      nextBillionAppId: params.appId,
+      nextBillionDisableFiles: true,
       files: [],
       mentionedAppsCodebases: [],
       builtinProviderId: modelInfo.modelClient.builtinProviderId,
@@ -1930,9 +1938,9 @@ async function preflightPersonaModel(
     (model) => model.apiName === defaults.name,
   );
   if (!available) {
-    throw new DyadError(
-      `${persona} requires ${defaults.name}, which is not currently available. Check your Dyad Pro model access and try again.`,
-      DyadErrorKind.Precondition,
+    throw new NextBillionError(
+      `${persona} requires ${defaults.name}, which is not currently available. Check your NextBillion Pro model access and try again.`,
+      NextBillionErrorKind.Precondition,
     );
   }
   try {
@@ -1943,9 +1951,9 @@ async function preflightPersonaModel(
     );
     await getModelClient(settings.selectedModel, settings);
   } catch (error) {
-    throw new DyadError(
-      `${persona} could not start because ${defaults.name} is not configured. Check your Dyad Pro model access and try again.`,
-      DyadErrorKind.Precondition,
+    throw new NextBillionError(
+      `${persona} could not start because ${defaults.name} is not configured. Check your NextBillion Pro model access and try again.`,
+      NextBillionErrorKind.Precondition,
       { cause: error },
     );
   }
@@ -2027,10 +2035,10 @@ export function shouldDrainMutationOnAbort(persona: SubagentPersona): boolean {
 
 function systemPrompt(persona: SubagentPersona): string {
   if (persona === "reviewer")
-    return "You are Dyad Reviewer. Be independent, concise, evidence-based, and read-only.";
+    return "You are NextBillion Reviewer. Be independent, concise, evidence-based, and read-only.";
   if (persona === "implementer")
-    return "You are Dyad Implementer. Complete the focused assignment using only provided tools. Treat assigned paths as the expected focus, but cross them when correctness requires it and report every changed file and unresolved issue.";
-  return "You are Dyad Explorer. Investigate read-only, cite files and evidence, and return a concise report with confidence and recommended next action.";
+    return "You are NextBillion Implementer. Complete the focused assignment using only provided tools. Treat assigned paths as the expected focus, but cross them when correctness requires it and report every changed file and unresolved issue.";
+  return "You are NextBillion Explorer. Investigate read-only, cite files and evidence, and return a concise report with confidence and recommended next action.";
 }
 
 export function resolveSubagentSystemPrompt(
@@ -2174,7 +2182,10 @@ async function getThread(threadId: string) {
     where: eq(agentThreads.id, threadId),
   });
   if (!thread)
-    throw new DyadError("Sub-agent thread not found.", DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      "Sub-agent thread not found.",
+      NextBillionErrorKind.NotFound,
+    );
   return thread;
 }
 
@@ -2183,7 +2194,10 @@ async function getOwnedThread(chatId: number, threadId: string) {
     where: and(eq(agentThreads.id, threadId), eq(agentThreads.chatId, chatId)),
   });
   if (!thread)
-    throw new DyadError("Sub-agent thread not found.", DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      "Sub-agent thread not found.",
+      NextBillionErrorKind.NotFound,
+    );
   return thread;
 }
 
@@ -2195,7 +2209,10 @@ async function reconstructReviewerRunner(
     with: { app: true },
   });
   if (!chat?.app) {
-    throw new DyadError("Chat app not found.", DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      "Chat app not found.",
+      NextBillionErrorKind.NotFound,
+    );
   }
   let target: ReviewTarget;
   let appPath: string;
@@ -2212,9 +2229,9 @@ async function reconstructReviewerRunner(
       thread,
       `The persisted review target could not be reconstructed: ${errorMessage(error)}`,
     );
-    throw new DyadError(
+    throw new NextBillionError(
       "The reviewed changes are no longer available. Run Reviewer again.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const availability = reviewFollowupAvailability(
@@ -2226,15 +2243,15 @@ async function reconstructReviewerRunner(
       thread,
       "The review target changed before the follow-up started.",
     );
-    throw new DyadError(
+    throw new NextBillionError(
       "The reviewed changes have changed. Run Reviewer again.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   if (availability === "all_excluded") {
-    throw new DyadError(
+    throw new NextBillionError(
       `Reviewer cannot follow up because every changed file is excluded from automated review: ${target.exclusions.join(", ")}`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   const run = (followup: string) =>
@@ -2258,7 +2275,10 @@ async function buildCoordinatedReviewTarget(params: {
     with: { app: true },
   });
   if (!initial?.app) {
-    throw new DyadError("Chat app not found.", DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      "Chat app not found.",
+      NextBillionErrorKind.NotFound,
+    );
   }
   return appOperationCoordinator.run(
     {
@@ -2273,9 +2293,12 @@ async function buildCoordinatedReviewTarget(params: {
         with: { app: true },
       });
       if (!current?.app || current.app.id !== initial.app.id) {
-        throw new DyadError("Chat app not found.", DyadErrorKind.NotFound);
+        throw new NextBillionError(
+          "Chat app not found.",
+          NextBillionErrorKind.NotFound,
+        );
       }
-      const appPath = getDyadAppPath(current.app.path);
+      const appPath = getNextBillionAppPath(current.app.path);
       return {
         appId: current.app.id,
         appPath,
@@ -2302,9 +2325,9 @@ function assertPersonaEnabled(
 ): void {
   const settings = readSettings();
   if (persona === "explorer" && !settings.enableExplorerSubagent) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Explorer is disabled in Settings.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   if (
@@ -2312,20 +2335,20 @@ function assertPersonaEnabled(
     !settings.enableImplementerSubagent &&
     !implementerEnabledForTurn
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Implementer is disabled in Settings.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 }
 
 function assertPro(persona?: SubagentPersona): void {
-  if (!isDyadProEnabled(readSettings())) {
-    throw new DyadError(
+  if (!isNextBillionProEnabled(readSettings())) {
+    throw new NextBillionError(
       persona
-        ? `${persona} sub-agents require Dyad Pro.`
-        : "Sub-agents require Dyad Pro.",
-      DyadErrorKind.Auth,
+        ? `${persona} sub-agents require NextBillion Pro.`
+        : "Sub-agents require NextBillion Pro.",
+      NextBillionErrorKind.Auth,
     );
   }
 }
@@ -2362,9 +2385,9 @@ function buildPromptForPersistedReview(
       )
     : [];
   if (!thread.resultJson) {
-    throw new DyadError(
+    throw new NextBillionError(
       "This review no longer has findings to fix.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   return buildRemediationPrompt(
@@ -2436,7 +2459,7 @@ function errorMessage(error: unknown): string {
 
 function boundDurableReport(value: string): string {
   if (value.length <= MAX_DURABLE_REPORT_CHARS) return value;
-  return `${value.slice(0, MAX_DURABLE_REPORT_CHARS)}\n\n[Report truncated by Dyad]`;
+  return `${value.slice(0, MAX_DURABLE_REPORT_CHARS)}\n\n[Report truncated by NextBillion]`;
 }
 
 export function isReusableReviewStatus(status: string): boolean {
@@ -2521,9 +2544,9 @@ export async function waitForAbortableDelay(
     const onAbort = () => {
       clearTimeout(timer);
       reject(
-        new DyadError(
+        new NextBillionError(
           "Waiting for sub-agents was cancelled.",
-          DyadErrorKind.UserCancelled,
+          NextBillionErrorKind.UserCancelled,
         ),
       );
     };
@@ -2533,9 +2556,9 @@ export async function waitForAbortableDelay(
 
 function assertAutoReviewNotAborted(abortSignal?: AbortSignal): void {
   if (!abortSignal?.aborted) return;
-  throw new DyadError(
+  throw new NextBillionError(
     "Waiting for sub-agents was cancelled.",
-    DyadErrorKind.UserCancelled,
+    NextBillionErrorKind.UserCancelled,
   );
 }
 
@@ -2694,14 +2717,14 @@ function watchEntitlement(
   controller: AbortController,
 ): ReturnType<typeof setInterval> {
   const timer = setInterval(() => {
-    if (isDyadProEnabled(readSettings())) return;
+    if (isNextBillionProEnabled(readSettings())) return;
     clearInterval(timer);
     controller.abort();
     void finishThread(
       threadId,
       "entitlement_revoked",
       null,
-      "Dyad Pro entitlement was revoked while this sub-agent was running.",
+      "NextBillion Pro entitlement was revoked while this sub-agent was running.",
     ).catch((error) =>
       logger.error(
         `Failed to persist entitlement revocation for ${threadId}`,

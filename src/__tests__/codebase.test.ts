@@ -19,7 +19,7 @@ vi.mock("electron-log", () => ({
 
 vi.mock("@/main/settings", () => ({
   readSettings: vi.fn(() => ({
-    enableDyadPro: false,
+    enableNextBillionPro: false,
     enableProSmartFilesContextMode: false,
   })),
 }));

@@ -9,7 +9,9 @@ import { hydratePlanHandoff, persistPlanHandoff } from "./persistence";
 import { transitionPlanHandoffHost } from "./host_transition";
 import type { PlanHandoffHostState } from "./host_state";
 beforeEach(async () => {
-  config.directory = await mkdtemp(path.join(tmpdir(), "dyad-plan-recovery-"));
+  config.directory = await mkdtemp(
+    path.join(tmpdir(), "nextbillion-plan-recovery-"),
+  );
 });
 afterEach(async () => {
   await rm(config.directory, { recursive: true, force: true });

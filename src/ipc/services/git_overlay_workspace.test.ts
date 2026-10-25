@@ -123,7 +123,7 @@ describe("secureGitOverlaySymlinks", () => {
   for (const existingTarget of [false, true]) {
     it(`handles Windows symlink privilege failures (existing target: ${existingTarget})`, async (ctx) => {
       const root = await fs.mkdtemp(
-        path.join(os.tmpdir(), "dyad-overlay-link-test-"),
+        path.join(os.tmpdir(), "nextbillion-overlay-link-test-"),
       );
       const sourceRoot = path.join(root, "source");
       const workspaceRoot = path.join(root, "workspace");
@@ -260,7 +260,7 @@ describe("package-root-anchored output exclusions", () => {
     // entry — so without a filesystem check its ignored `dist` rides into every
     // sandbox.
     const root = await fs.mkdtemp(
-      path.join(os.tmpdir(), "dyad-overlay-pkg-test-"),
+      path.join(os.tmpdir(), "nextbillion-overlay-pkg-test-"),
     );
     try {
       await fs.mkdir(path.join(root, "packages", "new"), { recursive: true });

@@ -3,12 +3,12 @@ import type {
   ModelSelection,
   UserSettings,
 } from "@/lib/schemas";
-export type ExecutionBackend = "dyad" | "claude-code";
+export type ExecutionBackend = "nextbillion" | "claude-code";
 
 export function executionBackendForModel(
   model?: { provider: string } | null,
 ): ExecutionBackend {
-  return model?.provider === "claude-code" ? "claude-code" : "dyad";
+  return model?.provider === "claude-code" ? "claude-code" : "nextbillion";
 }
 
 export const BACKEND_SWITCH_MESSAGE =
@@ -24,7 +24,7 @@ export function requiresNewChatForModel(
 ): boolean {
   return (
     chat.messages.length > 0 &&
-    executionBackendForModel(model) !== (chat.executionBackend ?? "dyad")
+    executionBackendForModel(model) !== (chat.executionBackend ?? "nextbillion")
   );
 }
 
@@ -73,13 +73,15 @@ export function modelForChatBackend(
     );
   if (
     !chat ||
-    executionBackendForModel(selected) === (chat.executionBackend ?? "dyad")
+    executionBackendForModel(selected) ===
+      (chat.executionBackend ?? "nextbillion")
   )
     return selected;
   return (
     settings?.recentModels?.find(
       (model) =>
-        executionBackendForModel(model) === (chat.executionBackend ?? "dyad"),
+        executionBackendForModel(model) ===
+        (chat.executionBackend ?? "nextbillion"),
     ) ??
     (chat.executionBackend === "claude-code"
       ? { provider: "claude-code", name: "sonnet" }

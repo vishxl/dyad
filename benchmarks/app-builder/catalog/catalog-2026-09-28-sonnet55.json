@@ -177,7 +177,7 @@
       {
         "apiName": "claude-sonnet-5-5",
         "displayName": "Claude Sonnet 5.5",
-        "description": "Benchmark-local entry; medium for comparison, not a verified Dyad default",
+        "description": "Benchmark-local entry; medium for comparison, not a verified NextBillion default",
         "dollarSigns": 5,
         "temperature": 1,
         "maxOutputTokens": 128000,
@@ -487,5 +487,5 @@
       }
     ]
   },
-  "appbenchNote": "2026-09-28: Sonnet 5.5 absent from live Dyad catalog. Added benchmark-local entry using https://platform.claude.com/docs/en/models/sonnet-5-5/overview ; explicit medium effort for comparison to Opus/Sol/Luna. Anthropic API default is high. Engine streaming availability verified. Max output 128000."
+  "appbenchNote": "2026-09-28: Sonnet 5.5 absent from live NextBillion catalog. Added benchmark-local entry using https://platform.claude.com/docs/en/models/sonnet-5-5/overview ; explicit medium effort for comparison to Opus/Sol/Luna. Anthropic API default is high. Engine streaming availability verified. Max output 128000."
 }

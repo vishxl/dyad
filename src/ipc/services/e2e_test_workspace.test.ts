@@ -71,7 +71,9 @@ afterEach(async () => {
 });
 
 async function tempRoot() {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-e2e-workspace-"));
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "nextbillion-e2e-workspace-"),
+  );
   roots.push(root);
   return root;
 }
@@ -800,7 +802,7 @@ describe("E2E test workspace", () => {
     // Playwright resolves its artifact paths against the runner's cwd, which
     // the OS reports symlink-resolved. If the workspace root kept an
     // unresolved ancestor (`/var` -> `/private/var`, which is what os.tmpdir()
-    // and so DYAD_DEV_USER_DATA_DIR give on macOS), `path.relative` would
+    // and so NEXTBILLION_DEV_USER_DATA_DIR give on macOS), `path.relative` would
     // answer `../..` and every failure would silently lose its screenshot.
     const root = await tempRoot();
     const appPath = path.join(root, "app");
@@ -1257,7 +1259,7 @@ describe("E2E test workspace", () => {
     await fs.writeFile(
       `${orphan}.owner.json`,
       JSON.stringify({
-        schema: "dyad-git-overlay-worktree-v1",
+        schema: "nextbillion-git-overlay-worktree-v1",
         purpose: "e2e-test",
         sourceRepoPath: realAppPath,
         submoduleWorktrees: [],
@@ -1365,7 +1367,7 @@ describe("E2E test workspace", () => {
 
   it("only claims entries shaped like one of its own run directories", async () => {
     // Run names are always `<appId>-<mkdtemp suffix>`. A bare `9`, or a `9-`
-    // with nothing after it, is not something Dyad created here and not
+    // with nothing after it, is not something NextBillion created here and not
     // something it may delete.
     const root = await tempRoot();
     const userData = path.join(root, "user-data");

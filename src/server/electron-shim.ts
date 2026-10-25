@@ -3,8 +3,8 @@ import path from "node:path";
 import { EventEmitter } from "node:events";
 
 const configuredDataDir = path.resolve(
-  process.env.DYAD_DATA_DIR?.trim() ||
-    process.env.DYAD_DEV_USER_DATA_DIR?.trim() ||
+  process.env.NEXTBILLION_DATA_DIR?.trim() ||
+    process.env.NEXTBILLION_DEV_USER_DATA_DIR?.trim() ||
     path.join(process.cwd(), "userData"),
 );
 
@@ -97,7 +97,7 @@ const virtualWindow = {
 
 export const app = {
   isPackaged: false,
-  name: "Dyad",
+  name: "NextBillion",
   isReady: () => true,
   whenReady: async () => undefined,
   once: () => app,
@@ -109,8 +109,8 @@ export const app = {
   exit: (code = 0) => {
     process.exitCode = code;
   },
-  getName: () => "Dyad",
-  getVersion: () => process.env.DYAD_APP_VERSION || "0.0.0-headless",
+  getName: () => "NextBillion",
+  getVersion: () => process.env.NEXTBILLION_APP_VERSION || "0.0.0-headless",
   getPath: (name: string) => getAppPath(name),
   setPath: (name: string, value: string) => {
     if (

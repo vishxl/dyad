@@ -64,7 +64,7 @@ import {
   getServiceRoleKey,
   reconcileOrphanTestUsers,
 } from "./supabase_test_user";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 
 type AppRow = any;
 
@@ -177,13 +177,13 @@ describe("createTempTestUser", () => {
     expect(init.headers.apikey).toBe(SECRET_KEY);
     const body = JSON.parse(init.body);
     expect(body.email_confirm).toBe(true);
-    expect(body.app_metadata).toMatchObject({ dyad_test: true });
+    expect(body.app_metadata).toMatchObject({ nextbillion_test: true });
 
     expect(result).toMatchObject({
       userId: UUID,
       projectUrl: "https://proj-1.supabase.co",
     });
-    expect(result.email).toMatch(/^dyad-test\+7-\d+@dyad\.test$/);
+    expect(result.email).toMatch(/^nextbillion-test\+7-\d+@nextbillion\.test$/);
     // Persists the in-flight user id for crash reconciliation.
     expect(mocks.set).toHaveBeenCalledWith({ supabaseTestUserId: UUID });
   });
@@ -382,8 +382,8 @@ describe("createTempTestUser", () => {
     expect(init.headers.apikey).toBe("eyJ.legacy-service-role");
 
     expect(error.message).toMatch(/Create a secret key in Supabase/);
-    // User-fixable setup problem, not a Dyad failure worth reporting.
-    expect(error.kind).toBe(DyadErrorKind.Precondition);
+    // User-fixable setup problem, not a NextBillion failure worth reporting.
+    expect(error.kind).toBe(NextBillionErrorKind.Precondition);
   });
 });
 
@@ -500,7 +500,7 @@ describe("deleteTempTestUser", () => {
     ).resolves.toBe(true);
 
     // Scoped DELETE ran against the discovered table/column. The cleanup SQL is
-    // a `pg_temp.dyad_cleanup()` function wrapping `EXECUTE format('DELETE
+    // a `pg_temp.nextbillion_cleanup()` function wrapping `EXECUTE format('DELETE
     // FROM ...')`, so match on the DELETE substring rather than the prefix.
     const deleteCall = mocks.executeSupabaseSql.mock.calls.find(([arg]) =>
       arg.query.includes("DELETE FROM"),
@@ -509,7 +509,7 @@ describe("deleteTempTestUser", () => {
     expect(deleteCall?.[0].query).toContain(`'todos'`);
     expect(deleteCall?.[0].query).toContain(`'user_id'`);
     expect(deleteCall?.[0].query).toContain(`'${UUID}'`);
-    expect(deleteCall?.[0].query).toContain("AS $dyad_cleanup$");
+    expect(deleteCall?.[0].query).toContain("AS $nextbillion_cleanup$");
 
     // User deleted via the admin API, then column cleared.
     expect(fetchSpy).toHaveBeenCalledWith(
@@ -626,12 +626,14 @@ describe("deleteTempTestUser", () => {
       arg.query.includes("DELETE FROM"),
     )?.[0].query;
     expect(batch).toContain(
-      "CREATE OR REPLACE FUNCTION pg_temp.dyad_cleanup()",
+      "CREATE OR REPLACE FUNCTION pg_temp.nextbillion_cleanup()",
     );
     expect(batch).toContain(
       "failures := failures || ('public.quotes.owner_id: '",
     );
-    expect(batch).toContain("SELECT pg_temp.dyad_cleanup() AS failures;");
+    expect(batch).toContain(
+      "SELECT pg_temp.nextbillion_cleanup() AS failures;",
+    );
     expect(mocks.warn).toHaveBeenCalledWith(
       "Best-effort cleanup for test user failed: public.quotes.owner_id: update or delete on table violates foreign key constraint",
     );

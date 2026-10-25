@@ -361,11 +361,11 @@ describe("suggestPluginTool", () => {
     expect(writtenBeforePark).toEqual([true, false]);
     expect(onXmlComplete).toHaveBeenNthCalledWith(
       1,
-      '<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." request-id="request-id" outcome="pending"></dyad-suggest-plugin>',
+      '<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." request-id="request-id" outcome="pending"></nextbillion-suggest-plugin>',
     );
     expect(onXmlComplete).toHaveBeenNthCalledWith(
       2,
-      '<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="connected"></dyad-suggest-plugin>',
+      '<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="connected"></nextbillion-suggest-plugin>',
     );
   });
 
@@ -427,7 +427,7 @@ describe("suggestPluginTool", () => {
     expect(result).toContain("do not suggest it again");
     expect(mocks.tryWriteSettings).not.toHaveBeenCalled();
     expect(onXmlComplete).toHaveBeenLastCalledWith(
-      '<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="declined"></dyad-suggest-plugin>',
+      '<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="declined"></nextbillion-suggest-plugin>',
     );
   });
 
@@ -449,7 +449,7 @@ describe("suggestPluginTool", () => {
     );
     expect(result).toContain("never suggest it again");
     expect(onXmlComplete).toHaveBeenLastCalledWith(
-      '<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="never"></dyad-suggest-plugin>',
+      '<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="never"></nextbillion-suggest-plugin>',
     );
   });
 
@@ -467,7 +467,7 @@ describe("suggestPluginTool", () => {
 
     expect(result).toContain("never suggest it again");
     expect(onXmlComplete).toHaveBeenLastCalledWith(
-      '<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="never"></dyad-suggest-plugin>',
+      '<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="never"></nextbillion-suggest-plugin>',
     );
   });
 
@@ -481,7 +481,7 @@ describe("suggestPluginTool", () => {
 
     expect(result).toContain("did not respond");
     expect(onXmlComplete).toHaveBeenLastCalledWith(
-      '<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="dismissed"></dyad-suggest-plugin>',
+      '<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="dismissed"></nextbillion-suggest-plugin>',
     );
   });
 
@@ -495,7 +495,7 @@ describe("suggestPluginTool", () => {
     expect(result).toContain('"github" is not a plugin you can suggest');
     expect(result).toContain("Available slugs: vercel");
     expect(onXmlComplete).toHaveBeenCalledWith(
-      '<dyad-suggest-plugin slug="github" name="github" reason="Open a pull request." outcome="dismissed"></dyad-suggest-plugin>',
+      '<nextbillion-suggest-plugin slug="github" name="github" reason="Open a pull request." outcome="dismissed"></nextbillion-suggest-plugin>',
     );
   });
 

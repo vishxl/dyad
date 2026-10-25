@@ -59,8 +59,8 @@ describe("chat mode (integration)", () => {
   it("default build mode sends the curated agentic request", async () => {
     const originalSettings = readSettings();
     writeSettings({
-      enableDyadPro: true,
-      providerSettings: { auto: { apiKey: { value: "testdyadkey" } } },
+      enableNextBillionPro: true,
+      providerSettings: { auto: { apiKey: { value: "testnextbillionkey" } } },
     });
     try {
       harness.mount();
@@ -94,7 +94,7 @@ describe("chat mode (integration)", () => {
       expect(messages[0].role).toBe("user");
       expect(messages[0].content).toBe("[dump] hi");
       expect(messages[1].role).toBe("assistant");
-      expect(messages[1].content).toContain("[[dyad-dump-path=");
+      expect(messages[1].content).toContain("[[nextbillion-dump-path=");
       const request = harness.getServerDump({ type: "request" });
       const tools = (request.parsed.body.tools ?? []) as Array<{
         function?: { name: string };
@@ -140,9 +140,9 @@ describe("chat mode (integration)", () => {
       .where(eq(chats.id, buildChatId));
 
     writeSettings({
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       enableAutoReview: true,
-      providerSettings: { auto: { apiKey: { value: "testdyadkey" } } },
+      providerSettings: { auto: { apiKey: { value: "testnextbillionkey" } } },
     });
     try {
       const result = await harness.streamChat("tc=local-agent/basic-write", {
@@ -321,7 +321,7 @@ describe("chat mode (integration)", () => {
       })),
     );
     writeSettings({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       selectedChatMode: "build",
       defaultChatMode: "build",
     });
@@ -403,13 +403,13 @@ describe("chat mode (integration)", () => {
       })),
     );
     writeSettings({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       selectedChatMode: "local-agent",
       defaultChatMode: "local-agent",
     });
 
     try {
-      const mediaDir = path.join(harness.appDir, ".dyad", "media");
+      const mediaDir = path.join(harness.appDir, ".nextbillion", "media");
       const mediaFilesBefore = await fs
         .readdir(mediaDir)
         .catch((): string[] => []);
@@ -501,7 +501,7 @@ describe("chat mode (integration)", () => {
       })),
     );
     writeSettings({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       selectedChatMode: "local-agent",
       defaultChatMode: "local-agent",
     });
@@ -591,7 +591,7 @@ describe("chat mode (integration)", () => {
 
   it("lets main resolve an implicit Google-only first turn", async () => {
     writeSettings({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       providerSettings: {
         google: { apiKey: { value: "google-key" } },
       },

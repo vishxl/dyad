@@ -55,7 +55,7 @@ export function FreeAgentQuotaBanner({
             today. Check back in {resetTimeDisplay} ({resetDateTime}).
             {onSwitchToBuildMode
               ? " If you don't want to wait, switch to Build mode."
-              : " To use Build mode, first choose a model other than Dyad Free."}
+              : " To use Build mode, first choose a model other than NextBillion Free."}
           </p>
           {onSwitchToBuildMode && (
             <div className="flex flex-wrap gap-2">

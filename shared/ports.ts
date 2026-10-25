@@ -13,7 +13,7 @@ function getE2ePortBlockBase(): number | null {
   const raw =
     typeof process === "undefined"
       ? undefined
-      : process.env.DYAD_E2E_PORT_BLOCK_INDEX;
+      : process.env.NEXTBILLION_E2E_PORT_BLOCK_INDEX;
   if (raw == null || raw.trim() === "") {
     return null;
   }
@@ -46,7 +46,7 @@ export const PROXY_PORT_RANGE = 10_000;
 /**
  * Start of the fallback band used when an app's deterministic proxy port is
  * already taken (by a foreign service or, in the rare 10k-app overlap, another
- * Dyad app). It sits just above the proxy range so a fallback never collides
+ * NextBillion app). It sits just above the proxy range so a fallback never collides
  * with another app's *reserved* proxy slot.
  */
 export const PROXY_FALLBACK_PORT_START = PROXY_PORT_BASE + PROXY_PORT_RANGE;
@@ -68,10 +68,10 @@ export const E2E_TEST_SERVER_PORT_START =
 export const E2E_TEST_SERVER_PORT_RANGE = 200;
 
 /**
- * Whether a port falls in a band Dyad hands out deterministically, and so must
+ * Whether a port falls in a band NextBillion hands out deterministically, and so must
  * not be taken by anything that only needs *some* free port.
  */
-export function isReservedDyadPort(port: number): boolean {
+export function isReservedNextBillionPort(port: number): boolean {
   const e2ePortBlockBase = getE2ePortBlockBase();
   if (
     e2ePortBlockBase != null &&

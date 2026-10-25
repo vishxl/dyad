@@ -18,7 +18,11 @@ import {
   RateLimitError,
   retryWithRateLimit,
 } from "../ipc/utils/retryWithRateLimit";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import { enqueueSupabaseDeploy } from "./supabase_deploy_queue";
 import { abortable } from "../ipc/utils/abortable";
 import {
@@ -26,7 +30,7 @@ import {
   readAppResource,
   type AppOperationContext,
 } from "@/ipc/services/app_operation_coordinator";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 import {
   deferSupabaseFunctionSyncForRecording,
   SupabaseFunctionSyncDeferredError,
@@ -113,21 +117,21 @@ export async function withSupabaseFunctionDeployment<T>(
           where: eq(apps.id, target.appId),
         });
         if (!app || app.supabaseProjectId !== target.supabaseProjectId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This app's Supabase project changed before deployment. Run the request again against the current project.",
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         }
-        return operation(context, getDyadAppPath(app.path));
+        return operation(context, getNextBillionAppPath(app.path));
       },
     )
     .catch((error: unknown) => {
       // Aborted fetches, backoffs and throwIfAborted() raise DOMExceptions;
       // report a user cancel as one rather than as a product exception.
-      if (target.signal?.aborted && !isDyadError(error)) {
-        throw new DyadError(
+      if (target.signal?.aborted && !isNextBillionError(error)) {
+        throw new NextBillionError(
           "Supabase function deployment was cancelled.",
-          DyadErrorKind.UserCancelled,
+          NextBillionErrorKind.UserCancelled,
           { cause: error },
         );
       }
@@ -269,9 +273,9 @@ async function refreshSupabaseTokenOnce(): Promise<void> {
   }
 
   if (!refreshToken) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Supabase refresh token not found. Please authenticate first.",
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -289,9 +293,9 @@ async function refreshSupabaseTokenOnce(): Promise<void> {
     );
 
     if (!response.ok) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Supabase token refresh failed. Try going to Settings to disconnect Supabase and then reconnect to Supabase. Error status: ${response.statusText}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
@@ -349,9 +353,9 @@ export async function getSupabaseClient({
   const expiresIn = settings.supabase?.expiresIn;
 
   if (!supabaseAccessToken) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Supabase access token not found. Please authenticate first.",
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -363,9 +367,9 @@ export async function getSupabaseClient({
     const newAccessToken = updatedSettings.supabase?.accessToken?.value;
 
     if (!newAccessToken) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Failed to refresh Supabase access token",
-        DyadErrorKind.Auth,
+        NextBillionErrorKind.Auth,
       );
     }
 
@@ -406,9 +410,9 @@ async function refreshSupabaseTokenForOrganization(
   const org = settings.supabase?.organizations?.[organizationSlug];
 
   if (!org) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Supabase organization ${organizationSlug} not found. Please authenticate first.`,
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -418,9 +422,9 @@ async function refreshSupabaseTokenForOrganization(
 
   const refreshToken = org.refreshToken?.value;
   if (!refreshToken) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Supabase refresh token not found. Please authenticate first.",
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -437,9 +441,9 @@ async function refreshSupabaseTokenForOrganization(
     );
 
     if (!response.ok) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Supabase token refresh failed. Try going to Settings to disconnect Supabase and then reconnect. Error status: ${response.statusText}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
@@ -492,17 +496,17 @@ export async function getSupabaseClientForOrganization(
   const org = settings.supabase?.organizations?.[organizationSlug];
 
   if (!org) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Supabase organization ${organizationSlug} not found. Please authenticate first.`,
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
   const accessToken = org.accessToken?.value;
   if (!accessToken) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Supabase access token not found for organization ${organizationSlug}. Please authenticate first.`,
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -518,9 +522,9 @@ export async function getSupabaseClientForOrganization(
     const newAccessToken = updatedOrg?.accessToken?.value;
 
     if (!newAccessToken) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to refresh Supabase access token for organization ${organizationSlug}`,
-        DyadErrorKind.Auth,
+        NextBillionErrorKind.Auth,
       );
     }
 
@@ -796,9 +800,9 @@ export async function getProjectApiKeys({
 
   const parsed = SupabaseApiKeysSchema.safeParse(await response.json());
   if (!parsed.success) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Supabase returned an unexpected API-keys response for project ${projectId}: ${parsed.error.message}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
   return parsed.data as SupabaseApiKey[];
@@ -861,9 +865,9 @@ export async function ensureSupabaseAuthRedirectUrls({
       // Never treat a malformed/partial response as an empty list: that would
       // erase callbacks belonging to production or another linked app.
       if (!config.success) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Supabase returned an unexpected Auth configuration.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
       const existing = (config.data.uri_allow_list ?? "")
@@ -960,18 +964,18 @@ LIMIT 1000`;
     await response.json(),
   );
   if (!parsed.success) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Supabase returned an unexpected logs response for project ${projectId}: ${parsed.error.message}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 
   const result = (parsed.data.result ?? []).map((logEntry) => {
     const timestamp = parseSupabaseLogTimestamp(logEntry.timestamp);
     if (!Number.isFinite(timestamp)) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Supabase returned an invalid log timestamp for project ${projectId}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
@@ -1137,7 +1141,7 @@ export interface CreatedSupabaseProjectResponse {
 }
 
 /**
- * Generated and deliberately never surfaced or stored: Dyad reaches projects
+ * Generated and deliberately never surfaced or stored: NextBillion reaches projects
  * through the Management API and their API keys, so nothing needs it, and
  * holding a Postgres superuser password would be a liability. Users reset it
  * from the Supabase dashboard for direct access.
@@ -1220,11 +1224,11 @@ export async function createSupabaseProject({
     logger.error("Supabase returned an unreadable create response", error);
   }
   if (!project?.id) {
-    const unnamed = new DyadError(
+    const unnamed = new NextBillionError(
       `Supabase created a project but returned no project ref: ${JSON.stringify(project)}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
-    (unnamed as DyadError & { code: string }).code =
+    (unnamed as NextBillionError & { code: string }).code =
       SUPABASE_PROJECT_CREATED_BUT_UNLINKED;
     throw unnamed;
   }
@@ -1288,9 +1292,9 @@ export async function listSupabaseBranches({
     logger.info(
       `Branches not available for project ${supabaseProjectId} (403 Forbidden - likely free tier)`,
     );
-    throw new DyadError(
+    throw new NextBillionError(
       "Branches are only supported for Supabase paid customers",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 
@@ -1627,9 +1631,9 @@ async function collectFunctionFiles({
   }
 
   if (!functionDirectory) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Unable to locate directory for Supabase function ${functionName}`,
-      DyadErrorKind.NotFound,
+      NextBillionErrorKind.NotFound,
     );
   }
 
@@ -1638,9 +1642,9 @@ async function collectFunctionFiles({
   try {
     await fsPromises.access(indexPath);
   } catch {
-    throw new DyadError(
+    throw new NextBillionError(
       `Supabase function ${functionName} is missing an index.ts entrypoint`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
@@ -1812,17 +1816,17 @@ function guessMimeType(filePath: string): string {
 /**
  * Classify a Management API failure before it crosses the IPC boundary.
  *
- * Existing `DyadError`s pass through with their kind intact. A 401/403 means the
+ * Existing `NextBillionError`s pass through with their kind intact. A 401/403 means the
  * organization's token was revoked or no longer has access to the project — an
  * auth/setup problem the user fixes by reconnecting, so it must reach the
  * renderer as `Auth` rather than as an unclassified product exception (see
- * `rules/dyad-errors.md`).
+ * `rules/nextbillion-errors.md`).
  */
 export function classifyManagementApiError(
   error: unknown,
   action: string,
 ): unknown {
-  if (isDyadError(error)) {
+  if (isNextBillionError(error)) {
     return error;
   }
   const message = error instanceof Error ? error.message : String(error);
@@ -1830,9 +1834,9 @@ export function classifyManagementApiError(
     error instanceof SupabaseManagementAPIError &&
     (error.response.status === 401 || error.response.status === 403)
   ) {
-    return new DyadError(
-      `Supabase would not authorize Dyad to ${action}. Reconnect your Supabase account in Settings, or check that this organization still has access to the project. Original error: ${message}`,
-      DyadErrorKind.Auth,
+    return new NextBillionError(
+      `Supabase would not authorize NextBillion to ${action}. Reconnect your Supabase account in Settings, or check that this organization still has access to the project. Original error: ${message}`,
+      NextBillionErrorKind.Auth,
     );
   }
   return error;

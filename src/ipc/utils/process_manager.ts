@@ -258,7 +258,7 @@ export function stopDockerContainer(containerName: string): Promise<void> {
  */
 export function removeDockerVolumesForApp(appId: number): Promise<void> {
   return new Promise<void>((resolve) => {
-    const pnpmVolume = `dyad-pnpm-${appId}`;
+    const pnpmVolume = `nextbillion-pnpm-${appId}`;
 
     const rm = spawn("docker", ["volume", "rm", "-f", pnpmVolume], {
       stdio: "pipe",
@@ -297,7 +297,7 @@ export async function stopAppByInfo(
         await destroyCloudSandbox(appInfo.cloudSandboxId);
       }
     } else if (appInfo.mode === "docker") {
-      const containerName = appInfo.containerName || `dyad-app-${appId}`;
+      const containerName = appInfo.containerName || `nextbillion-app-${appId}`;
       await stopDockerContainer(containerName);
     } else if (appInfo.process) {
       await killProcess(appInfo.process);
@@ -358,7 +358,7 @@ export function removeAppIfCurrentProcess(
       `Removed app ${appId} (processId ${currentAppInfo.processId}) from running map. Current size: ${runningApps.size}`,
     );
     // The dev server went away on its own — a crash, or the user killing it
-    // outside Dyad. Stop/Restart/Delete end a recording explicitly, but this
+    // outside NextBillion. Stop/Restart/Delete end a recording explicitly, but this
     // path had nothing watching it, so isolation and the session's whole-app
     // claim would have been held until the 30-minute cap with no preview left
     // to record.
@@ -583,7 +583,7 @@ export function stopAllAppsSync(): void {
         `Cloud sandbox ${appInfo.cloudSandboxId ?? "<unknown>"} for app ${appId} will be reconciled asynchronously after quit if needed.`,
       );
     } else if (appInfo.mode === "docker") {
-      const containerName = appInfo.containerName || `dyad-app-${appId}`;
+      const containerName = appInfo.containerName || `nextbillion-app-${appId}`;
       // Fire-and-forget: spawn docker stop without awaiting
       const stop = spawn("docker", ["stop", containerName], {
         stdio: "ignore",

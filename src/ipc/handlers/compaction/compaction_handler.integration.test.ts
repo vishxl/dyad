@@ -15,7 +15,7 @@ const {
 } = vi.hoisted(() => ({
   mockSafeSend: vi.fn(),
   mockStorePreCompactionMessages: vi.fn(
-    async () => ".dyad/chats/1/compaction-test.md",
+    async () => ".nextbillion/chats/1/compaction-test.md",
   ),
   mockStreamText: vi.fn(),
   mockGetModelClient: vi.fn(async () => ({
@@ -58,7 +58,7 @@ vi.mock("@/ipc/utils/findLanguageModel", () => ({
 }));
 
 vi.mock("@/ipc/utils/provider_options", () => ({
-  DYAD_INTERNAL_REQUEST_ID_HEADER: "x-dyad-request-id",
+  NEXTBILLION_INTERNAL_REQUEST_ID_HEADER: "x-dyad-request-id",
   getAiHeaders: () => ({}),
   getProviderOptions: () => ({}),
 }));
@@ -245,19 +245,19 @@ describe("performCompaction", () => {
     expect(result).toMatchObject({
       success: true,
       summary: "Complete summary",
-      backupPath: ".dyad/chats/1/compaction-test.md",
+      backupPath: ".nextbillion/chats/1/compaction-test.md",
     });
     await expect(loadSummaryMessages()).resolves.toHaveLength(1);
     await expect(loadChat()).resolves.toMatchObject({
       pendingCompaction: false,
-      compactionBackupPath: ".dyad/chats/1/compaction-test.md",
+      compactionBackupPath: ".nextbillion/chats/1/compaction-test.md",
     });
     expect(mockSafeSend).toHaveBeenCalledWith(
       expect.anything(),
       "chat:compaction:complete",
       {
         chatId,
-        backupPath: ".dyad/chats/1/compaction-test.md",
+        backupPath: ".nextbillion/chats/1/compaction-test.md",
       },
     );
   });
@@ -298,11 +298,11 @@ describe("performCompaction", () => {
     );
   });
 
-  it("pins the benchmarked compaction model for Dyad Pro users", async () => {
+  it("pins the benchmarked compaction model for NextBillion Pro users", async () => {
     settingsState.current = {
       selectedModel: { provider: "anthropic", name: "test-model" },
-      enableDyadPro: true,
-      providerSettings: { auto: { apiKey: { value: "dyad-pro-key" } } },
+      enableNextBillionPro: true,
+      providerSettings: { auto: { apiKey: { value: "nextbillion-pro-key" } } },
     };
     mockStreamText.mockReturnValue({
       textStream: textStream(["Complete summary"]),
@@ -323,9 +323,11 @@ describe("performCompaction", () => {
         effortLevel: "high",
       },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         selectedChatMode: "local-agent",
-        providerSettings: { auto: { apiKey: { value: "dyad-pro-key" } } },
+        providerSettings: {
+          auto: { apiKey: { value: "nextbillion-pro-key" } },
+        },
         selectedModel: {
           provider: "openai",
           name: SMALL_MODEL_NAME,
@@ -345,7 +347,7 @@ describe("performCompaction", () => {
     async (selectedChatMode) => {
       const accepted = {
         selectedModel: { provider: "openai", name: "gpt-5" },
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         selectedChatMode,
         providerSettings: { auto: { apiKey: { value: "accepted-key" } } },
       } as unknown as import("@/lib/schemas").UserSettings;
@@ -392,7 +394,7 @@ describe("performCompaction", () => {
         .where(eq(chats.id, chatId))
         .run();
       settingsState.current = {
-        enableDyadPro: false,
+        enableNextBillionPro: false,
         providerSettings: { openai: { apiKey: { value: "configured-key" } } },
       };
       mockStreamText.mockReturnValue({ textStream: textStream(["Summary"]) });
@@ -407,7 +409,7 @@ describe("performCompaction", () => {
       expect(result.success).toBe(true);
       expect(mockGetModelClient).toHaveBeenCalledWith(
         expect.objectContaining({ provider: "openai", name: "gpt-4o" }),
-        expect.objectContaining({ enableDyadPro: false }),
+        expect.objectContaining({ enableNextBillionPro: false }),
         expect.not.objectContaining({ connection: expect.anything() }),
       );
       expect((await loadChat())?.modelSelection?.connection).toBe(connection);

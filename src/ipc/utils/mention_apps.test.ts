@@ -36,7 +36,9 @@ vi.mock("@/ipc/utils/query_invalidation_delivery", () => ({
 }));
 
 vi.mock("@/paths/paths", () => ({
-  getDyadAppPath: vi.fn((appPath: string) => `/dyad-apps/${appPath}`),
+  getNextBillionAppPath: vi.fn(
+    (appPath: string) => `/nextbillion-apps/${appPath}`,
+  ),
 }));
 
 vi.mock("@/utils/codebase", () => ({
@@ -97,7 +99,11 @@ describe("mention app utilities", () => {
 
     expect(dbMocks.findMany).toHaveBeenCalledTimes(1);
     expect(result.references).toEqual([
-      { appId: 1, appName: "foo.app.com", appPath: "/dyad-apps/foo-app" },
+      {
+        appId: 1,
+        appName: "foo.app.com",
+        appPath: "/nextbillion-apps/foo-app",
+      },
     ]);
     expect(result.appIds).toEqual([1]);
     expect(result.changed).toBe(true);
@@ -115,7 +121,7 @@ describe("mention app utilities", () => {
       {
         appId: 3,
         appName: "App With Spaces",
-        appPath: "/dyad-apps/spaced-app",
+        appPath: "/nextbillion-apps/spaced-app",
       },
     ]);
     expect(result.appIds).toEqual([3]);
@@ -131,7 +137,11 @@ describe("mention app utilities", () => {
     });
 
     expect(result.references).toEqual([
-      { appId: 1, appName: "foo.app.com", appPath: "/dyad-apps/foo-app" },
+      {
+        appId: 1,
+        appName: "foo.app.com",
+        appPath: "/nextbillion-apps/foo-app",
+      },
     ]);
     expect(result.appIds).toEqual([1]);
     // Nothing new, so the chat row does not need rewriting.
@@ -189,7 +199,7 @@ describe("mention app utilities", () => {
     });
 
     expect(result.references).toEqual([
-      { appId: 1, appName: "renamed", appPath: "/dyad-apps/moved-app" },
+      { appId: 1, appName: "renamed", appPath: "/nextbillion-apps/moved-app" },
     ]);
     expect(result.changed).toBe(false);
   });

@@ -1,6 +1,6 @@
 import { EventEmitter } from "node:events";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { startProxy } from "./start_proxy_server";
 import { createHeadlessProxyModule } from "@/testing/headless_proxy_server";
 
@@ -50,8 +50,8 @@ describe.each([
         expect.objectContaining({
           kind:
             failure === "bind"
-              ? DyadErrorKind.Conflict
-              : DyadErrorKind.External,
+              ? NextBillionErrorKind.Conflict
+              : NextBillionErrorKind.External,
         }),
       );
     },

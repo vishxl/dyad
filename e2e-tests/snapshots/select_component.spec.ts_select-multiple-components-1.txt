@@ -15,7 +15,7 @@ Snippet:
         </p>
 ```
 
-2. Component: a (file: src/components/made-with-dyad.tsx)
+2. Component: a (file: src/components/made-with-nextbillion.tsx)
 
 Snippet:
 ```

@@ -37,7 +37,7 @@ export default defineConfig(({ forgeConfigSelf }) => ({
       external: [
         ...nodeBuiltins,
         "better-sqlite3",
-        "dyad-keychain-reader",
+        "nextbillion-keychain-reader",
         "node-pty",
         "ssh2",
         "mustardscript",

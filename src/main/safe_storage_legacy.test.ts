@@ -89,11 +89,11 @@ function makeFakeReader(map: Record<string, string>): FakeReader {
 
 function assertInProcessKeychainReaderAddonAvailable(): void {
   try {
-    require("dyad-keychain-reader");
+    require("nextbillion-keychain-reader");
   } catch (error) {
     throw new Error(
-      "Failed to load dyad-keychain-reader native addon. " +
-        "Run `npm rebuild dyad-keychain-reader` before running macOS " +
+      "Failed to load nextbillion-keychain-reader native addon. " +
+        "Run `npm rebuild nextbillion-keychain-reader` before running macOS " +
         "safeStorage integration tests.\nOriginal error: " +
         (error instanceof Error ? error.message : String(error)),
     );
@@ -112,10 +112,10 @@ interface NativeKeychainReaderBinding {
 }
 
 function loadNativeKeychainReaderBinding(): NativeKeychainReaderBinding {
-  return require("dyad-keychain-reader") as NativeKeychainReaderBinding;
+  return require("nextbillion-keychain-reader") as NativeKeychainReaderBinding;
 }
 
-const DYAD_KEY = "dyad Safe Storage::dyad Key";
+const LEGACY_KEY = "dyad Safe Storage::dyad Key";
 const CHROMIUM_KEY = "Chromium Safe Storage::Chromium Key";
 
 describe("deriveLegacyOsCryptKey", () => {
@@ -280,22 +280,22 @@ describe("InProcessKeychainPasswordReader", () => {
   });
 
   it("env var selects CLI vs in-process default reader", () => {
-    const savedReader = process.env.DYAD_SAFE_STORAGE_READER;
+    const savedReader = process.env.NEXTBILLION_SAFE_STORAGE_READER;
     try {
-      delete process.env.DYAD_SAFE_STORAGE_READER;
+      delete process.env.NEXTBILLION_SAFE_STORAGE_READER;
       expect(createDefaultKeychainPasswordReaderForTesting()).toBeInstanceOf(
         InProcessKeychainPasswordReader,
       );
 
-      process.env.DYAD_SAFE_STORAGE_READER = "cli";
+      process.env.NEXTBILLION_SAFE_STORAGE_READER = "cli";
       expect(createDefaultKeychainPasswordReaderForTesting()).toBeInstanceOf(
         SecurityCliKeychainPasswordReader,
       );
     } finally {
       if (savedReader === undefined) {
-        delete process.env.DYAD_SAFE_STORAGE_READER;
+        delete process.env.NEXTBILLION_SAFE_STORAGE_READER;
       } else {
-        process.env.DYAD_SAFE_STORAGE_READER = savedReader;
+        process.env.NEXTBILLION_SAFE_STORAGE_READER = savedReader;
       }
     }
   });
@@ -330,27 +330,28 @@ describe("InProcessKeychainPasswordReader", () => {
 
 describe("Keychain unlock recovery retry", () => {
   const savedRecoveryKillSwitch =
-    process.env.DYAD_DISABLE_SAFE_STORAGE_RECOVERY;
+    process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_RECOVERY;
   const savedPromptKillSwitch =
-    process.env.DYAD_DISABLE_SAFE_STORAGE_UNLOCK_PROMPT;
+    process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_UNLOCK_PROMPT;
 
   beforeEach(() => {
     clearRecoveryCacheForTesting();
-    delete process.env.DYAD_DISABLE_SAFE_STORAGE_RECOVERY;
-    delete process.env.DYAD_DISABLE_SAFE_STORAGE_UNLOCK_PROMPT;
+    delete process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_RECOVERY;
+    delete process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_UNLOCK_PROMPT;
   });
 
   afterEach(() => {
     clearRecoveryCacheForTesting();
     if (savedRecoveryKillSwitch === undefined) {
-      delete process.env.DYAD_DISABLE_SAFE_STORAGE_RECOVERY;
+      delete process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_RECOVERY;
     } else {
-      process.env.DYAD_DISABLE_SAFE_STORAGE_RECOVERY = savedRecoveryKillSwitch;
+      process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_RECOVERY =
+        savedRecoveryKillSwitch;
     }
     if (savedPromptKillSwitch === undefined) {
-      delete process.env.DYAD_DISABLE_SAFE_STORAGE_UNLOCK_PROMPT;
+      delete process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_UNLOCK_PROMPT;
     } else {
-      process.env.DYAD_DISABLE_SAFE_STORAGE_UNLOCK_PROMPT =
+      process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_UNLOCK_PROMPT =
         savedPromptKillSwitch;
     }
   });
@@ -434,7 +435,7 @@ describe("Keychain unlock recovery retry", () => {
 
     await withPlatform("darwin", () => {
       expect(recoverLegacySafeStorageSecret(ciphertext)).toBeNull();
-      process.env.DYAD_DISABLE_SAFE_STORAGE_UNLOCK_PROMPT = "1";
+      process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_UNLOCK_PROMPT = "1";
       expect(recoveryNeedsKeychainUnlock()).toBe(false);
       expect(retryRecoveryWithKeychainUnlock()).toBe(false);
     });
@@ -537,36 +538,38 @@ describe("Keychain unlock recovery retry", () => {
 });
 
 describe("recoverLegacySafeStorageSecret", () => {
-  const savedKillSwitch = process.env.DYAD_DISABLE_SAFE_STORAGE_RECOVERY;
-  const savedReader = process.env.DYAD_SAFE_STORAGE_READER;
+  const savedKillSwitch = process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_RECOVERY;
+  const savedReader = process.env.NEXTBILLION_SAFE_STORAGE_READER;
 
   beforeEach(() => {
     clearRecoveryCacheForTesting();
-    delete process.env.DYAD_DISABLE_SAFE_STORAGE_RECOVERY;
-    delete process.env.DYAD_SAFE_STORAGE_READER;
+    delete process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_RECOVERY;
+    delete process.env.NEXTBILLION_SAFE_STORAGE_READER;
   });
 
   afterEach(() => {
     if (savedKillSwitch === undefined) {
-      delete process.env.DYAD_DISABLE_SAFE_STORAGE_RECOVERY;
+      delete process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_RECOVERY;
     } else {
-      process.env.DYAD_DISABLE_SAFE_STORAGE_RECOVERY = savedKillSwitch;
+      process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_RECOVERY = savedKillSwitch;
     }
     if (savedReader === undefined) {
-      delete process.env.DYAD_SAFE_STORAGE_READER;
+      delete process.env.NEXTBILLION_SAFE_STORAGE_READER;
     } else {
-      process.env.DYAD_SAFE_STORAGE_READER = savedReader;
+      process.env.NEXTBILLION_SAFE_STORAGE_READER = savedReader;
     }
   });
 
-  it("recovers via the dyad identity", async () => {
-    const key = deriveLegacyOsCryptKey("dyad-keychain-pw");
-    const ciphertext = encryptV10Base64("dyad-real-secret", key);
-    const reader = makeFakeReader({ [DYAD_KEY]: "dyad-keychain-pw" });
+  it("recovers via the nextbillion identity", async () => {
+    const key = deriveLegacyOsCryptKey("nextbillion-keychain-pw");
+    const ciphertext = encryptV10Base64("nextbillion-real-secret", key);
+    const reader = makeFakeReader({
+      [LEGACY_KEY]: "nextbillion-keychain-pw",
+    });
 
     await withPlatform("darwin", () => {
       expect(recoverLegacySafeStorageSecret(ciphertext, reader)).toBe(
-        "dyad-real-secret",
+        "nextbillion-real-secret",
       );
     });
     // Both identities are consulted before returning so a later plausible
@@ -582,7 +585,7 @@ describe("recoverLegacySafeStorageSecret", () => {
     });
   });
 
-  it("recovers via the chromium identity when the dyad identity misses", async () => {
+  it("recovers via the chromium identity when the nextbillion identity misses", async () => {
     const key = deriveLegacyOsCryptKey("chromium-keychain-pw");
     const ciphertext = encryptV10Base64("chromium-real-secret", key);
     const reader = makeFakeReader({ [CHROMIUM_KEY]: "chromium-keychain-pw" });
@@ -626,12 +629,12 @@ describe("recoverLegacySafeStorageSecret", () => {
     expect(falsePositivePw).not.toBeNull();
 
     const reader = makeFakeReader({
-      [DYAD_KEY]: falsePositivePw!,
+      [LEGACY_KEY]: falsePositivePw!,
       [CHROMIUM_KEY]: "correct-chromium-pw",
     });
 
     await withPlatform("darwin", () => {
-      // The dyad identity "decrypts" to garbage and is rejected; the chromium
+      // The nextbillion identity "decrypts" to garbage and is rejected; the chromium
       // identity yields the real plaintext.
       expect(recoverLegacySafeStorageSecret(ciphertext, reader)).toBe(
         "the real secret",
@@ -644,7 +647,7 @@ describe("recoverLegacySafeStorageSecret", () => {
     const key = deriveLegacyOsCryptKey("shared-keychain-pw");
     const ciphertext = encryptV10Base64("ambiguous-secret", key);
     const reader = makeFakeReader({
-      [DYAD_KEY]: "shared-keychain-pw",
+      [LEGACY_KEY]: "shared-keychain-pw",
       [CHROMIUM_KEY]: "shared-keychain-pw",
     });
 
@@ -663,10 +666,10 @@ describe("recoverLegacySafeStorageSecret", () => {
   });
 
   it("returns null under the kill switch and never reads the keychain", async () => {
-    process.env.DYAD_DISABLE_SAFE_STORAGE_RECOVERY = "1";
+    process.env.NEXTBILLION_DISABLE_SAFE_STORAGE_RECOVERY = "1";
     const key = deriveLegacyOsCryptKey("pw");
     const ciphertext = encryptV10Base64("secret", key);
-    const reader = makeFakeReader({ [DYAD_KEY]: "pw" });
+    const reader = makeFakeReader({ [LEGACY_KEY]: "pw" });
 
     await withPlatform("darwin", () => {
       expect(recoverLegacySafeStorageSecret(ciphertext, reader)).toBeNull();
@@ -675,7 +678,7 @@ describe("recoverLegacySafeStorageSecret", () => {
   });
 
   it("returns null for non-v10 ciphertext without reading the keychain", async () => {
-    const reader = makeFakeReader({ [DYAD_KEY]: "pw" });
+    const reader = makeFakeReader({ [LEGACY_KEY]: "pw" });
     const notV10 = Buffer.from("not-a-v10-ciphertext-at-all").toString(
       "base64",
     );
@@ -689,7 +692,7 @@ describe("recoverLegacySafeStorageSecret", () => {
   it("returns null on non-darwin platforms", async () => {
     const key = deriveLegacyOsCryptKey("pw");
     const ciphertext = encryptV10Base64("secret", key);
-    const reader = makeFakeReader({ [DYAD_KEY]: "pw" });
+    const reader = makeFakeReader({ [LEGACY_KEY]: "pw" });
 
     await withPlatform("linux", () => {
       expect(recoverLegacySafeStorageSecret(ciphertext, reader)).toBeNull();
@@ -698,9 +701,11 @@ describe("recoverLegacySafeStorageSecret", () => {
   });
 
   it("caches results so the keychain is read once per ciphertext", async () => {
-    const key = deriveLegacyOsCryptKey("dyad-keychain-pw");
+    const key = deriveLegacyOsCryptKey("nextbillion-keychain-pw");
     const ciphertext = encryptV10Base64("cached-secret", key);
-    const reader = makeFakeReader({ [DYAD_KEY]: "dyad-keychain-pw" });
+    const reader = makeFakeReader({
+      [LEGACY_KEY]: "nextbillion-keychain-pw",
+    });
 
     await withPlatform("darwin", () => {
       expect(recoverLegacySafeStorageSecret(ciphertext, reader)).toBe(
@@ -775,9 +780,12 @@ describe.skipIf(process.platform !== "darwin")(
   "SecurityCliKeychainPasswordReader (darwin integration)",
   () => {
     const tmpDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "dyad-safe-storage-legacy-"),
+      path.join(os.tmpdir(), "nextbillion-safe-storage-legacy-"),
     );
-    const keychainPath = path.join(tmpDir, "dyad-recovery-test.keychain");
+    const keychainPath = path.join(
+      tmpDir,
+      "nextbillion-recovery-test.keychain",
+    );
     const keychainPassword = "testpass";
     const storedPassword = "integration-test-password";
 
@@ -895,12 +903,15 @@ describe.skipIf(process.platform !== "darwin")(
   "InProcessKeychainPasswordReader (darwin integration)",
   () => {
     const tmpDir = fs.mkdtempSync(
-      path.join(os.tmpdir(), "dyad-safe-storage-in-process-"),
+      path.join(os.tmpdir(), "nextbillion-safe-storage-in-process-"),
     );
-    const keychainPath = path.join(tmpDir, "dyad-recovery-test.keychain");
+    const keychainPath = path.join(
+      tmpDir,
+      "nextbillion-recovery-test.keychain",
+    );
     const keychainPassword = "testpass";
     const storedPassword = "integration-test-password";
-    const promptService = "dyad Prompt Test Safe Storage";
+    const promptService = "nextbillion Prompt Test Safe Storage";
 
     beforeAll(() => {
       assertInProcessKeychainReaderAddonAvailable();

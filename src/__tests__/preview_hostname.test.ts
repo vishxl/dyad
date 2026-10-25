@@ -1,5 +1,8 @@
 import { expect, it } from "vitest";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   getAppPreviewHostname,
   isAppPreviewHostname,
@@ -17,9 +20,9 @@ it.each([0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1, NaN])(
   "rejects an invalid app ID %s",
   (id) => {
     expect(() => getAppPreviewHostname(id)).toThrow(
-      new DyadError(
+      new NextBillionError(
         "Preview app ID must be a positive safe integer",
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       ),
     );
   },

@@ -4,7 +4,7 @@ import { randomInt } from "crypto";
  * The admin account Coolify seeds itself with during installation.
  *
  * Coolify creates its first user from environment variables the installer
- * writes, which is what lets Dyad set a server up without the user ever opening
+ * writes, which is what lets NextBillion set a server up without the user ever opening
  * the dashboard. The values only take effect while no admin exists, so this
  * cannot take over an instance somebody is already using.
  */
@@ -68,7 +68,7 @@ export function isShellSafe(value: string): boolean {
 
 export function buildAdminCredentials(email: string): AdminCredentials {
   return {
-    username: "dyad-admin",
+    username: "nextbillion-admin",
     // Asked for rather than invented, because the domain has to resolve and
     // because this is the address the user signs in with afterwards.
     email: email.trim(),

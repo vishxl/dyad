@@ -118,9 +118,9 @@ describe("chat mode resolution", () => {
 
   it("defaults Pro users to Agent", () => {
     const settings = makeSettings({
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       providerSettings: {
-        auto: { apiKey: { value: "dyad-key" } },
+        auto: { apiKey: { value: "nextbillion-key" } },
       },
     });
 

@@ -11,7 +11,7 @@ const mocks = vi.hoisted(() => ({
   deleteFunctions: vi.fn(),
   settings: {
     enableShellTool: true,
-    enableDyadPro: true,
+    enableNextBillionPro: true,
     providerSettings: { auto: { apiKey: { value: "test" } } },
     agentToolConsents: { run_shell: "always" },
   },
@@ -33,11 +33,11 @@ let ctx: AgentContext;
 beforeEach(async () => {
   vi.clearAllMocks();
   mocks.settings.enableShellTool = true;
-  directory = await mkdtemp(path.join(os.tmpdir(), "dyad-shell-tool-"));
+  directory = await mkdtemp(path.join(os.tmpdir(), "nextbillion-shell-tool-"));
   ctx = {
     appId: 81234,
     appPath: directory,
-    isDyadPro: true,
+    isNextBillionPro: true,
     shellReviewContext: { tools: [], history: [] },
     requireConsent: vi.fn(async () => true),
     onXmlStream: vi.fn(),
@@ -514,7 +514,7 @@ it("returns a recovery error to queued mutations when process shutdown is unconf
         ctx,
       ),
     );
-    expect(result.note).toContain("restart Dyad");
+    expect(result.note).toContain("restart NextBillion");
     expect(mocks.reconcile).not.toHaveBeenCalled();
     await expect(
       appOperationCoordinator.run(

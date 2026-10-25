@@ -203,7 +203,7 @@ export async function scheduleHookGeneratedFileSideEffects(
       "Failed to identify Supabase paths changed by pre-commit; skipping Supabase reconciliation:",
       error,
     );
-    return `Dyad could not determine which Supabase files ${operation} changed, so it skipped automatic function reconciliation.`;
+    return `NextBillion could not determine which Supabase files ${operation} changed, so it skipped automatic function reconciliation.`;
   }
 
   const afterFunctionEntries = await tryCollectSupabaseFunctionEntryPoints(
@@ -248,7 +248,7 @@ export async function scheduleHookGeneratedFileSideEffects(
     );
     if (ctx.skipPruneEdgeFunctions && removedFunctionNames.length > 0) {
       notes.push(
-        `${operation} removed local Supabase function(s) ${removedFunctionNames.join(", ")}, but Dyad kept their remote deployments because "Keep extra Supabase edge functions" is enabled.`,
+        `${operation} removed local Supabase function(s) ${removedFunctionNames.join(", ")}, but NextBillion kept their remote deployments because "Keep extra Supabase edge functions" is enabled.`,
       );
     } else {
       // Queue first so the root finalizer retries if the immediate deletion
@@ -267,7 +267,7 @@ export async function scheduleHookGeneratedFileSideEffects(
       }
       if (removedFunctionNames.length > 0) {
         notes.push(
-          `Dyad is removing the corresponding remote Supabase function deployment(s): ${removedFunctionNames.join(", ")}.`,
+          `NextBillion is removing the corresponding remote Supabase function deployment(s): ${removedFunctionNames.join(", ")}.`,
         );
       }
     }
@@ -275,7 +275,7 @@ export async function scheduleHookGeneratedFileSideEffects(
 
   if (!beforeFunctionEntries || !afterFunctionEntries) {
     notes.push(
-      "Dyad could not compare Supabase function entry points before and after the hook, so it skipped automatic deletion reconciliation.",
+      "NextBillion could not compare Supabase function entry points before and after the hook, so it skipped automatic deletion reconciliation.",
     );
   }
   return notes.join("\n\n") || undefined;
@@ -292,7 +292,7 @@ function complete(
   state: "finished" | "warning" = "finished",
 ): string {
   ctx.onXmlComplete(
-    `<dyad-status title="${escapeXmlAttr(title)}" state="${state}">\n${escapeXmlContent(body)}\n</dyad-status>`,
+    `<nextbillion-status title="${escapeXmlAttr(title)}" state="${state}">\n${escapeXmlContent(body)}\n</nextbillion-status>`,
   );
   return body;
 }
@@ -424,7 +424,7 @@ export const runPreCommitTool: ToolDefinition<
           return complete(
             ctx,
             "Pre-commit snapshot check failed",
-            `Dyad could not determine whether the staged Git snapshot has changes, so the hook was not run.\n\n${message}`,
+            `NextBillion could not determine whether the staged Git snapshot has changes, so the hook was not run.\n\n${message}`,
             "warning",
           );
         }
@@ -436,7 +436,7 @@ export const runPreCommitTool: ToolDefinition<
           return complete(
             ctx,
             "Pre-commit snapshot check failed",
-            "Dyad could not determine whether the staged Git snapshot has changes, so the hook was not run.",
+            "NextBillion could not determine whether the staged Git snapshot has changes, so the hook was not run.",
             "warning",
           );
         }
@@ -487,7 +487,7 @@ export const runPreCommitTool: ToolDefinition<
         ctx.preCommitRunCount = previousRunCount + 1;
         ctx.preCommitFileMutationCountAtLastRun = fileMutationCount;
         ctx.onXmlStream(
-          `<dyad-status title="${escapeXmlAttr(`Running pre-commit (${ctx.preCommitRunCount}/${MAX_PRE_COMMIT_RUNS_PER_TURN})`)}"></dyad-status>`,
+          `<nextbillion-status title="${escapeXmlAttr(`Running pre-commit (${ctx.preCommitRunCount}/${MAX_PRE_COMMIT_RUNS_PER_TURN})`)}"></nextbillion-status>`,
         );
 
         let result: BufferedProcessResult;
@@ -546,7 +546,7 @@ export const runPreCommitTool: ToolDefinition<
           );
         } else if (result.timedOut && ctx.supabaseProjectId) {
           reconciliationNote =
-            "The hook did not complete, so Dyad skipped automatic Supabase function reconciliation.";
+            "The hook did not complete, so NextBillion skipped automatic Supabase function reconciliation.";
         }
 
         if (result.aborted) {
@@ -561,7 +561,7 @@ export const runPreCommitTool: ToolDefinition<
         if (result.timedOut) {
           ctx.preCommitLastRunPassed = false;
           const fingerprintNote = fingerprintUnknown
-            ? "\n\nDyad could not determine whether the hook changed files. A follow-up run is allowed to verify any hook-generated changes."
+            ? "\n\nNextBillion could not determine whether the hook changed files. A follow-up run is allowed to verify any hook-generated changes."
             : "";
           return complete(
             ctx,
@@ -580,7 +580,7 @@ export const runPreCommitTool: ToolDefinition<
           const remaining =
             MAX_PRE_COMMIT_RUNS_PER_TURN - (ctx.preCommitRunCount ?? 0);
           const fingerprintNote = fingerprintUnknown
-            ? "\n\nDyad could not determine whether the hook changed files. A follow-up run is allowed to verify any hook-generated changes."
+            ? "\n\nNextBillion could not determine whether the hook changed files. A follow-up run is allowed to verify any hook-generated changes."
             : "";
           return complete(
             ctx,
@@ -610,7 +610,7 @@ export const runPreCommitTool: ToolDefinition<
             ctx,
             "Pre-commit passed; file changes unknown",
             appendNote(
-              `Pre-commit passed, but Dyad could not determine whether the hook changed files. Run pre-commit once more to verify any hook-generated changes.\n\n${output}`,
+              `Pre-commit passed, but NextBillion could not determine whether the hook changed files. Run pre-commit once more to verify any hook-generated changes.\n\n${output}`,
               reconciliationNote,
             ),
             "warning",
@@ -661,7 +661,7 @@ export async function deleteHookRemovedFunctions(
         // Finalization retries only if the turn completes; say so, because a
         // cancelled or failed turn leaves the remote function deployed.
         ctx.onWarningMessage?.(
-          `Pre-commit removed Supabase function ${functionName}, but Dyad could not delete its remote deployment yet: ${error}. Dyad retries when this turn finishes; if the turn is cancelled, delete it from Supabase or run Redeploy all.`,
+          `Pre-commit removed Supabase function ${functionName}, but NextBillion could not delete its remote deployment yet: ${error}. NextBillion retries when this turn finishes; if the turn is cancelled, delete it from Supabase or run Redeploy all.`,
         );
         continue;
       }

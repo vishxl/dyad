@@ -70,7 +70,7 @@ const html = `<!doctype html><meta charset="utf-8"><meta name="viewport" content
 <title>App-builder demo tours</title>
 <style>${fs.readFileSync(path.resolve(dir, "../../site/scores.css"), "utf8")}</style>
 <script>try { const t=localStorage.getItem('appbench.theme')||'system'; document.documentElement.dataset.theme=t==='system'?(matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):t; } catch { document.documentElement.dataset.theme=matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'; }</script>
-<div class="wrap gallery"><div class="topbar"><a class="brand" href="scores.html">dyad<span>/ benchmarks</span></a><nav class="topnav"><a href="scores.html#demos">Latest demos</a><label class="theme-label"><span>Appearance</span><select id="theme" aria-label="Color theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label></nav></div>
+<div class="wrap gallery"><div class="topbar"><a class="brand" href="scores.html">nextbillion<span>/ benchmarks</span></a><nav class="topnav"><a href="scores.html#demos">Latest demos</a><label class="theme-label"><span>Appearance</span><select id="theme" aria-label="Color theme"><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select></label></nav></div>
 <p class="eyebrow">From the archive</p><h1>Relay CRM demo tours</h1>
 <p class="sub"><a href="scores.html" >Scores &amp; costs across all three apps →</a></p>
 <p class="sub">Each video is one continuous walkthrough of the finished app (checkpoint 3), recorded at 1.5× zoom with slowed pacing and a step banner. Generated ${new Date().toISOString().slice(0,16).replace("T"," ")} UTC.</p>

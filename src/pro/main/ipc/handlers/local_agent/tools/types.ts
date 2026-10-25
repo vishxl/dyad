@@ -117,8 +117,8 @@ export interface AgentContext {
   chatSummary?: string;
   /** Turn-scoped todo list for agent task tracking */
   todos: Todo[];
-  /** Request ID for tracking requests to the Dyad engine */
-  dyadRequestId: string;
+  /** Request ID for tracking requests to the NextBillion engine */
+  nextBillionRequestId: string;
   /** Tracks file edit tool usage per file for telemetry */
   fileEditTracker: FileEditTracker;
   /** True after a tool has successfully changed workspace contents this turn. */
@@ -171,10 +171,10 @@ export interface AgentContext {
   /** Whether the last completed pre-commit run passed. */
   preCommitLastRunPassed?: boolean;
   /**
-   * If true, the user has Dyad Pro enabled.
-   * Engine-dependent tools require this to access the Dyad Pro API.
+   * If true, the user has NextBillion Pro enabled.
+   * Engine-dependent tools require this to access the NextBillion Pro API.
    */
-  isDyadPro: boolean;
+  isNextBillionPro: boolean;
   /** The durable child thread currently executing this tool, if any. */
   subagentThreadId?: string;
   /** Persona for a child tool invocation. Root turns leave this undefined. */
@@ -209,7 +209,7 @@ export interface AgentContext {
   /** Whether run_type_checks accepts no paths and reports the whole project. */
   runTypeScriptForWholeProject?: boolean;
   /**
-   * If true, this turn is using a Dyad Free model. Some Pro-enabled
+   * If true, this turn is using a NextBillion Free model. Some Pro-enabled
    * conveniences, such as MCP auto-approval, should stay disabled.
    */
   freeModelMode?: boolean;
@@ -535,7 +535,7 @@ export interface ToolDefinition<T = any> {
    */
   readonly requiresBlueprintApproval?: boolean;
   /**
-   * If true, this tool calls a Dyad Engine endpoint outside the main model
+   * If true, this tool calls a NextBillion Engine endpoint outside the main model
    * generation endpoint.
    */
   readonly usesEngineEndpoint?: boolean;

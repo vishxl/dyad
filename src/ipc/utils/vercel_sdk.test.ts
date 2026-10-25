@@ -4,7 +4,7 @@ import { CreateProjectProjectsResourceConfig$inboundSchema } from "@vercel/sdk/m
 describe("Vercel SDK project response compatibility", () => {
   it("accepts the basic build machine returned by Vercel", () => {
     // This successful API response failed validation in SDK 1.18.0,
-    // preventing Dyad from linking a newly created project.
+    // preventing NextBillion from linking a newly created project.
     const resourceConfig = {
       functionDefaultRegions: ["iad1"],
       buildMachineType: "basic",

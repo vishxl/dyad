@@ -394,9 +394,9 @@ export async function runPtyCommand(
 ): Promise<PtyCommandExecutionResult> {
   // node-pty is a native module built for Electron's ABI; under a plain node
   // runtime (vitest harnesses, benchmarks) it fails with posix_spawnp errors.
-  // DYAD_DISABLE_PTY=1 opts into a plain child_process execution with the
+  // NEXTBILLION_DISABLE_PTY=1 opts into a plain child_process execution with the
   // same result contract (merged output, cwd/env/timeout honored).
-  if (process.env.DYAD_DISABLE_PTY === "1") {
+  if (process.env.NEXTBILLION_DISABLE_PTY === "1") {
     return runCommandWithoutPty(command, args, options);
   }
   return runPtyCommandWithPty(command, args, options, ptySpawner);

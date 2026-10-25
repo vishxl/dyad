@@ -224,7 +224,7 @@ describe("searchChatsTool.execute", () => {
       chatId: chat,
       role: "assistant",
       content:
-        "<dyad-compaction>We picked the pelican logging approach.</dyad-compaction>",
+        "<nextbillion-compaction>We picked the pelican logging approach.</nextbillion-compaction>",
       createdAt: 4_000,
       isCompactionSummary: true,
     });
@@ -258,14 +258,14 @@ describe("searchChatsTool.execute", () => {
       chatId: chat,
       role: "assistant",
       content:
-        '<dyad-write path="src/x.ts">const flamingo = "only in code";</dyad-write>',
+        '<nextbillion-write path="src/x.ts">const flamingo = "only in code";</nextbillion-write>',
     });
     // Recursive retrieval output is also not searchable.
     harness.insertMessage({
       chatId: chat,
       role: "assistant",
       content:
-        '<dyad-search-chats query="x">ostrich retrieved excerpt</dyad-search-chats>',
+        '<nextbillion-search-chats query="x">ostrich retrieved excerpt</nextbillion-search-chats>',
     });
     await drainChatSearchIndexOnce();
 
@@ -377,7 +377,7 @@ describe("searchChatsTool.execute", () => {
     const { ctx } = await run("ibex", { appId, chatId: currentChat });
     expect(ctx.onXmlComplete).toHaveBeenCalledTimes(1);
     const xml = vi.mocked(ctx.onXmlComplete).mock.calls[0][0];
-    expect(xml).toContain("<dyad-search-chats");
+    expect(xml).toContain("<nextbillion-search-chats");
     expect(xml).toContain('query="ibex"');
     expect(xml).toContain('result-count="1"');
   });

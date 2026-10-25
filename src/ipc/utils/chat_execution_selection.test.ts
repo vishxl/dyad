@@ -13,13 +13,13 @@ it("does not pin initial created/imported chats to a disabled remembered Claude 
     recentModels: [{ provider: "openai", name: "gpt-5" }],
   } as UserSettings;
   expect(await initialChatExecution(undefined, settings)).toMatchObject({
-    executionBackend: "dyad",
+    executionBackend: "nextbillion",
     modelSelection: { provider: "openai", name: "gpt-5" },
   });
   expect(
     await initialChatExecution(undefined, { ...settings, recentModels: [] }),
   ).toMatchObject({
-    executionBackend: "dyad",
+    executionBackend: "nextbillion",
     modelSelection: { provider: "auto", name: "auto" },
   });
   expect(

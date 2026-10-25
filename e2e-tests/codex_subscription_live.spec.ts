@@ -5,26 +5,29 @@ import path from "node:path";
 import { test } from "./helpers/test_helper";
 
 // Deliberate live test: browser sign-in is human-owned, inference uses a real
-// subscription, and only Dyad billing is a contract stub. No credential import.
+// subscription, and only NextBillion billing is a contract stub. No credential import.
 test.use({ trace: "off" });
-test("live Codex subscription through Dyad", async ({ po, electronApp }) => {
+test("live Codex subscription through NextBillion", async ({
+  po,
+  electronApp,
+}) => {
   test.skip(
-    process.env.DYAD_LIVE_SUBSCRIPTION_SMOKE !== "1",
+    process.env.NEXTBILLION_LIVE_SUBSCRIPTION_SMOKE !== "1",
     "Requires an interactive ChatGPT subscription sign-in",
   );
   test.setTimeout(10 * 60_000);
-  await po.setUpDyadPro({
+  await po.setUpNextBillionPro({
     localAgent: true,
     localAgentUseAutoModel: true,
     autoApprove: true,
   });
   await po.importApp("minimal");
   const previousEngine = await electronApp.evaluate(
-    () => process.env.DYAD_ENGINE_URL,
+    () => process.env.NEXTBILLION_ENGINE_URL,
   );
   if (!previousEngine)
     throw new Error(
-      "Live smoke requires DYAD_ENGINE_URL for auxiliary requests.",
+      "Live smoke requires NEXTBILLION_ENGINE_URL for auxiliary requests.",
     );
   const reports: Array<{
     id: string;
@@ -86,9 +89,9 @@ test("live Codex subscription through Dyad", async ({ po, electronApp }) => {
     throw new Error("Billing fixture unavailable");
   try {
     await electronApp.evaluate((_, url) => {
-      process.env.DYAD_ENGINE_URL = url;
+      process.env.NEXTBILLION_ENGINE_URL = url;
       // Billing and balance are fixtures; only subscription inference is live.
-      process.env.DYAD_USER_INFO_URL = `http://localhost:${process.env.FAKE_LLM_PORT}/api/user/info`;
+      process.env.NEXTBILLION_USER_INFO_URL = `http://localhost:${process.env.FAKE_LLM_PORT}/api/user/info`;
     }, `http://127.0.0.1:${address.port}`);
     await po.page.evaluate(async () => {
       await (window as any).electron.ipcRenderer.invoke("set-user-settings", {
@@ -101,7 +104,7 @@ test("live Codex subscription through Dyad", async ({ po, electronApp }) => {
       );
     });
     console.log(
-      "Complete the official ChatGPT browser sign-in to continue the live Dyad smoke test.",
+      "Complete the official ChatGPT browser sign-in to continue the live NextBillion smoke test.",
     );
     await expect
       .poll(
@@ -130,7 +133,10 @@ test("live Codex subscription through Dyad", async ({ po, electronApp }) => {
           },
         });
       },
-      { chatId, model: process.env.DYAD_LIVE_SUBSCRIPTION_MODEL ?? "gpt-5.4" },
+      {
+        chatId,
+        model: process.env.NEXTBILLION_LIVE_SUBSCRIPTION_MODEL ?? "gpt-5.4",
+      },
     );
     await electronApp.evaluate(async ({ app, BrowserWindow }) => {
       const path = await import("node:path");
@@ -147,18 +153,18 @@ test("live Codex subscription through Dyad", async ({ po, electronApp }) => {
     const celebration = po.page.getByRole("button", { name: "Let's build" });
     if (await celebration.isVisible()) await celebration.click();
     await po.sendPrompt(
-      "Use write_file to create subscription-smoke.txt in the app root with exactly DYAD_SUBSCRIPTION_OK. Do not install packages or delegate. Then reply Done.",
+      "Use write_file to create subscription-smoke.txt in the app root with exactly NEXTBILLION_SUBSCRIPTION_OK. Do not install packages or delegate. Then reply Done.",
       { timeout: 120_000 },
     );
     const appPath = await po.appManagement.getCurrentAppPath();
     expect(
       fs.readFileSync(path.join(appPath, "subscription-smoke.txt"), "utf8"),
-    ).toContain("DYAD_SUBSCRIPTION_OK");
+    ).toContain("NEXTBILLION_SUBSCRIPTION_OK");
     await expect(
       po.page.getByText(/ChatGPT subscription \(/).last(),
     ).toBeVisible();
     await po.sendPrompt(
-      "Read the file you just created and append a second line FOLLOWUP_OK using Dyad's file tools. Do not delegate.",
+      "Read the file you just created and append a second line FOLLOWUP_OK using NextBillion's file tools. Do not delegate.",
       { timeout: 120_000 },
     );
     expect(

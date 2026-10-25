@@ -22,8 +22,8 @@ describe("MCP chat flows (integration)", () => {
       engine: true,
       settings: {
         isTestMode: true,
-        enableDyadPro: true,
-        providerSettings: { auto: { apiKey: { value: "testdyadkey" } } },
+        enableNextBillionPro: true,
+        providerSettings: { auto: { apiKey: { value: "testnextbillionkey" } } },
         enableSandboxScriptExecution: true,
         enableMcpToolSearch: true,
         enableCodeExplorer: false,
@@ -153,8 +153,9 @@ describe("MCP chat flows (integration)", () => {
   }, 60_000);
 
   it("renders MCP tool search cards in local-agent search mode", async () => {
-    const previousThreshold = process.env.DYAD_MCP_INLINE_TOKEN_THRESHOLD;
-    process.env.DYAD_MCP_INLINE_TOKEN_THRESHOLD = "0";
+    const previousThreshold =
+      process.env.NEXTBILLION_MCP_INLINE_TOKEN_THRESHOLD;
+    process.env.NEXTBILLION_MCP_INLINE_TOKEN_THRESHOLD = "0";
     try {
       await harness.mcp.addStdioServer();
 
@@ -170,16 +171,17 @@ describe("MCP chat flows (integration)", () => {
       expect(screen.getByText("add numbers")).toBeTruthy();
     } finally {
       if (previousThreshold === undefined) {
-        delete process.env.DYAD_MCP_INLINE_TOKEN_THRESHOLD;
+        delete process.env.NEXTBILLION_MCP_INLINE_TOKEN_THRESHOLD;
       } else {
-        process.env.DYAD_MCP_INLINE_TOKEN_THRESHOLD = previousThreshold;
+        process.env.NEXTBILLION_MCP_INLINE_TOKEN_THRESHOLD = previousThreshold;
       }
     }
   }, 60_000);
 
   it("renders MCP tool schema cards in local-agent search mode", async () => {
-    const previousThreshold = process.env.DYAD_MCP_INLINE_TOKEN_THRESHOLD;
-    process.env.DYAD_MCP_INLINE_TOKEN_THRESHOLD = "0";
+    const previousThreshold =
+      process.env.NEXTBILLION_MCP_INLINE_TOKEN_THRESHOLD;
+    process.env.NEXTBILLION_MCP_INLINE_TOKEN_THRESHOLD = "0";
     try {
       await harness.mcp.addStdioServer();
 
@@ -195,9 +197,9 @@ describe("MCP chat flows (integration)", () => {
       expect(screen.getByText("calculator_add")).toBeTruthy();
     } finally {
       if (previousThreshold === undefined) {
-        delete process.env.DYAD_MCP_INLINE_TOKEN_THRESHOLD;
+        delete process.env.NEXTBILLION_MCP_INLINE_TOKEN_THRESHOLD;
       } else {
-        process.env.DYAD_MCP_INLINE_TOKEN_THRESHOLD = previousThreshold;
+        process.env.NEXTBILLION_MCP_INLINE_TOKEN_THRESHOLD = previousThreshold;
       }
     }
   }, 60_000);

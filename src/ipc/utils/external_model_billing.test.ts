@@ -44,12 +44,12 @@ it.each(["local", "byok"] as const)(
       model: wrapExternalModelBilling(
         model,
         { connection, modelProvider: "custom-provider" },
-        "dyad-key",
+        "nextbillion-key",
       ),
       prompt: "private prompt",
     });
     expect(result.text).toBe("private reply");
-    expect(mocks.credits).toHaveBeenCalledWith("dyad-key", undefined);
+    expect(mocks.credits).toHaveBeenCalledWith("nextbillion-key", undefined);
     expect(fetch).toHaveBeenCalledTimes(1);
     const [url, init] = vi.mocked(fetch).mock.calls[0];
     expect(url).toMatch(/\/track-usage$/);
@@ -63,7 +63,9 @@ it.each(["local", "byok"] as const)(
       outputTokens: 50,
     });
     expect(String(init?.body)).not.toContain("private");
-    expect(init?.headers).toMatchObject({ Authorization: "Bearer dyad-key" });
+    expect(init?.headers).toMatchObject({
+      Authorization: "Bearer nextbillion-key",
+    });
   },
 );
 it("reports streamed usage once and uses resolved model attribution", async () => {
@@ -137,7 +139,7 @@ it.each(["local", "byok"] as const)(
     const { checkExternalModelAdmission } =
       await import("../services/external_model_admission");
     const admission = await checkExternalModelAdmission(
-      "dyad-key",
+      "nextbillion-key",
       new AbortController().signal,
     );
     mocks.credits.mockRejectedValue(new Error("Fresh check rejected"));
@@ -152,7 +154,7 @@ it.each(["local", "byok"] as const)(
     const wrapped = wrapExternalModelBilling(
       model,
       { connection, modelProvider: "custom-provider" },
-      "dyad-key",
+      "nextbillion-key",
       admission,
     );
     if (typeof wrapped === "string" || wrapped.specificationVersion !== "v3")

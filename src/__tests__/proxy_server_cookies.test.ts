@@ -265,12 +265,14 @@ describe("proxy worker cookie rewriting", () => {
     const body = await getBody(await waitForStart());
 
     const escapedToken = "token&lt;&amp;&quot;boundary";
-    expect(body).toContain(`data-dyad-auth-token="${escapedToken}"`);
-    expect(body).toContain(`data-dyad-recorder-token="${escapedToken}"`);
-    expect(body).not.toContain(`data-dyad-auth-token="${authBootstrapToken}"`);
+    expect(body).toContain(`data-nextbillion-auth-token="${escapedToken}"`);
+    expect(body).toContain(`data-nextbillion-recorder-token="${escapedToken}"`);
     expect(body).not.toContain(
-      `data-dyad-recorder-token="${authBootstrapToken}"`,
+      `data-nextbillion-auth-token="${authBootstrapToken}"`,
     );
-    expect(body).toContain('data.type === "dyad-auth-login"');
+    expect(body).not.toContain(
+      `data-nextbillion-recorder-token="${authBootstrapToken}"`,
+    );
+    expect(body).toContain('data.type === "nextbillion-auth-login"');
   });
 });

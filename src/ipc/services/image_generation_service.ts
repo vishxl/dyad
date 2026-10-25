@@ -4,8 +4,8 @@ import {
 } from "../types/image_generation";
 import { db } from "../../db";
 import { apps } from "../../db/schema";
-import { getDyadAppPath } from "../../paths/paths";
-import { DYAD_MEDIA_DIR_NAME } from "../utils/media_path_utils";
+import { getNextBillionAppPath } from "../../paths/paths";
+import { NEXTBILLION_MEDIA_DIR_NAME } from "../utils/media_path_utils";
 import { safeJoin } from "../utils/path_utils";
 import {
   appOperationCoordinator,
@@ -17,9 +17,13 @@ import { eq } from "drizzle-orm";
 import fs from "node:fs";
 import path from "node:path";
 import log from "electron-log";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
-import { getDyadEngineBaseUrl } from "../utils/dyad_engine_url";
-import { ensureDyadGitignored } from "../handlers/gitignoreUtils";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
+import { getNextBillionEngineBaseUrl } from "../utils/nextbillion_engine_url";
+import { ensureNextBillionGitignored } from "../handlers/gitignoreUtils";
 
 const logger = log.scope("image_generation_service");
 
@@ -43,21 +47,21 @@ interface ActiveGeneration {
 
 function throwIfGenerationCancelled(signal: AbortSignal): void {
   if (signal.aborted) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Image generation cancelled.",
-      DyadErrorKind.UserCancelled,
+      NextBillionErrorKind.UserCancelled,
     );
   }
 }
 
-function getHttpErrorKind(status: number): DyadErrorKind {
+function getHttpErrorKind(status: number): NextBillionErrorKind {
   if (status === 401 || status === 403) {
-    return DyadErrorKind.Auth;
+    return NextBillionErrorKind.Auth;
   }
   if (status === 429) {
-    return DyadErrorKind.RateLimited;
+    return NextBillionErrorKind.RateLimited;
   }
-  return DyadErrorKind.External;
+  return NextBillionErrorKind.External;
 }
 
 const THEME_SYSTEM_PROMPTS: Record<ImageThemeMode, string | null> = {
@@ -82,9 +86,9 @@ export class ImageGenerationService {
     // what happened to this request, and reporting it as blocked by a recording
     // would both misname it and leave its tombstone behind until eviction.
     if (this.cancellationTombstones.delete(params.requestId)) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Image generation cancelled.",
-        DyadErrorKind.UserCancelled,
+        NextBillionErrorKind.UserCancelled,
       );
     }
     // Refuse before the generation, not just before the save: the save runs
@@ -94,9 +98,9 @@ export class ImageGenerationService {
     // starts mid-generation; this one is only the early exit.
     assertNoActiveRecording(params.targetAppId, IMAGE_SAVE_ACTION);
     if (this.active.has(params.requestId)) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Image generation invocation is already active",
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
     const controller = new AbortController();
@@ -133,9 +137,9 @@ export class ImageGenerationService {
 
   assertAcceptingGenerations(appId: number): void {
     if (this.resetFenceCount > 0 || this.deletionFences.has(appId)) {
-      throw new DyadError(
+      throw new NextBillionError(
         "The app is being deleted",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
   }
@@ -148,9 +152,9 @@ export class ImageGenerationService {
     const apiKey = settings.providerSettings?.auto?.apiKey?.value;
 
     if (!apiKey) {
-      throw new DyadError(
-        "Dyad Pro API key is required for image generation",
-        DyadErrorKind.Auth,
+      throw new NextBillionError(
+        "NextBillion Pro API key is required for image generation",
+        NextBillionErrorKind.Auth,
       );
     }
 
@@ -158,7 +162,10 @@ export class ImageGenerationService {
       where: eq(apps.id, params.targetAppId),
     });
     if (!app) {
-      throw new DyadError("Target app not found", DyadErrorKind.NotFound);
+      throw new NextBillionError(
+        "Target app not found",
+        NextBillionErrorKind.NotFound,
+      );
     }
 
     const systemPrompt = THEME_SYSTEM_PROMPTS[params.themeMode];
@@ -174,29 +181,32 @@ export class ImageGenerationService {
 
     let response: Response;
     try {
-      response = await fetch(`${getDyadEngineBaseUrl()}/images/generations`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${apiKey}`,
-          "X-Dyad-Request-Id": requestId,
+      response = await fetch(
+        `${getNextBillionEngineBaseUrl()}/images/generations`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${apiKey}`,
+            "X-Dyad-Request-Id": requestId,
+          },
+          body: JSON.stringify({
+            prompt: fullPrompt,
+            model: "dyad/image-gen",
+          }),
+          signal: controller.signal,
         },
-        body: JSON.stringify({
-          prompt: fullPrompt,
-          model: "dyad/image-gen",
-        }),
-        signal: controller.signal,
-      });
+      );
     } catch (error) {
       if (error instanceof Error && error.name === "AbortError") {
-        throw new DyadError(
+        throw new NextBillionError(
           "Image generation cancelled or timed out.",
-          DyadErrorKind.UserCancelled,
+          NextBillionErrorKind.UserCancelled,
         );
       }
-      throw new DyadError(
+      throw new NextBillionError(
         "Failed to connect to image generation service.",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     } finally {
       clearTimeout(timeoutId);
@@ -208,7 +218,7 @@ export class ImageGenerationService {
       logger.error(
         `Image generation API error: HTTP ${response.status} (request: ${requestId})`,
       );
-      throw new DyadError(
+      throw new NextBillionError(
         `Image generation failed (HTTP ${response.status}). Please try again.`,
         getHttpErrorKind(response.status),
       );
@@ -218,17 +228,17 @@ export class ImageGenerationService {
     const parsed = ImageGenerationApiResponseSchema.safeParse(rawData);
     if (!parsed.success) {
       logger.error("Invalid image generation response:", parsed.error);
-      throw new DyadError(
+      throw new NextBillionError(
         "Invalid response from image generation service",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
     const imageData = parsed.data.data[0];
     if (!imageData?.b64_json && !imageData?.url) {
-      throw new DyadError(
+      throw new NextBillionError(
         "No image data returned from generation service",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
@@ -237,15 +247,18 @@ export class ImageGenerationService {
     if (imageData.b64_json) {
       imageBuffer = Buffer.from(imageData.b64_json, "base64");
       if (imageBuffer.byteLength > MAX_IMAGE_SIZE) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Decoded image exceeds maximum allowed size",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
     } else if (imageData.url) {
       const imageUrl = new URL(imageData.url);
       if (imageUrl.protocol !== "https:") {
-        throw new DyadError("Image URL must use HTTPS", DyadErrorKind.External);
+        throw new NextBillionError(
+          "Image URL must use HTTPS",
+          NextBillionErrorKind.External,
+        );
       }
       const downloadTimeoutSignal = AbortSignal.timeout(
         IMAGE_GENERATION_TIMEOUT_MS,
@@ -255,41 +268,41 @@ export class ImageGenerationService {
           signal: AbortSignal.any([controller.signal, downloadTimeoutSignal]),
         });
         if (!imgResponse.ok) {
-          throw new DyadError(
+          throw new NextBillionError(
             `Failed to download image: ${imgResponse.status} ${imgResponse.statusText}`,
             getHttpErrorKind(imgResponse.status),
           );
         }
         const arrayBuffer = await imgResponse.arrayBuffer();
         if (arrayBuffer.byteLength > MAX_IMAGE_SIZE) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Downloaded image exceeds maximum allowed size",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
         imageBuffer = Buffer.from(arrayBuffer);
       } catch (dlError) {
         throwIfGenerationCancelled(controller.signal);
         if (downloadTimeoutSignal.aborted) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Image download timed out. Please try again.",
-            DyadErrorKind.External,
+            NextBillionErrorKind.External,
             { cause: dlError },
           );
         }
-        if (isDyadError(dlError)) {
+        if (isNextBillionError(dlError)) {
           throw dlError;
         }
-        throw new DyadError(
+        throw new NextBillionError(
           "Failed to download generated image.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
           { cause: dlError },
         );
       }
     } else {
-      throw new DyadError(
+      throw new NextBillionError(
         "Unexpected image response format",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
@@ -312,11 +325,14 @@ export class ImageGenerationService {
           where: eq(apps.id, params.targetAppId),
         });
         if (!currentApp) {
-          throw new DyadError("Target app not found", DyadErrorKind.NotFound);
+          throw new NextBillionError(
+            "Target app not found",
+            NextBillionErrorKind.NotFound,
+          );
         }
-        const resolvedAppPath = getDyadAppPath(currentApp.path);
-        await ensureDyadGitignored(resolvedAppPath);
-        const mediaDir = path.join(resolvedAppPath, DYAD_MEDIA_DIR_NAME);
+        const resolvedAppPath = getNextBillionAppPath(currentApp.path);
+        await ensureNextBillionGitignored(resolvedAppPath);
+        const mediaDir = path.join(resolvedAppPath, NEXTBILLION_MEDIA_DIR_NAME);
         await fs.promises.mkdir(mediaDir, { recursive: true });
 
         const timestamp = Date.now();

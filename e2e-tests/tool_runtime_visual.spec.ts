@@ -1,15 +1,15 @@
 import { expect } from "@playwright/test";
 import { test } from "./helpers/test_helper";
 
-test("regular Dyad tool cards, questionnaire and plan visual reference", async ({
+test("regular NextBillion tool cards, questionnaire and plan visual reference", async ({
   po,
 }) => {
   test.skip(
-    process.env.DYAD_REAL_CLAUDE_SMOKE !== "1",
+    process.env.NEXTBILLION_REAL_CLAUDE_SMOKE !== "1",
     "Opt-in paired visual comparison with the Claude smoke suite",
   );
   test.setTimeout(180_000);
-  await po.setUpDyadPro({ localAgent: true });
+  await po.setUpNextBillionPro({ localAgent: true });
   await po.importApp("minimal");
   await po.chatActions.clickNewChat();
   await po.sendPrompt("tc=local-agent/basic-write", {
@@ -20,7 +20,7 @@ test("regular Dyad tool cards, questionnaire and plan visual reference", async (
     .click();
   await po.chatActions.waitForChatCompletion();
   await po.page.screenshot({
-    path: "test-results/dyad-tool-cards.png",
+    path: "test-results/nextbillion-tool-cards.png",
     fullPage: true,
   });
   await po.chatActions.selectChatMode("plan");
@@ -31,7 +31,7 @@ test("regular Dyad tool cards, questionnaire and plan visual reference", async (
     po.page.getByRole("button", { name: "Submit", exact: true }),
   ).toBeVisible();
   await po.page.screenshot({
-    path: "test-results/dyad-questionnaire.png",
+    path: "test-results/nextbillion-questionnaire.png",
     fullPage: true,
   });
   await po.page.getByText("React", { exact: true }).click();
@@ -40,7 +40,7 @@ test("regular Dyad tool cards, questionnaire and plan visual reference", async (
   await po.sendPrompt("tc=local-agent/accept-plan");
   await expect(po.page.getByTestId("accept-plan-new-chat")).toBeVisible();
   await po.page.screenshot({
-    path: "test-results/dyad-plan.png",
+    path: "test-results/nextbillion-plan.png",
     fullPage: true,
   });
 });

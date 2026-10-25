@@ -7,7 +7,10 @@ import {
   executeAddDependency,
   ExecuteAddDependencyError,
 } from "@/ipc/processors/executeAddDependency";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { trackAppMutation } from "./tool_invocation";
 import {
   appOperationCoordinator,
@@ -50,7 +53,7 @@ export const addDependencyTool: ToolDefinition<
         ? rawPackages.split(/\s+/).filter(Boolean)
         : [];
     if (packages.length === 0) return undefined;
-    return `<dyad-add-dependency packages="${escapeXmlAttr(packages.join(" "))}"></dyad-add-dependency>`;
+    return `<nextbillion-add-dependency packages="${escapeXmlAttr(packages.join(" "))}"></nextbillion-add-dependency>`;
   },
 
   execute: async (args, ctx: AgentContext) => {
@@ -61,9 +64,9 @@ export const addDependencyTool: ToolDefinition<
       : undefined;
 
     if (!message) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Message not found for adding dependencies",
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
 

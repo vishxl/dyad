@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { VersionPreviewPresentationService } from "./version_preview_presentation_service";
 
 describe("VersionPreviewPresentationService", () => {
@@ -25,7 +25,7 @@ describe("VersionPreviewPresentationService", () => {
       service.recordInitiator("operation-overflow", "window-256"),
     ).toThrowError(
       expect.objectContaining({
-        kind: DyadErrorKind.Auth,
+        kind: NextBillionErrorKind.Auth,
       }),
     );
 

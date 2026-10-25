@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import type { InvocationRef } from "@/state_machines/invocation_ref";
 import { sameInvocationRef } from "@/state_machines/invocation_ref";
 import { change, ignore, stay } from "@/state_machines/types";
@@ -200,14 +203,14 @@ export function createRemoteTestMachine(
       authorizeSubscribe({ key }) {
         return key === "forbidden"
           ? denyRemoteAuthorization(
-              new DyadError("forbidden key", DyadErrorKind.Auth),
+              new NextBillionError("forbidden key", NextBillionErrorKind.Auth),
             )
           : allowRemoteAuthorization();
       },
       authorizeDispatch({ key }) {
         return key === "forbidden"
           ? denyRemoteAuthorization(
-              new DyadError("forbidden key", DyadErrorKind.Auth),
+              new NextBillionError("forbidden key", NextBillionErrorKind.Auth),
             )
           : allowRemoteAuthorization();
       },
@@ -297,20 +300,26 @@ export function createRemoteTestMachine(
         event.type === "SET" ? "reject-stale" : "allow-stale",
       authorizeSubscribe({ key }) {
         if (key === "forbidden") {
-          throw new DyadError("forbidden key", DyadErrorKind.Auth);
+          throw new NextBillionError(
+            "forbidden key",
+            NextBillionErrorKind.Auth,
+          );
         }
       },
       authorizeDispatch({ key, event }) {
         if (key === "forbidden") {
-          throw new DyadError("forbidden key", DyadErrorKind.Auth);
+          throw new NextBillionError(
+            "forbidden key",
+            NextBillionErrorKind.Auth,
+          );
         }
         if (
           (event.type === "START" || event.type === "CANCEL") &&
           event.invocationRef.entityKey !== key
         ) {
-          throw new DyadError(
+          throw new NextBillionError(
             "invocation ref belongs to another actor",
-            DyadErrorKind.Auth,
+            NextBillionErrorKind.Auth,
           );
         }
       },

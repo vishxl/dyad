@@ -1,4 +1,7 @@
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { COOLIFY_SCOPES_PHP_ARRAY } from "@/shared/coolify_scopes";
 import { SshError } from "@/ipc/utils/ssh_client";
 import type { SshSession } from "@/ipc/utils/ssh_client";
@@ -22,7 +25,7 @@ const TINKER_TIMEOUT_MS = 30_000;
  * Every workaround below is marked, and each says what would replace it.
  *
  * All of it is best-effort. When any part of it does not work the caller falls
- * back to asking the user for a token, which is the path Dyad has always had.
+ * back to asking the user for a token, which is the path NextBillion has always had.
  */
 
 /**
@@ -89,11 +92,11 @@ export async function readCoolifyVersion(
     // installer always fetches the newest one, so that is the least likely
     // thing to be true. The key this reads is Coolify's own and free to move,
     // which is the ordinary way to arrive here.
-    throw new DyadError(
-      "Dyad could not read which version of Coolify this is, so it could not " +
+    throw new NextBillionError(
+      "NextBillion could not read which version of Coolify this is, so it could not " +
         "set up an API token by itself. The server is installed — open it " +
         "and make a token there.",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   } catch (error) {
     // A cancelled setup is the user stopping, not an instance that cannot be
@@ -108,11 +111,11 @@ export async function readCoolifyVersion(
       // Reachable and simply slow, which on a small server right after an
       // install is ordinary. Worth saying as itself: the version is not the
       // problem, and there is nothing to fix by finding a newer Coolify.
-      throw new DyadError(
-        "Coolify did not answer in time when Dyad asked which version it " +
+      throw new NextBillionError(
+        "Coolify did not answer in time when NextBillion asked which version it " +
           "is. It may still be starting up — open it and connect with a " +
           "token once it does.",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
     throw error;
@@ -156,15 +159,15 @@ export async function enableApi(
   // One line of the answer, not the whole of it: Coolify prints its own
   // notices between the markers.
   if (!answerLine(output, (line) => line === "enabled")) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Could not turn Coolify's API on automatically.",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 }
 
 /**
- * Creates an API token for Dyad.
+ * Creates an API token for NextBillion.
  *
  * WORKAROUND, in two parts.
  *
@@ -183,13 +186,13 @@ export async function mintApiToken(
   adminEmail: string,
   {
     signal,
-    tokenName = "dyad",
+    tokenName = "nextbillion",
   }: { signal?: AbortSignal; tokenName?: string } = {},
 ): Promise<string> {
   if (!/^[A-Za-z0-9 _-]{1,40}$/.test(tokenName)) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Unsafe token name: ${tokenName}`,
-      DyadErrorKind.Internal,
+      NextBillionErrorKind.Internal,
     );
   }
   const output = await runTinker(
@@ -199,7 +202,7 @@ export async function mintApiToken(
     // that does not parse produces no output at all rather than the branch it
     // was meant to take.
     [
-      `$u = \\App\\Models\\User::where('email', getenv('DYAD_ADMIN_EMAIL'))->first();`,
+      `$u = \\App\\Models\\User::where('email', getenv('NEXTBILLION_ADMIN_EMAIL'))->first();`,
       `$team = $u ? $u->teams()->first() : null;`,
       // The session line is doing real work: Coolify's createToken override
       // reads the team from a session tinker does not otherwise have, and the
@@ -208,7 +211,7 @@ export async function mintApiToken(
       `echo !$u ? 'no-user' : (!$team ? 'no-team' : $u->createToken('${tokenName}', ${COOLIFY_SCOPES_PHP_ARRAY}, null)->plainTextToken);`,
     ].join("\n"),
     {
-      env: { DYAD_ADMIN_EMAIL: adminEmail },
+      env: { NEXTBILLION_ADMIN_EMAIL: adminEmail },
       signal,
       timeoutMs: TINKER_TIMEOUT_MS,
     },
@@ -216,15 +219,15 @@ export async function mintApiToken(
 
   const token = output;
   if (answerLine(token, (line) => line === "no-user")) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Coolify has no account for this address, so no token could be created.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   if (answerLine(token, (line) => line === "no-team")) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Coolify's admin account has no team yet, so no token could be created.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   // Sanctum's plain text token is `<id>|<40+ characters>`. Read as one line
@@ -234,9 +237,9 @@ export async function mintApiToken(
     /^\d+\|[A-Za-z0-9]{40,}$/.test(line),
   );
   if (!minted) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Coolify did not return a usable API token.",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
   return minted;
@@ -251,7 +254,7 @@ export interface AutomaticAccess {
  * Enables the API and mints a token, or reports that it could not.
  *
  * Returns null rather than throwing when the instance is one this cannot drive,
- * because that is not a failure — it is the ordinary case of an instance Dyad
+ * because that is not a failure — it is the ordinary case of an instance NextBillion
  * did not install, and the caller asks for a token by hand instead.
  */
 export async function tryAutomaticAccess(

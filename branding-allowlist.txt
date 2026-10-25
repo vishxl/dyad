@@ -1,0 +1,84 @@
+# Intentional remaining occurrences of the legacy name. Format: <glob> [:: <regex on the matched token>]  # why
+# Prefix a rule with build: to apply it to build output instead of tracked files.
+
+# --- License / attribution (left untouched on request) ---
+LICENSE  # copyright notice
+NOTICE  # attribution notice
+
+# --- Upstream project history and tooling, not shipped to or served from the app ---
+plans/**  # historical design docs of the upstream project
+context/**  # internal dev/runbook notes and the earlier branding audit
+.github/**  # upstream CI/workflows (repo slugs, secrets, bots)
+.claude/**  # upstream agent tooling
+BRANDING_*.md  # this rebrand's own documentation
+STACK_SUMMARY.md  # this rebrand's own documentation
+branding-allowlist.txt  # this file
+scripts/check-branding.mjs  # the checker itself
+scripts/generate-brand-assets.mjs :: dyad  # comment naming the old asset set
+drizzle/**  # immutable migration history (column default 'dyad' in 0051)
+package-lock.json :: dyad-sh  # dependency @dyad-sh/supabase-management-js (external npm package)
+
+# --- Bucket C: external services / packages we do not control ---
+src/external_endpoints.ts  # the single place external hostnames and template repos live
+src/ipc/shared/language_model_constants.ts :: dyad/  # engine gateway model prefix (wire id)
+src/ipc/shared/remote_language_model_catalog.ts :: dyad/  # engine model ids (wire ids)
+src/ipc/services/auto_model_candidates.ts :: dyad/  # engine model ids (wire ids)
+src/ipc/utils/get_model_client.ts :: dyad/  # engine model ids (wire ids)
+src/ipc/handlers/help_bot_handlers.ts :: dyad/  # engine model alias
+src/ipc/services/image_generation_service.ts :: (dyad/|X-Dyad)  # engine wire protocol
+src/ipc/utils/llm_engine_provider.ts :: (dyad/|dyad_options|X-Dyad)  # engine wire protocol
+src/ipc/utils/anthropic_preserved_thinking.ts :: x-dyad  # engine response header
+src/pro/main/ipc/handlers/**  :: (dyad/|X-Dyad|dyad_options)  # engine wire protocol
+src/testing/server_dump.ts :: dyad_options  # test helper reading engine request bodies
+testing/fake-llm-server/**  :: (dyad/|dyad_options|X-Dyad|@dyad-sh|dyad\.sh)  # fake of the engine wire protocol
+src/**/*.test.ts :: (dyad/|dyad_options|X-Dyad|dyad-sh|dyad\.sh)  # tests of the engine wire protocol
+src/**/*.test.tsx :: (dyad/|dyad_options|X-Dyad|dyad-sh|dyad\.sh)  # tests of the engine wire protocol
+src/supabase_admin/supabase_management_client.ts :: dyad-sh  # npm package @dyad-sh/supabase-management-js
+src/**  :: @dyad-sh/(supabase-management-js|react-vite-component-tagger|nextjs-webpack-component-tagger)  # external npm packages
+package.json :: @dyad-sh/supabase-management-js  # external npm package
+packages/@dyad-sh/**  # upstream tagger packages kept for reference (Next.js template still depends on the published one)
+benchmarks/**  :: (dyad-sh|dyad\.sh|dyad/|X-Dyad|dyad_options)  # benchmark harness talks to the upstream engine/packages
+
+# --- Compatibility shims for data written before the rebrand ---
+src/brand.ts  # legacy identifier table + env alias
+src/brand.test.ts  # tests of the alias
+src/legacy_env_bootstrap.ts  # env alias bootstrap
+scripts/lib/legacy-env.mjs  # env alias for plain Node scripts
+src/db/legacy_tag_migration.ts  # rewrites stored <dyad-*> tags / media URLs / .dyad paths
+src/db/legacy_tag_migration.test.ts
+src/db/schema.ts :: dyad  # execution_backend legacy value 'dyad' (existing rows + SQL default)
+src/db/message_execution_metadata.test.ts :: dyad  # asserts the legacy SQL default
+src/legacy_app_folder_migration.ts  # moves <app>/.dyad to .nextbillion
+src/legacy_app_folder_migration.test.ts
+src/lib/legacy_tags.ts  # tag normalizer
+src/lib/legacy_tags.test.ts
+src/lib/legacy_settings.ts  # settings key rename
+src/lib/legacy_settings.test.ts
+src/lib/legacy_local_storage.ts  # localStorage key rename
+src/lib/legacy_local_storage.test.ts
+src/paths/paths.ts :: dyad-apps  # keep using an existing ~/dyad-apps folder
+src/main.ts :: (dyad|"dyad")  # legacy userData dir and dyad:// scheme
+forge.config.ts :: "dyad"  # legacy dyad:// scheme registration
+src/main/safe_storage_legacy.ts  # keychain identity of the pre-rebrand app name
+src/server/index.ts :: x-dyad-rpc-token  # legacy RPC header
+src/ipc/utils/socket_firewall.ts  # pnpm-workspace markers written by old apps
+src/ipc/utils/playwright_bootstrap.ts :: Dyad  # sentinel of config files written by old apps
+worker/nextbillion-shim.js :: data-dyad  # legacy DOM attribute bridge for old apps
+scaffold/**  :: dyad  # (none expected)
+
+# --- Hosted VM host-level names (not browser-visible; renaming in place would orphan data) ---
+deploy/**  :: (dyad|DYAD)  # linux user, /opt/dyad paths, systemd unit file names, legacy env fallback
+deploy/dyad-web.service  # systemd unit file name on the live VM (renaming needs a manual cutover)
+
+# --- Upstream dev docs, release/triage tooling and evals: external repo slugs, hosts and wire ids only ---
+AGENTS.md :: (dyad-sh|dyad\.sh|wwwillchen/dyad|dyad/)  # developer guide references the upstream repo
+CONTRIBUTING.md :: (dyad-sh|dyad\.sh)  # developer guide references the upstream repo
+rules/** :: (dyad-sh|dyad\.sh|dyad/|dyad-llm|wwwillchen/dyad)  # developer rules reference the upstream repo / engine
+docs/** :: (dyad-sh|dyad\.sh|dyad/)  # architecture notes reference external hosts
+scripts/** :: (dyad-sh|dyad\\?\.sh|bench@dyad)  # release/triage tooling bound to the upstream repo
+src/__tests__/evals/** :: (dyad-sh|dyad\.sh|dyad/|bench@dyad)  # evals call the upstream engine
+src/testing/HYBRID_HARNESS.md :: dyad\.sh  # test harness doc
+src/ipc/utils/git_utils.ts :: dyad-sh  # comment linking an upstream issue (main process only)
+src/ipc/utils/linux_libcurl_shim.ts :: dyad-sh  # comment linking an upstream issue (main process only)
+src/utils/codebase.ts :: dyad-sh  # comment linking upstream issues (main process only)
+e2e-tests/** :: (dyad_options|dyad/|@dyad-sh|dyad-sh|dyad\.sh)  # tests of the engine wire protocol and external packages

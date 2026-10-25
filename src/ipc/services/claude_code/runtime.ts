@@ -13,7 +13,10 @@ import {
   setClaudeUsageAccount,
 } from "./usage_limits";
 import treeKill from "tree-kill";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { safeGithubOpsErrorMessage } from "@/ipc/services/github_ops_safe_error";
 import { killProcessTreeSync } from "@/ipc/utils/kill_process_tree_sync";
 import {
@@ -96,9 +99,9 @@ export async function findClaudeExecutable(): Promise<string> {
       /* try next native binary */
     }
   }
-  throw new DyadError(
+  throw new NextBillionError(
     "Install the official Claude Code native CLI, then run claude auth login in your terminal.",
-    DyadErrorKind.Precondition,
+    NextBillionErrorKind.Precondition,
   );
 }
 
@@ -178,7 +181,7 @@ async function probeClaudeStatus() {
       compatible,
       version,
       detail: !compatible
-        ? "Claude Code 2.1.259 or later is required. Update the official CLI. Dyad validates the restricted tool inventory on every turn."
+        ? "Claude Code 2.1.259 or later is required. Update the official CLI. NextBillion validates the restricted tool inventory on every turn."
         : connected
           ? "Signed in through the official Claude Code CLI."
           : "Run claude auth login in your terminal to use your subscription.",
@@ -192,7 +195,7 @@ async function probeClaudeStatus() {
       version,
       detail: installed
         ? "Claude Code is installed, but its status could not be checked. Run claude auth status in your terminal and reconnect with claude auth login if needed."
-        : "Install Claude Code from code.claude.com, then run claude auth login in your terminal. Dyad never collects subscription credentials.",
+        : "Install Claude Code from code.claude.com, then run claude auth login in your terminal. NextBillion never collects subscription credentials.",
     };
   }
 }
@@ -208,7 +211,7 @@ export function listClaudeModels(): Promise<ClaudeCodeModel[]> {
 }
 async function probeClaudeModels(): Promise<ClaudeCodeModel[]> {
   const executable = await findClaudeExecutable();
-  const cwd = await mkdtemp(path.join(tmpdir(), "dyad-claude-models-"));
+  const cwd = await mkdtemp(path.join(tmpdir(), "nextbillion-claude-models-"));
   try {
     return await new Promise<ClaudeCodeModel[]>((resolve, reject) => {
       const requestId = randomUUID();
@@ -250,12 +253,12 @@ async function probeClaudeModels(): Promise<ClaudeCodeModel[]> {
       let buffer = "";
       let bytes = 0;
       let models: ClaudeCodeModel[] | undefined;
-      let failure: DyadError | undefined;
+      let failure: NextBillionError | undefined;
       let closed = false;
       const fail = () => {
-        failure ??= new DyadError(
+        failure ??= new NextBillionError(
           "Could not load Claude Code models. Refresh the connection and try again.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
         if (!closed) stopClaudeProcess(child);
       };
@@ -339,7 +342,7 @@ export interface BackendTurn {
   signal: AbortSignal;
   mcpConfigPath: string;
   /** Exact host-owned tool inventory. No native operational tools. */
-  dyadTools?: string[];
+  nextBillionTools?: string[];
   systemPromptPath?: string;
   maxTurns?: number;
   onEvent(event: CliEvent): Promise<void | "interrupt">;
@@ -366,8 +369,8 @@ export function claudeArguments(
     "",
     "--permission-mode",
     "manual",
-    ...(turn.dyadTools?.length
-      ? ["--allowedTools", turn.dyadTools.join(",")]
+    ...(turn.nextBillionTools?.length
+      ? ["--allowedTools", turn.nextBillionTools.join(",")]
       : []),
     ...(turn.systemPromptPath
       ? ["--system-prompt-file", turn.systemPromptPath]
@@ -386,7 +389,7 @@ export function claudeArguments(
   ];
 }
 
-/** CLI owns inference. Its adapter emits provider-executed events to Dyad;
+/** CLI owns inference. Its adapter emits provider-executed events to NextBillion;
  * the SDK must never execute those tool calls again. */
 export async function runClaudeTurn(turn: BackendTurn): Promise<void> {
   turn.signal.throwIfAborted();
@@ -480,9 +483,9 @@ export async function runClaudeTurn(turn: BackendTurn): Promise<void> {
       child.stdout.pause();
       buffer += decoder.write(data);
       if (Buffer.byteLength(buffer, "utf8") > 8 * 1024 * 1024) {
-        failure = new DyadError(
+        failure = new NextBillionError(
           "Claude Code stream frame exceeded limit",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
         abort();
         buffer = "";
@@ -521,13 +524,15 @@ export async function runClaudeTurn(turn: BackendTurn): Promise<void> {
           return resolve();
         const diagnostic = safeClaudeDiagnostic(cliError ?? stderr);
         return reject(
-          new DyadError(
+          new NextBillionError(
             diagnostic
               ? `Claude Code: ${diagnostic}`
               : `Claude Code exited (${code ?? "signal"}). Check official CLI authentication or usage limits.`,
             // CLI diagnostics may contain private account or prompt data even
             // after redaction, so never forward them to exception telemetry.
-            diagnostic ? DyadErrorKind.Precondition : DyadErrorKind.External,
+            diagnostic
+              ? NextBillionErrorKind.Precondition
+              : NextBillionErrorKind.External,
           ),
         );
       });

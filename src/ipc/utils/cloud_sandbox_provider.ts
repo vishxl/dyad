@@ -12,7 +12,7 @@ import {
 import { IS_TEST_BUILD } from "./test_utils";
 import { z } from "zod";
 import { isPathIgnoredByGitIgnore } from "./gitignore_utils";
-import { getDyadEngineBaseUrl } from "./dyad_engine_url";
+import { getNextBillionEngineBaseUrl } from "./nextbillion_engine_url";
 
 const logger = log.scope("cloud_sandbox_provider");
 
@@ -153,7 +153,7 @@ function appendBestEffortPnpmRebuild(
 
 function getDefaultCloudSandboxErrorMessage(status: number): string {
   if (status === 401 || status === 403) {
-    return "Dyad couldn’t authorize the cloud sandbox request. Please try again.";
+    return "NextBillion couldn’t authorize the cloud sandbox request. Please try again.";
   }
 
   if (status === 404) {
@@ -161,11 +161,11 @@ function getDefaultCloudSandboxErrorMessage(status: number): string {
   }
 
   if (status === 429) {
-    return "Dyad is rate limiting cloud sandbox requests right now. Please try again.";
+    return "NextBillion is rate limiting cloud sandbox requests right now. Please try again.";
   }
 
   if (status >= 500) {
-    return "Dyad’s cloud sandbox service is temporarily unavailable. Please try again.";
+    return "NextBillion’s cloud sandbox service is temporarily unavailable. Please try again.";
   }
 
   return `Cloud sandbox request failed with ${status}.`;
@@ -228,12 +228,12 @@ let cloudSandboxSyncUpdateListener:
   | ((update: CloudSandboxSyncUpdate) => void)
   | undefined;
 
-function getDyadEngineApiKey() {
+function getNextBillionEngineApiKey() {
   const settings = readSettings();
   const apiKey = settings.providerSettings?.auto?.apiKey?.value;
 
   if (!apiKey && !IS_TEST_BUILD) {
-    throw new Error("Dyad Pro API key is required for cloud sandboxes.");
+    throw new Error("NextBillion Pro API key is required for cloud sandboxes.");
   }
 
   return apiKey;
@@ -243,7 +243,7 @@ async function cloudSandboxFetch(
   endpoint: string,
   init: RequestInit = {},
 ): Promise<Response> {
-  const apiKey = getDyadEngineApiKey();
+  const apiKey = getNextBillionEngineApiKey();
   const headers = new Headers(init.headers);
   const isMultipartBody =
     typeof FormData !== "undefined" && init.body instanceof FormData;
@@ -255,7 +255,7 @@ async function cloudSandboxFetch(
     headers.set("Authorization", `Bearer ${apiKey}`);
   }
 
-  const response = await fetch(`${getDyadEngineBaseUrl()}${endpoint}`, {
+  const response = await fetch(`${getNextBillionEngineBaseUrl()}${endpoint}`, {
     ...init,
     headers,
   });
@@ -698,8 +698,8 @@ export async function syncCloudSandboxDirtyPaths(input: {
   }
 }
 
-class DyadEngineCloudSandboxProvider implements CloudSandboxProvider {
-  name = "dyad-engine";
+class NextBillionEngineCloudSandboxProvider implements CloudSandboxProvider {
+  name = "nextbillion-engine";
 
   async createSandbox(input: {
     appId: number;
@@ -827,7 +827,7 @@ class DyadEngineCloudSandboxProvider implements CloudSandboxProvider {
 }
 
 const defaultProvider: CloudSandboxProvider =
-  new DyadEngineCloudSandboxProvider();
+  new NextBillionEngineCloudSandboxProvider();
 
 export async function destroyCloudSandbox(sandboxId: string): Promise<void> {
   await defaultProvider.destroySandbox(sandboxId);
@@ -1016,7 +1016,7 @@ export function queueCloudSandboxSnapshotSync(input: {
 }
 
 export async function reconcileCloudSandboxes(): Promise<string[]> {
-  // Without a Dyad Pro API key there are no cloud sandboxes to reconcile;
+  // Without a NextBillion Pro API key there are no cloud sandboxes to reconcile;
   // skip instead of logging an auth error on every startup.
   const apiKey = readSettings().providerSettings?.auto?.apiKey?.value;
   if (!apiKey && !IS_TEST_BUILD) {

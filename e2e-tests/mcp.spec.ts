@@ -31,7 +31,7 @@ async function stopProcess(process: ChildProcess): Promise<void> {
 }
 
 testSkipIfWindows("mcp - call calculator", async ({ po }) => {
-  await po.setUpDyadPro({ localAgent: true });
+  await po.setUpNextBillionPro({ localAgent: true });
   await po.navigation.goToPluginsTab();
   await po.plugins.openAddPluginDialog();
 
@@ -114,7 +114,7 @@ testSkipIfWindows("mcp - call calculator via http", async ({ po }) => {
   });
 
   try {
-    await po.setUpDyadPro({ localAgent: true });
+    await po.setUpNextBillionPro({ localAgent: true });
     await po.navigation.goToPluginsTab();
     await po.plugins.openAddPluginDialog();
 

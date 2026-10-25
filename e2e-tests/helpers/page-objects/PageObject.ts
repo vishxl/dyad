@@ -49,25 +49,25 @@ function isIgnoredSnapshotFile(filePath: string | undefined): boolean {
   return (
     normalizedPath !== undefined &&
     (IGNORED_SNAPSHOT_FILE_PATHS.has(normalizedPath) ||
-      normalizedPath.startsWith(".dyad/"))
+      normalizedPath.startsWith(".nextbillion/"))
   );
 }
 
-function removeIgnoredDyadFileBlocks(text: string): string {
+function removeIgnoredNextBillionFileBlocks(text: string): string {
   return text
     .replace(
-      /\n?<dyad-file path="\.gitattributes">[\s\S]*?<\/dyad-file>\n*/g,
+      /\n?<nextbillion-file path="\.gitattributes">[\s\S]*?<\/nextbillion-file>\n*/g,
       "",
     )
     .replace(
-      /This is my codebase\.\s+(<dyad-file)/g,
+      /This is my codebase\.\s+(<nextbillion-file)/g,
       "This is my codebase. $1",
     );
 }
 
 function sanitizeContentForSnapshot(content: unknown): unknown {
   if (typeof content === "string") {
-    return removeIgnoredDyadFileBlocks(content);
+    return removeIgnoredNextBillionFileBlocks(content);
   }
   if (Array.isArray(content)) {
     return content.map((part) => {
@@ -79,7 +79,7 @@ function sanitizeContentForSnapshot(content: unknown): unknown {
       ) {
         return {
           ...part,
-          text: removeIgnoredDyadFileBlocks(part.text),
+          text: removeIgnoredNextBillionFileBlocks(part.text),
         };
       }
       return part;
@@ -397,7 +397,7 @@ export class PageObject {
     }
   }
 
-  async setUpDyadPro({
+  async setUpNextBillionPro({
     autoApprove = false,
     localAgent = false,
     localAgentUseAutoModel = false,
@@ -409,7 +409,7 @@ export class PageObject {
     await this.baseSetup();
     await this.navigation.goToSettingsTab();
     await this.setAgentToolAutoApprove(autoApprove);
-    await this.settings.setUpDyadProvider();
+    await this.settings.setUpNextBillionProvider();
     if (!localAgent) {
       await this.settings.disableAppBlueprint();
       await this.pinBuildChatModeForSetup();
@@ -437,7 +437,7 @@ export class PageObject {
     await this.setAgentToolAutoApprove(autoApprove);
     await this.settings.disableAppBlueprint();
     // Azure should already be configured via environment variables
-    // so we don't need additional setup steps like setUpDyadProvider
+    // so we don't need additional setup steps like setUpNextBillionProvider
     await this.navigation.goToAppsTab();
   }
 
@@ -562,10 +562,13 @@ export class PageObject {
         // Scrub machine-specific paths after snapshotting so React-owned DOM is not mutated.
         normalizedSnapshot = normalizedSnapshot
           .replace(
-            /\.dyad\/chats\/\d+\/compaction-[^\s<"]+\.md/g,
+            /\.nextbillion\/chats\/\d+\/compaction-[^\s<"]+\.md/g,
             "[[compaction-backup-path]]",
           )
-          .replace(/\[\[dyad-dump-path=([^\]]+)\]\]/g, "[[dyad-dump-path=*]]");
+          .replace(
+            /\[\[nextbillion-dump-path=([^\]]+)\]\]/g,
+            "[[nextbillion-dump-path=*]]",
+          );
       }
       return `${normalizedSnapshot.trimEnd()}\n`;
     }, name);
@@ -594,7 +597,7 @@ export class PageObject {
 
     // Find ALL dump paths using global regex
     const dumpPathMatches = messagesListText?.match(
-      /\[\[dyad-dump-path=([^\]]+)\]\]/g,
+      /\[\[nextbillion-dump-path=([^\]]+)\]\]/g,
     );
 
     if (!dumpPathMatches || dumpPathMatches.length === 0) {
@@ -604,7 +607,7 @@ export class PageObject {
     // Extract the actual paths from the matches
     const dumpPaths = dumpPathMatches
       .map((match) => {
-        const pathMatch = match.match(/\[\[dyad-dump-path=([^\]]+)\]\]/);
+        const pathMatch = match.match(/\[\[nextbillion-dump-path=([^\]]+)\]\]/);
         return pathMatch ? pathMatch[1] : null;
       })
       .filter(Boolean);
@@ -628,11 +631,14 @@ export class PageObject {
 
     // Read the JSON file
     const dumpContent: string = (fs.readFileSync(dumpFilePath, "utf-8") as any)
-      .replaceAll(/\[\[dyad-dump-path=([^\]]+)\]\]/g, "[[dyad-dump-path=*]]")
-      // Stabilize compaction backup file paths embedded in message text
-      // e.g. .dyad/chats/1/compaction-2026-02-05T21-25-24-285Z.md
       .replaceAll(
-        /\.dyad\/chats\/\d+\/compaction-[^\s"\\]+\.md/g,
+        /\[\[nextbillion-dump-path=([^\]]+)\]\]/g,
+        "[[nextbillion-dump-path=*]]",
+      )
+      // Stabilize compaction backup file paths embedded in message text
+      // e.g. .nextbillion/chats/1/compaction-2026-02-05T21-25-24-285Z.md
+      .replaceAll(
+        /\.nextbillion\/chats\/\d+\/compaction-[^\s"\\]+\.md/g,
         "[[compaction-backup-path]]",
       );
 

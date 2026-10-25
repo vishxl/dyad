@@ -3,7 +3,7 @@
  *
  * A target is a folder holding a Wrangler config. Cloudflare builds from the
  * GitHub repository, so detection runs over the app's file list rather than
- * over anything Dyad would have to generate.
+ * over anything NextBillion would have to generate.
  */
 
 /** In the order Wrangler itself looks for them, so the first found is the one it uses. */

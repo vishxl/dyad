@@ -21,6 +21,9 @@ const mocks = vi.hoisted(() => {
   };
 });
 
+vi.mock("./db/legacy_tag_migration", () => ({
+  migrateLegacyTags: vi.fn(),
+}));
 vi.mock("better-sqlite3", () => ({
   default: mocks.Database,
 }));

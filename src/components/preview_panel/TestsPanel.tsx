@@ -867,7 +867,7 @@ export function TestsPanel() {
   const isRemovingTestDatabase =
     isCleaningUp && runState.isolation?.mode === "neon-branch";
 
-  // With the experiment enabled, "headed" means visible in Dyad's preview
+  // With the experiment enabled, "headed" means visible in NextBillion's preview
   // rather than in a separate Playwright browser window.
   const previewRunEnabled = !!settings?.enableTestRunInPreview;
   const runsInPreviewWebContentsView = previewRunEnabled && headed;
@@ -990,7 +990,7 @@ export function TestsPanel() {
     try {
       const { outcome } = await switchKeyAsync({ appId });
       // Only a real switch (or a key that was already current) may retire the
-      // warning. "not-applicable" means the key is still legacy and Dyad
+      // warning. "not-applicable" means the key is still legacy and NextBillion
       // couldn't act on it, so the offer has to stay on screen.
       if (outcome === "switched") {
         markSwitched();
@@ -1220,7 +1220,7 @@ export function TestsPanel() {
     const currentPreviewUrl =
       previewIframeState.history[previewIframeState.position] ??
       previewIframeState.currentUrl;
-    // Only a route the user picked through Dyad's chrome becomes the session's
+    // Only a route the user picked through NextBillion's chrome becomes the session's
     // opening navigation. A route the app reached on its own — a redirect, a
     // link followed before Record was pressed — is not a starting point the
     // user chose, and recording it as one makes replay `goto` straight to the
@@ -1231,7 +1231,7 @@ export function TestsPanel() {
     // alone would keep the app-driven route and run every captured action
     // against a page the spec's `page.goto("/")` never visits.
     const startPath =
-      previewIframeState.currentUrlSource === "dyad"
+      previewIframeState.currentUrlSource === "nextbillion"
         ? sameOriginStartPath(currentPreviewUrl, appUrl.appUrl)
         : undefined;
     requestRecording({
@@ -1257,7 +1257,7 @@ export function TestsPanel() {
       ? "Wait for the current test run to finish."
       : isRecordingSession
         ? "A recording session is already in progress."
-        : "Click through your app in the preview and Dyad writes the test for you.";
+        : "Click through your app in the preview and NextBillion writes the test for you.";
 
   const enableTesting = useCallback(() => {
     if (selectedAppId == null) return;
@@ -2125,8 +2125,9 @@ function EnableTestingScreen({
         Enable testing for this app
       </h3>
       <p className="text-sm text-muted-foreground max-w-sm mb-5">
-        Let Dyad write and run end-to-end tests that drive your app like a real
-        user. Tests are a starting point you can review, edit, and re-run.
+        Let NextBillion write and run end-to-end tests that drive your app like
+        a real user. Tests are a starting point you can review, edit, and
+        re-run.
       </p>
 
       {/* Data-safety warning, scaled to how well runs are isolated for this
@@ -2147,8 +2148,8 @@ function EnableTestingScreen({
             {hasSupabaseIsolation
               ? "Each test uses a temporary account, deleted afterward. Enable database backups before testing."
               : hasManagedDatabase
-                ? "Dyad can't isolate this database in the current setup. These tests can create, update, or delete current data, so we strongly recommend enabling data backups before running them."
-                : "These tests can create, update, or delete real data, and Dyad can't isolate a custom or non-database backend. We strongly recommend enabling data backups before running tests, in case they do something unintended."}
+                ? "NextBillion can't isolate this database in the current setup. These tests can create, update, or delete current data, so we strongly recommend enabling data backups before running them."
+                : "These tests can create, update, or delete real data, and NextBillion can't isolate a custom or non-database backend. We strongly recommend enabling data backups before running tests, in case they do something unintended."}
           </span>
         </div>
       )}

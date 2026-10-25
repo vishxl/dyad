@@ -1,6 +1,6 @@
 # Chat-flow harness — migration cookbook
 
-`setupChatFlowHarness` runs the **real** dyad chat flow as a fast vitest
+`setupChatFlowHarness` runs the **real** nextbillion chat flow as a fast vitest
 integration test, without launching Electron. Use it to migrate Playwright
 `e2e-tests/*.spec.ts` chat specs into `*.integration.test.ts` files.
 
@@ -10,7 +10,7 @@ checkout of an e2e fixture app, the real AI-SDK streaming client talking HTTP to
 the real fake-LLM server (the same one Playwright uses — serving
 `e2e-tests/fixtures/*.md` via the `tc=<name>` protocol, with tool-calls, the
 `[dump]` mechanism, the GitHub/engine/gateway/anthropic routes, per-test
-counters), and the real response processor (dyad-tag parsing, file writes, git
+counters), and the real response processor (nextbillion-tag parsing, file writes, git
 commits, db message rows).
 
 What is mocked: only the `electron` module (`src/testing/electron_mock.ts`).
@@ -92,19 +92,19 @@ describe("my feature (integration)", () => {
 
 `electronMock` (the hoisted `h`) is the only required option.
 
-| Option           | Default                                                                            | Purpose                                                                                                                                        |
-| ---------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- |
-| `electronMock`   | — (required)                                                                       | The hoisted `{ ipcHandlers }` you passed to `vi.mock("electron")`.                                                                             |
-| `fixtureApp`     | `"minimal"`                                                                        | Which `e2e-tests/fixtures/import-app/<name>` app to check out.                                                                                 |
-| `autoApprove`    | `true`                                                                             | Auto-approve proposed changes (writes+commits happen inline).                                                                                  |
-| `chatMode`       | `"build"`                                                                          | `selectedChatMode`.                                                                                                                            |
-| `selectedModel`  | `{ provider:"testing", name:"test-model" }`                                        | Settings model selection.                                                                                                                      |
-| `provider`       | `{ id:"testing", name:"test-provider", apiBaseUrl:"<fake>/v1" }`                   | Custom provider row.                                                                                                                           |
-| `model`          | `{ displayName/apiName:"test-model", maxOutputTokens:8192, contextWindow:128000 }` | Custom model row.                                                                                                                              |
-| `settings`       | `{}`                                                                               | Arbitrary `Partial<UserSettings>` overrides (highest precedence).                                                                              |
-| `useFakeCatalog` | `true`                                                                             | Point `DYAD_LANGUAGE_MODEL_CATALOG_URL` at the fake server. The MCP catalog URL points there too unless `DYAD_MCP_CATALOG_URL` is already set. |
-| `engine`         | `false`                                                                            | Point `DYAD_ENGINE_URL` / `DYAD_GATEWAY_URL` at the fake server.                                                                               |
-| `verboseFakeLlm` | `false`                                                                            | Show the fake server's per-request logs (else quiet).                                                                                          |
+| Option           | Default                                                                            | Purpose                                                                                                                                                      |
+| ---------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `electronMock`   | — (required)                                                                       | The hoisted `{ ipcHandlers }` you passed to `vi.mock("electron")`.                                                                                           |
+| `fixtureApp`     | `"minimal"`                                                                        | Which `e2e-tests/fixtures/import-app/<name>` app to check out.                                                                                               |
+| `autoApprove`    | `true`                                                                             | Auto-approve proposed changes (writes+commits happen inline).                                                                                                |
+| `chatMode`       | `"build"`                                                                          | `selectedChatMode`.                                                                                                                                          |
+| `selectedModel`  | `{ provider:"testing", name:"test-model" }`                                        | Settings model selection.                                                                                                                                    |
+| `provider`       | `{ id:"testing", name:"test-provider", apiBaseUrl:"<fake>/v1" }`                   | Custom provider row.                                                                                                                                         |
+| `model`          | `{ displayName/apiName:"test-model", maxOutputTokens:8192, contextWindow:128000 }` | Custom model row.                                                                                                                                            |
+| `settings`       | `{}`                                                                               | Arbitrary `Partial<UserSettings>` overrides (highest precedence).                                                                                            |
+| `useFakeCatalog` | `true`                                                                             | Point `NEXTBILLION_LANGUAGE_MODEL_CATALOG_URL` at the fake server. The MCP catalog URL points there too unless `NEXTBILLION_MCP_CATALOG_URL` is already set. |
+| `engine`         | `false`                                                                            | Point `NEXTBILLION_ENGINE_URL` / `NEXTBILLION_GATEWAY_URL` at the fake server.                                                                               |
+| `verboseFakeLlm` | `false`                                                                            | Show the fake server's per-request logs (else quiet).                                                                                                        |
 
 ### Harness object
 
@@ -159,7 +159,7 @@ vi.mock("@/ipc/utils/start_proxy_server", async () => {
 });
 
 // 2. keep ports off other services (see shared/ports.ts)
-process.env.DYAD_E2E_PORT_BLOCK_INDEX = "4"; // app 40300+, proxy 41300+
+process.env.NEXTBILLION_E2E_PORT_BLOCK_INDEX = "4"; // app 40300+, proxy 41300+
 ```
 
 Call it _after_ installing dependencies and writing any env files. Nothing is
@@ -197,8 +197,8 @@ A prompt of `tc=<name>` makes the fake server stream the contents of
 `e2e-tests/fixtures/<name>.md` back as the assistant message (same mapping the
 Playwright suite uses). The response then flows through the real tag processor.
 
-- `tc=dyad-write-angle` → streams a `<dyad-write path="src/foo/bar.tsx">` (see
-  `dyad_tags_parsing.integration.test.ts`).
+- `tc=nextbillion-write-angle` → streams a `<nextbillion-write path="src/foo/bar.tsx">` (see
+  `nextbillion_tags_parsing.integration.test.ts`).
 - Nested fixtures: `tc=engine/...` etc. resolve under `e2e-tests/fixtures/`.
 
 Other magic prompts the fake server understands (from `chatCompletionHandler`):
@@ -206,7 +206,7 @@ Other magic prompts the fake server understands (from `chatCompletionHandler`):
 `counter=N`), `[429]` (rate-limit error), `[high-tokens=N]` (usage in final
 chunk), `[call_tool=calculator_add]` (streamed tool call), `[sleep=medium|long]`.
 An arbitrary prompt with no marker returns the built-in `CANNED_MESSAGE`
-(a `<dyad-write path="file1.txt">`), **not** an echo — mirror what the fixture
+(a `<nextbillion-write path="file1.txt">`), **not** an echo — mirror what the fixture
 actually returns, don't assume the old spike's `Echo:` behavior.
 
 ---
@@ -214,7 +214,7 @@ actually returns, don't assume the old spike's `Echo:` behavior.
 ## 4. Asserting files / git / db
 
 ```ts
-// Files written by dyad-write tags:
+// Files written by nextbillion-write tags:
 expect(harness.appFileExists("src/foo/bar.tsx")).toBe(true);
 expect(harness.readAppFile("src/foo/bar.tsx").trim()).toBe(
   "// BEGINNING OF FILE",
@@ -239,7 +239,7 @@ expect(harness.getAppFiles()).toMatchSnapshot();
 
 When the flow hits a `[dump]` (or a fixture that appends one), the fake server
 writes the request body to a private temp dir and embeds
-`[[dyad-dump-path=...]]` in its reply. `harness.getServerDump()` reads the
+`[[nextbillion-dump-path=...]]` in its reply. `harness.getServerDump()` reads the
 newest dump and applies the **same normalizations** as Playwright's
 `PageObject.snapshotServerDump`, so payload snapshots stay deterministic.
 
@@ -274,9 +274,9 @@ Shared with the Playwright path (single source of truth —
 `e2e-tests/helpers/utils/normalization.ts` + `dump-prettifier.ts`):
 
 - System messages → `[[SYSTEM_MESSAGE]]` (input / messages / anthropic system).
-- `.gitattributes` dyad-file blocks and `package.json` dyad-file blocks stripped.
+- `.gitattributes` nextbillion-file blocks and `package.json` nextbillion-file blocks stripped.
 - Tool-call ids → `[[TOOL_CALL_n]]`; MCP `call-id="..."` → `[[MCP_CALL_ID_n]]`.
-- `[[dyad-dump-path=...]]` → `[[dyad-dump-path=*]]`; compaction backup paths →
+- `[[nextbillion-dump-path=...]]` → `[[nextbillion-dump-path=*]]`; compaction backup paths →
   `[[compaction-backup-path]]`; attachment hashes → `[[ATTACHMENT_*]]`.
 - (`type:"request"` only) versioned-file ids → `[[FILE_ID_n]]`; item_reference
   ids → `[[ITEM_REF_n]]`.
@@ -310,7 +310,7 @@ Harness-only additions (configurable, on by default):
   dump dir, per-process env + db singleton). Threads would share the db.
 - **Real server ≠ echo.** Unmarked prompts return `CANNED_MESSAGE`. Use a
   `tc=` fixture or a magic prompt whose output you know.
-- **`getServerDump` needs a dump to exist.** It throws if no `[[dyad-dump-path]]`
+- **`getServerDump` needs a dump to exist.** It throws if no `[[nextbillion-dump-path]]`
   was produced. Trigger `[dump]` (or a fixture that appends one) first.
 - **Fixtures resolve in both layouts.** The fake server finds
   `e2e-tests/fixtures` whether imported in-process (source) or run as the built
@@ -324,8 +324,8 @@ Harness-only additions (configurable, on by default):
   `require` + `ts-node/register`) load fine in-process under vitest — the
   `local_agent_*` and `context_compaction` integration tests exercise them,
   including through the engine anthropic route.
-- **Dyad Pro / engine routing**: pass `engine: true` to point
-  `DYAD_ENGINE_URL` / `DYAD_GATEWAY_URL` at the harness fake server. Model-client
+- **NextBillion Pro / engine routing**: pass `engine: true` to point
+  `NEXTBILLION_ENGINE_URL` / `NEXTBILLION_GATEWAY_URL` at the harness fake server. Model-client
   and LM Studio URL reads happen at call time, so tests no longer need a hoisted
   relay just to know the fake server's ephemeral port.
 - `streamChat({ chatId })` with a chat other than the harness default still
@@ -334,7 +334,7 @@ Harness-only additions (configurable, on by default):
 - `chat:stream` resolves `undefined` (not the chatId) for ask/plan/local-agent
   turns; assert success via absence of `chat:response:error` + db rows.
   `chat:cancel` is a typed handler and returns an IPC envelope `{ ok, value }`.
-- Harness-created chats have `chatMode: null`; with Dyad Pro enabled,
+- Harness-created chats have `chatMode: null`; with NextBillion Pro enabled,
   `resolveChatModeForTurn` defaults a null stored mode to the local-agent mode.
   Pro build-mode tests must pass `requestedChatMode: "build"` on every
   `streamChat`.

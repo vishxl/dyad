@@ -10,9 +10,13 @@ import {
   buildSandboxCapabilitiesWithObserver,
 } from "@/ipc/utils/sandbox/capabilities";
 import { SANDBOX_SCRIPT_SOURCE_LIMIT_BYTES } from "@/ipc/utils/sandbox/limits";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import { sendTelemetryEvent } from "@/ipc/utils/telemetry";
-import { DYAD_MEDIA_DIR_NAME } from "@/ipc/utils/media_path_utils";
+import { NEXTBILLION_MEDIA_DIR_NAME } from "@/ipc/utils/media_path_utils";
 import { readSettings } from "@/main/settings";
 import type { UserSettings } from "@/lib/schemas";
 import { withTrackedMutation } from "../subagents/mutation_activity_tracker";
@@ -87,8 +91,8 @@ function isAttachmentHostCallPath(path: string | undefined): boolean {
   }
   const normalized = path.replace(/\\/g, "/");
   return (
-    normalized === DYAD_MEDIA_DIR_NAME ||
-    normalized.startsWith(`${DYAD_MEDIA_DIR_NAME}/`)
+    normalized === NEXTBILLION_MEDIA_DIR_NAME ||
+    normalized.startsWith(`${NEXTBILLION_MEDIA_DIR_NAME}/`)
   );
 }
 
@@ -131,7 +135,7 @@ function buildScriptXml(params: {
   if (params.fullOutputPath) {
     attrs.push(`full-output-path="${escapeXmlAttr(params.fullOutputPath)}"`);
   }
-  return `<dyad-script ${attrs.join(" ")}>${escapeXmlContent(payload)}</dyad-script>`;
+  return `<nextbillion-script ${attrs.join(" ")}>${escapeXmlContent(payload)}</nextbillion-script>`;
 }
 
 // Fresh per-call read of the write_file consent so a mid-turn flip to
@@ -234,7 +238,7 @@ declare function file_stats(path: string): Promise<FileStats>;
 ${includeWriteFile ? WRITE_FILE_HOST_DECLARATIONS : ""}
 \`\`\`
 
-Paths are app-relative (including \`.dyad/media/<stored-name>\`), or attachment paths like attachments:filename.ext for read_file/list_files/file_stats.${includeWriteFile ? " write_file accepts app-relative paths only, not attachments: paths." : ""} Prefer range reads, filtering, aggregation, and small summaries over returning entire files.`;
+Paths are app-relative (including \`.nextbillion/media/<stored-name>\`), or attachment paths like attachments:filename.ext for read_file/list_files/file_stats.${includeWriteFile ? " write_file accepts app-relative paths only, not attachments: paths." : ""} Prefer range reads, filtering, aggregation, and small summaries over returning entire files.`;
 }
 
 function buildMcpAddendum(typeDefsBlock: string): string {
@@ -417,12 +421,14 @@ export const executeSandboxScriptTool: ToolDefinition<ExecuteSandboxScriptArgs> 
             executionThread,
           },
         );
-        throw new DyadError(
+        throw new NextBillionError(
           buildSandboxFailureMessage({
             script: args.script,
             errorMessage,
           }),
-          isDyadError(error) ? error.kind : DyadErrorKind.Validation,
+          isNextBillionError(error)
+            ? error.kind
+            : NextBillionErrorKind.Validation,
         );
       }
     },
@@ -444,17 +450,17 @@ function parseWriteFileHostArgs(
     parsed = writeFileTool.inputSchema.parse(args);
   } catch (error) {
     if (error instanceof z.ZodError) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Invalid write_file arguments: ${error.issues.map((issue) => issue.message).join("; ")}`,
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
     throw error;
   }
   if (parsed.path.startsWith("attachments:")) {
-    throw new DyadError(
+    throw new NextBillionError(
       "write_file cannot write attachment paths from sandbox scripts.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   assertAllowedGuestPath(parsed.path);
@@ -469,9 +475,9 @@ function buildWriteFileCapability(ctx: AgentContext) {
   ) => {
     const args = parseWriteFileHostArgs(pathOrArgs, content, description);
     if (!isWriteFileHostEnabled()) {
-      throw new DyadError(
+      throw new NextBillionError(
         "write_file is disabled in agent tool permissions.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     // Same precondition the tool-set wrapper enforces for state-modifying

@@ -6,18 +6,18 @@ import type { Connection } from "ssh2";
 const { Server, utils } = ssh2;
 
 /**
- * A server Dyad can install Coolify onto, enough of one to drive the flow.
+ * A server NextBillion can install Coolify onto, enough of one to drive the flow.
  *
  * Started by the spec rather than inside the fake HTTP server, so a test can
  * read what was asked of it directly instead of through a control endpoint.
  *
  * The install path speaks SSH rather than HTTP, so the fake Coolify beside
- * this one cannot answer it. Dyad sends a small, fixed set of commands, and
+ * this one cannot answer it. NextBillion sends a small, fixed set of commands, and
  * this answers them the way a real box would — down to details the parser
  * depends on, like a tinker transcript echoing the script back with a "> "
  * prompt before the output arrives.
  *
- * Nothing here validates the key it is offered. Whether Dyad's key reaches a
+ * Nothing here validates the key it is offered. Whether NextBillion's key reaches a
  * server is the user's own step and there is nothing to check it against; what
  * matters for a test is that a key is offered at all, which is asserted by
  * refusing a connection that offers none.
@@ -41,8 +41,8 @@ export function generateSshKeyPair(): { private: string; public: string } {
   throw new Error("ssh2 generated 8 unusable ed25519 keys in a row.");
 }
 
-const START = "__DYAD_OUT_START__";
-const END = "__DYAD_OUT_END__";
+const START = "__NEXTBILLION_OUT_START__";
+const END = "__NEXTBILLION_OUT_END__";
 
 interface FakeServerBehaviour {
   /** What the batched probe reports. Defaults to a healthy empty machine. */
@@ -146,12 +146,12 @@ function answerTinker(
   if (script.includes("->exists()")) {
     // Answered about the address the script actually asked about. A script
     // that read no variable, or the wrong one, gets told there is no account.
-    if (!env.DYAD_ADMIN_EMAIL) return "no";
+    if (!env.NEXTBILLION_ADMIN_EMAIL) return "no";
     return state.installed ? "yes" : "no";
   }
   if (script.includes("createToken")) {
-    if (!env.DYAD_ADMIN_EMAIL) return "no-user";
-    // Sanctum's shape: an id, a pipe, then 40+ alphanumerics. Dyad checks
+    if (!env.NEXTBILLION_ADMIN_EMAIL) return "no-user";
+    // Sanctum's shape: an id, a pipe, then 40+ alphanumerics. NextBillion checks
     // that before storing it, so a token that merely looks token-ish is
     // rejected — as a stray warning line should be.
     return "1|EcaUxT43T5fgdLJmnYj0702tEUC6viy5jEhO3Ujk2298db95";

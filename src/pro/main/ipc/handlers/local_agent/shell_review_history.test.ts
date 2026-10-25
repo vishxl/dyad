@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import type { AgentContext } from "./tools/types";
 import { recordShellReviewOutcome } from "./shell_review_history";
 function context() {
@@ -9,13 +12,13 @@ function context() {
 }
 describe("shell fallback evidence", () => {
   it.each([
-    DyadErrorKind.Validation,
-    DyadErrorKind.NotFound,
-    DyadErrorKind.Conflict,
-    DyadErrorKind.RateLimited,
-    DyadErrorKind.Auth,
-    DyadErrorKind.Precondition,
-    DyadErrorKind.UserCancelled,
+    NextBillionErrorKind.Validation,
+    NextBillionErrorKind.NotFound,
+    NextBillionErrorKind.Conflict,
+    NextBillionErrorKind.RateLimited,
+    NextBillionErrorKind.Auth,
+    NextBillionErrorKind.Precondition,
+    NextBillionErrorKind.UserCancelled,
   ])("does not treat %s refusal as failed execution", (kind) => {
     const ctx = context();
     recordShellReviewOutcome(
@@ -23,7 +26,7 @@ describe("shell fallback evidence", () => {
       "read_file",
       { path: "../private" },
       {
-        error: new DyadError("Rejected", kind),
+        error: new NextBillionError("Rejected", kind),
         executed: true,
       },
     );

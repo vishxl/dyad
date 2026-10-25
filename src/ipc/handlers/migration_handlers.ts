@@ -1,6 +1,9 @@
 import { createTypedHandler } from "./base";
 import { migrationContracts } from "../types/migration";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   logger,
   prepareMigrationContext,
@@ -85,15 +88,15 @@ export function registerMigrationHandlers() {
     // no-op / does not belong to this app).
     const stored = peekPreview(migrationId);
     if (!stored) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Migration plan expired or already applied. Please start a new migration preview.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     if (stored.appId !== appId) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Migration plan does not belong to this app.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 
@@ -124,9 +127,9 @@ export function registerMigrationHandlers() {
           `project ${target.projectId}→${projectId}, branch ${target.prodBranchId}→${prodBranchId}, ` +
           `updatedAt ${target.prodUpdatedAt}→${prodUpdatedAt})`,
       );
-      throw new DyadError(
+      throw new NextBillionError(
         "The production database changed since this migration was previewed. Please regenerate the preview before applying.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 

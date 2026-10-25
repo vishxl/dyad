@@ -37,7 +37,7 @@ describe("sub-agent manager status policy", () => {
     await expect(
       waitForAbortableDelay(10_000, controller.signal),
     ).rejects.toMatchObject({
-      name: "DyadError",
+      name: "NextBillionError",
       kind: "user_cancelled",
     });
   });
@@ -291,10 +291,10 @@ describe("sub-agent manager status policy", () => {
       resolveSubagentSystemPrompt("implementer", "App implementation rules"),
     ).toBe("App implementation rules");
     expect(resolveSubagentSystemPrompt("explorer", "Ignored")).toContain(
-      "Dyad Explorer",
+      "NextBillion Explorer",
     );
     expect(resolveSubagentSystemPrompt("reviewer", "Ignored")).toContain(
-      "Dyad Reviewer",
+      "NextBillion Reviewer",
     );
   });
 

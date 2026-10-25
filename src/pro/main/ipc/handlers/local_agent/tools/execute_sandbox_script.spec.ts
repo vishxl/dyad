@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { executeSandboxScriptInProcess } from "@/ipc/utils/sandbox/execution";
 import { runSandboxScript } from "@/ipc/utils/sandbox/runner";
 import {
@@ -74,9 +77,9 @@ function createMockContext(): AgentContext {
     isSharedModulesChanged: false,
     sharedServerModulePaths: [],
     pendingFunctionDeploys: [],
-    isDyadPro: false,
+    isNextBillionPro: false,
     todos: [],
-    dyadRequestId: "test-request",
+    nextBillionRequestId: "test-request",
     fileEditTracker: {},
     testingEnabled: true,
     testRunAttempts: new Map(),
@@ -255,7 +258,7 @@ describe("executeSandboxScriptTool", () => {
         ctx,
       );
       expect(ctx.onXmlComplete).toHaveBeenCalledWith(
-        expect.stringContaining('<dyad-write path="src/out.txt"'),
+        expect.stringContaining('<nextbillion-write path="src/out.txt"'),
       );
     } finally {
       writeSpy.mockRestore();
@@ -306,7 +309,7 @@ describe("executeSandboxScriptTool", () => {
     await expect(
       writeFile?.("attachments:file.txt", "hello"),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.Validation,
+      kind: NextBillionErrorKind.Validation,
     });
     expect(assertAllowedGuestPath).not.toHaveBeenCalled();
   });
@@ -328,15 +331,15 @@ describe("executeSandboxScriptTool", () => {
     const writeFile = capabilities?.write_file;
 
     await expect(writeFile?.("src/out.txt")).rejects.toMatchObject({
-      kind: DyadErrorKind.Validation,
+      kind: NextBillionErrorKind.Validation,
     });
   });
 
   it("propagates sandbox path guard failures for write_file host paths", async () => {
     vi.mocked(assertAllowedGuestPath).mockImplementation(() => {
-      throw new DyadError(
+      throw new NextBillionError(
         "Sandbox scripts cannot access protected path: .env",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     });
     vi.mocked(executeSandboxScriptInProcess).mockResolvedValue({
@@ -355,7 +358,7 @@ describe("executeSandboxScriptTool", () => {
     const writeFile = capabilities?.write_file;
 
     await expect(writeFile?.(".env", "SECRET=x")).rejects.toMatchObject({
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
     });
     expect(assertAllowedGuestPath).toHaveBeenCalledWith(".env");
   });
@@ -408,7 +411,7 @@ describe("executeSandboxScriptTool", () => {
     } as unknown as ReturnType<typeof readSettings>);
 
     await expect(writeFile?.("src/out.txt", "hello")).rejects.toMatchObject({
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
     });
   });
 
@@ -434,7 +437,7 @@ describe("executeSandboxScriptTool", () => {
     const writeFile = capabilities?.write_file;
 
     await expect(writeFile?.("src/out.txt", "hello")).rejects.toMatchObject({
-      kind: DyadErrorKind.UserCancelled,
+      kind: NextBillionErrorKind.UserCancelled,
     });
   });
 
@@ -466,7 +469,7 @@ describe("executeSandboxScriptTool", () => {
       // No blueprint yet: the write host is blocked without prompting.
       vi.mocked(getAppBlueprintForChat).mockReturnValue(undefined);
       await expect(writeFile?.("src/out.txt", "hello")).rejects.toMatchObject({
-        kind: DyadErrorKind.Precondition,
+        kind: NextBillionErrorKind.Precondition,
       });
       expect(ctx.requireConsent).not.toHaveBeenCalled();
 
@@ -475,7 +478,7 @@ describe("executeSandboxScriptTool", () => {
         approved: false,
       } as any);
       await expect(writeFile?.("src/out.txt", "hello")).rejects.toMatchObject({
-        kind: DyadErrorKind.Precondition,
+        kind: NextBillionErrorKind.Precondition,
       });
 
       // Approved blueprint: the write goes through.
@@ -513,7 +516,7 @@ describe("executeSandboxScriptTool", () => {
     // The direct write_file tool stays gated by the wrapper.
     await expect(
       toolSet.write_file.execute({ path: "src/out.txt", content: "x" }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
   });
 
   it("enforces realpath write containment before prompting for consent", async () => {
@@ -535,14 +538,14 @@ describe("executeSandboxScriptTool", () => {
       .calls[0][0].capabilities;
     const writeFile = capabilities?.write_file;
     vi.mocked(assertSandboxWritePathAllowed).mockRejectedValue(
-      new DyadError(
+      new NextBillionError(
         "Sandbox scripts cannot write files outside the app: out/a.txt",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       ),
     );
 
     await expect(writeFile?.("out/a.txt", "hello")).rejects.toMatchObject({
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
     });
     expect(assertSandboxWritePathAllowed).toHaveBeenCalledWith({
       appPath: "/tmp/app",

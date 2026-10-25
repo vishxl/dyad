@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { activeRecordings } from "@/ipc/services/recording_registry";
 import { appOperationCoordinator } from "@/ipc/services/app_operation_coordinator";
 import { withSupabaseFunctionDeployment } from "./supabase_management_client";
@@ -25,7 +25,9 @@ vi.mock("@/window_infrastructure/main/window_registry", () => ({
   },
 }));
 
-vi.mock("@/paths/paths", () => ({ getDyadAppPath: (value: string) => value }));
+vi.mock("@/paths/paths", () => ({
+  getNextBillionAppPath: (value: string) => value,
+}));
 vi.mock("@/db", () => ({
   db: { query: { apps: { findFirst: mocks.findApp } } },
 }));
@@ -244,6 +246,6 @@ describe("withSupabaseFunctionDeployment cancellation", () => {
       },
     ).catch((caught: unknown) => caught);
 
-    expect(error).toMatchObject({ kind: DyadErrorKind.UserCancelled });
+    expect(error).toMatchObject({ kind: NextBillionErrorKind.UserCancelled });
   });
 });

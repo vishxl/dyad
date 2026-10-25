@@ -43,7 +43,7 @@ vi.mock("./useSettings", () => ({
     settings: {
       enableAutoReview: true,
       autoFixReviewIssues: false,
-      enableDyadPro: true,
+      enableNextBillionPro: true,
     },
   }),
 }));

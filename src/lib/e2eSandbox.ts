@@ -25,7 +25,7 @@ export function usesSandboxedE2eTests(
  * Whether a run for this app is refused outright when no sandbox is available.
  *
  * Neon isolation depends on the branch swap only a sandboxed run performs, so
- * without one Dyad refuses rather than pointing Playwright at the user's real
+ * without one NextBillion refuses rather than pointing Playwright at the user's real
  * database. Supabase takes precedence and is NOT refused: its isolation is an
  * RLS-scoped throwaway test user in the real project, which works with or
  * without a sandbox — so an app row carrying both provider ids still runs.

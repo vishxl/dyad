@@ -1,10 +1,10 @@
-// Symbolicate Dyad crash dumps with minidump-stackwalk and Electron's
+// Symbolicate NextBillion crash dumps with minidump-stackwalk and Electron's
 // public symbol server. Turns a .dmp file into a stack trace with function
 // names, source files, and line numbers.
 //
 // Usage:
 //   node scripts/symbolicate-dump.mjs                   # newest dev dump
-//   node scripts/symbolicate-dump.mjs --prod            # newest dump of the installed Dyad
+//   node scripts/symbolicate-dump.mjs --prod            # newest dump of the installed NextBillion
 //   node scripts/symbolicate-dump.mjs path/to/crash.dmp [more.dmp ...]
 //   node scripts/symbolicate-dump.mjs --json crash.dmp  # machine readable
 //   node scripts/symbolicate-dump.mjs --help
@@ -47,7 +47,7 @@
 // symbols.electronjs.org. Frames in system libraries (libc, OS frameworks)
 // stay as module+offset; Electron's server has no symbols for those.
 //
-// Installed builds rename the Electron binary to "dyad", while the symbol
+// Installed builds rename the Electron binary to "nextbillion", while the symbol
 // server hosts it under its original name. The script handles this by
 // fetching symbols by debug id, which renaming does not change, and
 // staging them locally under the renamed name.
@@ -65,7 +65,7 @@ const SYMBOL_URL = "https://symbols.electronjs.org";
 // in the platform's config directory.
 function dumpDir(prod) {
   if (!prod) {
-    return path.join(process.cwd(), "userData", "dyad-crash-reports");
+    return path.join(process.cwd(), "userData", "nextbillion-crash-reports");
   }
   const configDir =
     process.platform === "win32"
@@ -73,7 +73,7 @@ function dumpDir(prod) {
       : process.platform === "darwin"
         ? path.join(os.homedir(), "Library", "Application Support")
         : (process.env.XDG_CONFIG_HOME ?? path.join(os.homedir(), ".config"));
-  return path.join(configDir, "dyad", "dyad-crash-reports");
+  return path.join(configDir, "nextbillion", "nextbillion-crash-reports");
 }
 
 function newestDump(dir) {
@@ -102,11 +102,11 @@ function newestDump(dir) {
 const args = process.argv.slice(2);
 
 if (args.includes("--help") || args.includes("-h")) {
-  console.log(`Symbolicate Dyad crash dumps.
+  console.log(`Symbolicate NextBillion crash dumps.
 
 Usage:
   node scripts/symbolicate-dump.mjs                   # newest dev dump
-  node scripts/symbolicate-dump.mjs --prod            # newest dump of the installed Dyad
+  node scripts/symbolicate-dump.mjs --prod            # newest dump of the installed NextBillion
   node scripts/symbolicate-dump.mjs <dump.dmp> [more.dmp ...]
 
 --prod only affects which dump is auto-picked; explicit paths ignore it.
@@ -164,7 +164,7 @@ function userCacheDir() {
   }
   return process.env.XDG_CACHE_HOME ?? path.join(os.homedir(), ".cache");
 }
-const cacheDir = path.join(userCacheDir(), "dyad-symbol-cache");
+const cacheDir = path.join(userCacheDir(), "nextbillion-symbol-cache");
 const aliasedDir = path.join(cacheDir, "aliased");
 
 // The modules a dump loaded, from a quick unsymbolicated pass.
@@ -197,7 +197,7 @@ function safePathSegment(segment) {
 // so fetching the Electron name by id is either right or a miss.
 async function stageAliasedSymbols(dump) {
   for (const { debug_file, debug_id } of listModules(dump)) {
-    if (!/dyad/i.test(debug_file)) {
+    if (!/nextbillion/i.test(debug_file)) {
       continue;
     }
     if (!safePathSegment(debug_file) || !safePathSegment(debug_id)) {
@@ -213,8 +213,8 @@ async function stageAliasedSymbols(dump) {
       continue;
     }
     const candidates = [
-      debug_file.replace(/dyad/i, "electron"),
-      debug_file.replace(/dyad/i, "Electron"),
+      debug_file.replace(/nextbillion/i, "electron"),
+      debug_file.replace(/nextbillion/i, "Electron"),
     ];
     // Symbolication is optional: on any failure, warn and move on, and the
     // module's frames stay as module+offset.

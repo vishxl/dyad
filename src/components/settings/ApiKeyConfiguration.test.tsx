@@ -33,7 +33,7 @@ function renderApiKeyConfiguration({
       onSaveKey={vi.fn()}
       onTestKey={vi.fn()}
       onDeleteKey={vi.fn()}
-      isDyad={false}
+      isNextBillion={false}
       updateSettings={vi.fn()}
     />,
   );

@@ -187,7 +187,7 @@ describe("app preview authority and forwarding", () => {
   ])(
     "rejects sibling/deceptive hostname %s before HTTP or injected resources",
     async (hostname) => {
-      for (const pathname of ["/api", "/dyad-sw.js"]) {
+      for (const pathname of ["/api", "/nextbillion-sw.js"]) {
         expect(
           (await request(pathname, { Host: `${hostname}:${port}` })).status,
         ).toBe(421);

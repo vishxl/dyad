@@ -1,5 +1,5 @@
 - main:
   - heading "Blank page" [level=1]
-- link "Made with Dyad":
+- link "Made with NextBillion":
   - /url: https://www.dyad.sh/
 - alert

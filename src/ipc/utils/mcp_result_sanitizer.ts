@@ -9,7 +9,7 @@ export const MCP_RESULT_MAX_BYTES = 128 * 1024;
 // Leave room for truncation metadata while keeping MCP_RESULT_MAX_BYTES as the
 // only result limit.
 const MCP_RESULT_CONTENT_BUDGET = MCP_RESULT_MAX_BYTES - 4 * 1024;
-const TRUNCATION_KEY = "_dyadMcpTruncation";
+const TRUNCATION_KEY = "_nextBillionMcpTruncation";
 
 type TruncationReason =
   | "byte-budget"
@@ -157,7 +157,7 @@ function sanitizeNode(
     markTruncated(state, "binary-content");
     return sanitizeNode(
       {
-        _dyadOmittedBinary: {
+        _nextBillionOmittedBinary: {
           kind: input.constructor.name,
           bytes: binaryByteLength(input),
         },
@@ -249,7 +249,7 @@ function sanitizeNode(
       }
     } catch {
       markTruncated(state, "unreadable-property");
-      result._dyadUnreadableResult = true;
+      result._nextBillionUnreadableResult = true;
       bytes = Buffer.byteLength(JSON.stringify(result), "utf8");
     }
     return { value: result, jsonBytes: bytes };
@@ -273,7 +273,7 @@ function attachTruncationMetadata(
 ): unknown {
   const metadata = buildTruncationMetadata(state);
   if (typeof value === "string") {
-    return `${value}\n[Dyad truncated MCP result: ${metadata.reasons.join(", ")}]`;
+    return `${value}\n[NextBillion truncated MCP result: ${metadata.reasons.join(", ")}]`;
   }
   if (Array.isArray(value)) {
     value.push({ [TRUNCATION_KEY]: metadata });

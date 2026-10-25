@@ -42,9 +42,9 @@ export const writeFileTool: ToolDefinition<z.infer<typeof writeFileSchema>> = {
     if (!args.path) return undefined;
 
     const displayed = (args.content ?? "").slice(0, 64_000);
-    let xml = `<dyad-write path="${escapeXmlAttr(args.path)}" description="${escapeXmlAttr(args.description ?? "")}">\n${escapeXmlContent(displayed)}${(args.content?.length ?? 0) > displayed.length ? "\n[Display truncated; the complete file was supplied to the tool.]" : ""}`;
+    let xml = `<nextbillion-write path="${escapeXmlAttr(args.path)}" description="${escapeXmlAttr(args.description ?? "")}">\n${escapeXmlContent(displayed)}${(args.content?.length ?? 0) > displayed.length ? "\n[Display truncated; the complete file was supplied to the tool.]" : ""}`;
     if (isComplete) {
-      xml += "\n</dyad-write>";
+      xml += "\n</nextbillion-write>";
     }
     return xml;
   },

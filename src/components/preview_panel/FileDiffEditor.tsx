@@ -21,7 +21,7 @@ export function FileDiffEditor({
   newContent,
 }: FileDiffEditorProps) {
   const { isDarkMode } = useTheme();
-  const editorTheme = isDarkMode ? "dyad-dark" : "dyad-light";
+  const editorTheme = isDarkMode ? "nextbillion-dark" : "nextbillion-light";
   const modelsRef = useRef<MonacoEditor.ITextModel[]>([]);
 
   const handleMount: DiffOnMount = (editor) => {

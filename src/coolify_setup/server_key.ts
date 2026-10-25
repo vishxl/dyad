@@ -1,6 +1,9 @@
 import * as fs from "fs";
 import * as path from "path";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { getUserDataPath } from "@/paths/paths";
 import {
   generateDeployKeyPair,
@@ -8,21 +11,21 @@ import {
 } from "@/ipc/utils/coolify_deploy_key";
 
 /**
- * The key Dyad uses to reach a server it is setting up.
+ * The key NextBillion uses to reach a server it is setting up.
  *
  * Separate from the deploy keys, which are per repository and handed to GitHub
- * and Coolify. This one is Dyad's own identity for logging into a machine, so
+ * and Coolify. This one is NextBillion's own identity for logging into a machine, so
  * there is one of it, it is never uploaded anywhere, and it outlives any single
  * server: the user adds its public half once and can reuse it for the next
  * server they set up.
  *
  * Kept out of ~/.ssh deliberately, for the reason the deploy keys are: that
- * directory holds identities the user maintains by hand, and Dyad treats it as
+ * directory holds identities the user maintains by hand, and NextBillion treats it as
  * off-limits everywhere else.
  */
 
 const KEY_NAME = "server_access";
-const KEY_COMMENT = "dyad-server-access";
+const KEY_COMMENT = "nextbillion-server-access";
 
 export function serverKeyDirPath(): string {
   return path.join(getUserDataPath(), "coolify_server_key");
@@ -66,7 +69,7 @@ function storedMatching(keyPath: string, derived: string): string {
 }
 
 /**
- * Returns Dyad's server key, creating it the first time.
+ * Returns NextBillion's server key, creating it the first time.
  *
  * Reused rather than regenerated per server: the public half is something the
  * user pastes into a console by hand, and making them do that again for every
@@ -82,11 +85,11 @@ export function ensureServerKey(): ServerKey {
     }
     // A file that cannot be read as a key is worse than none: it would fail at
     // connect time with something about the wire format. Say so here instead.
-    throw new DyadError(
-      `The server key at ${keyPath} could not be read. Delete it and Dyad will ` +
+    throw new NextBillionError(
+      `The server key at ${keyPath} could not be read. Delete it and NextBillion will ` +
         `generate a new one — you will need to add the new public key to your ` +
         `server.`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 

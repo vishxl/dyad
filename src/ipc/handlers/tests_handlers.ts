@@ -16,7 +16,7 @@ import {
 import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { apps } from "../../db/schema";
-import { getDyadAppPath } from "../../paths/paths";
+import { getNextBillionAppPath } from "../../paths/paths";
 import { createTypedHandler } from "./base";
 import {
   E2E_TEST_DIR,
@@ -56,7 +56,7 @@ import {
   canResolvePlaywrightRunner,
   configSetsTimeout,
   ensurePlaywrightBootstrap,
-  DYAD_CONFIG_FILENAME,
+  NEXTBILLION_CONFIG_FILENAME,
   PREVIEW_CDP_ENDPOINT_ENV,
   PREVIEW_CDP_TOKEN_ENV,
   SLOW_MO_DELAY_MS,
@@ -116,7 +116,11 @@ import {
   refusesUnsandboxedTestRun,
   usesSandboxedE2eTests,
 } from "@/lib/e2eSandbox";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import type { TestRunExecution } from "@/test_run_queue/controller";
 import {
   getAppTestRunQueue,
@@ -310,9 +314,9 @@ export async function endTestsForApp(appId: number): Promise<void> {
         timer = setTimeout(
           () =>
             reject(
-              new DyadError(
+              new NextBillionError(
                 "Tests are still shutting down. Wait for test cleanup to finish, then try deleting the app again.",
-                DyadErrorKind.Precondition,
+                NextBillionErrorKind.Precondition,
               ),
             ),
           30_000,
@@ -329,9 +333,9 @@ async function getApp(appId: number) {
     where: eq(apps.id, appId),
   });
   if (!app) {
-    throw new DyadError(
+    throw new NextBillionError(
       `App with id ${appId} not found`,
-      DyadErrorKind.NotFound,
+      NextBillionErrorKind.NotFound,
     );
   }
   return app;
@@ -460,7 +464,7 @@ export interface RunAppTestsCoreOptions {
    */
   bootstrapPreviewRouted?: boolean;
   /**
-   * Withhold the database credentials Dyad itself was launched with from the
+   * Withhold the database credentials NextBillion itself was launched with from the
    * Playwright runner.
    *
    * Set for sandboxed runs, where the workspace's `.env.local` is the only
@@ -656,7 +660,7 @@ async function runPreviewTestBatch({
   let result: RunAppTestsResult = { appId, results: [] };
   try {
     const discoveryReportPath = path.join(batchDir, "discovery.json");
-    const discoveryArgs = ["test", "--config", DYAD_CONFIG_FILENAME];
+    const discoveryArgs = ["test", "--config", NEXTBILLION_CONFIG_FILENAME];
     appendRequestedTestTarget(
       discoveryArgs,
       appPath,
@@ -787,7 +791,7 @@ async function runPreviewTestBatch({
       const artifactsPath = path.join(invocationDir, "artifacts");
       fs.mkdirSync(invocationDir, { recursive: true });
 
-      const args = ["test", "--config", DYAD_CONFIG_FILENAME];
+      const args = ["test", "--config", NEXTBILLION_CONFIG_FILENAME];
       args.push(
         `${exactTestFileSelector(appPath, target.file)}:${target.line}`,
         "-g",
@@ -975,7 +979,7 @@ export async function runAppTestsCore({
   // Preserve the manual-run unlimited budget and scale explicit agent caps.
   if (isolateTestCases && timeoutMs !== undefined) timeoutMs *= 3;
   const app = await getApp(appId);
-  let appPath = explicitAppPath ?? getDyadAppPath(app.path);
+  let appPath = explicitAppPath ?? getNextBillionAppPath(app.path);
   const emit = (chunk: string, phase: "setup" | "running") =>
     onOutput?.(chunk, phase);
   const selection = normalizeRunTestSelection({
@@ -1044,7 +1048,7 @@ export async function runAppTestsCore({
       // nothing to resolve. Reported here as the same actionable precondition
       // the capture, install, and server-start stages produce — left to the CLI
       // it surfaced as a bare resolution error and was recorded as an internal
-      // Dyad exception.
+      // NextBillion exception.
       //
       // Resolved the way Node resolves it — walking up through parent
       // `node_modules` — because a monorepo app installs at its workspace root,
@@ -1091,7 +1095,7 @@ export async function runAppTestsCore({
       results: [],
       infraError: {
         message:
-          "Per-test database isolation requires the Dyad test fixture. Map @playwright/test to ./fixtures/dyad/dyad-test.ts in e2e-tests/tsconfig.json before running tests.",
+          "Per-test database isolation requires the NextBillion test fixture. Map @playwright/test to ./fixtures/nextbillion/nextbillion-test.ts in e2e-tests/tsconfig.json before running tests.",
       },
     };
   }
@@ -1157,12 +1161,12 @@ export async function runAppTestsCore({
   // interpreted as a shell command. A line suffix (`file:line`) targets a
   // single test; the line is validated to be a positive integer at the IPC
   // boundary, so it can't smuggle a flag.
-  // Always select Dyad's config by name. Playwright auto-resolves
+  // Always select NextBillion's config by name. Playwright auto-resolves
   // `playwright.config.ts` — the app's own file, which may not exist, may
   // hardcode a baseURL, or may point at a different testDir. Ours is the only
-  // one that honors DYAD_TEST_BASE_URL, so it's passed explicitly rather than
-  // Dyad taking over the canonical config name.
-  const args = ["test", "--config", DYAD_CONFIG_FILENAME];
+  // one that honors NEXTBILLION_TEST_BASE_URL, so it's passed explicitly rather than
+  // NextBillion taking over the canonical config name.
+  const args = ["test", "--config", NEXTBILLION_CONFIG_FILENAME];
   appendRequestedTestTarget(args, appPath, normalizedTestFiles, testLine);
   // `-g <regex>` narrows the run to the tests whose title matches (same as the
   // Playwright CLI). Passed as a separate array arg, never a shell string, so
@@ -1174,7 +1178,7 @@ export async function runAppTestsCore({
     "--reporter=list,json",
     `--output=${path.join(artifactsDir, "artifacts")}`,
   );
-  // baseURL is passed via the DYAD_TEST_BASE_URL env var, not a CLI flag —
+  // baseURL is passed via the NEXTBILLION_TEST_BASE_URL env var, not a CLI flag —
   // `playwright test` has no `--base-url` option.
   // `--headed` opens a visible browser window so the user can watch the run.
   // It overrides the headless default (and the CI=true env set below).
@@ -1908,10 +1912,10 @@ async function sandboxEnvMatchesCapture(
 
 /** Shared by both drift checks, so the user reads one explanation. */
 const CONFIGURATION_CHANGED_MESSAGE =
-  "This app's database or run configuration changed while Dyad was preparing the test sandbox, so the run was stopped before it could use stale settings. Run the tests again.";
+  "This app's database or run configuration changed while NextBillion was preparing the test sandbox, so the run was stopped before it could use stale settings. Run the tests again.";
 
 const PROCESS_SETTLEMENT_FAILED_MESSAGE =
-  "Dyad couldn't confirm that all test processes stopped. Cleanup was deferred, and conflicting operations for this app are blocked. Stop any remaining test processes, then restart Dyad to retry cleanup.";
+  "NextBillion couldn't confirm that all test processes stopped. Cleanup was deferred, and conflicting operations for this app are blocked. Stop any remaining test processes, then restart NextBillion to retry cleanup.";
 
 /**
  * The app configuration the snapshot was taken under.
@@ -1929,7 +1933,7 @@ const PROCESS_SETTLEMENT_FAILED_MESSAGE =
  * skip the clean install from `hasCustomE2eStartCommand`, and the run stage
  * builds the server command from its own row. Cleared `installCommand` between
  * the two and the workspace has no `node_modules` while the runtime takes the
- * Dyad-managed `npm run dev` branch.
+ * NextBillion-managed `npm run dev` branch.
  */
 interface CapturedConfiguration {
   neonProjectId: string | null;
@@ -2001,9 +2005,9 @@ export function runAppTestsWithIsolation(
 ): Promise<RunAppTestsResult> {
   if (options.queueRun) {
     if (!ownsAppTestRun(options.appId, options.queueRun)) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Test run no longer owns its queue slot",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     return executeAppTestsWithIsolation(options, options.queueRun);
@@ -2272,8 +2276,8 @@ async function executeAppTestsWithIsolation(
         : undefined);
     const restoreMessage =
       provider === "supabase-test-user"
-        ? "Dyad couldn't delete the temporary test user it created in your Supabase project. Your app settings were not changed; Dyad will retry the deletion on next startup."
-        : "Dyad couldn't finish cleaning up the isolated test database. Your app settings were not changed; Dyad will retry remote cleanup on next startup.";
+        ? "NextBillion couldn't delete the temporary test user it created in your Supabase project. Your app settings were not changed; NextBillion will retry the deletion on next startup."
+        : "NextBillion couldn't finish cleaning up the isolated test database. Your app settings were not changed; NextBillion will retry remote cleanup on next startup.";
     return {
       ...result,
       // Appended rather than substituted: an isolation-setup failure explains
@@ -2290,7 +2294,7 @@ async function executeAppTestsWithIsolation(
 
     // Decide both refusals BEFORE the workspace stage. `ensurePlaywrightBootstrap`
     // is not read-only — it installs `@playwright/test` into the user's real
-    // project, writes Dyad's config, and can download a browser — and the
+    // project, writes NextBillion's config, and can download a browser — and the
     // snapshot then captures the live repository state. Neither may run for a
     // run that is about to be turned away.
     if (!guardApp.testingEnabled) {
@@ -2315,13 +2319,13 @@ async function executeAppTestsWithIsolation(
       : runtimeMode !== "host"
         ? {
             disclosure: `Tests run against your normal preview because isolated test servers aren't available in ${runtimeMode} runtime yet.`,
-            neonRefusal: `Isolated E2E test servers aren't available in ${runtimeMode} runtime yet, and Dyad won't run Neon tests against your real database. Switch to host runtime to run tests for this app.`,
+            neonRefusal: `Isolated E2E test servers aren't available in ${runtimeMode} runtime yet, and NextBillion won't run Neon tests against your real database. Switch to host runtime to run tests for this app.`,
           }
         : {
             disclosure:
               "Tests run against your normal preview because isolated test servers are turned off in Settings.",
             neonRefusal:
-              "Isolated test servers are turned off in Settings, and Dyad won't run Neon tests against your real database. Turn them back on to run tests for this app.",
+              "Isolated test servers are turned off in Settings, and NextBillion won't run Neon tests against your real database. Turn them back on to run tests for this app.",
           };
     if (sandboxUnavailable) {
       finalResult = withIsolationCleanupWarning(
@@ -2423,7 +2427,7 @@ async function executeAppTestsWithIsolation(
               "The previous test environment could not be restored. Restart the app to recover its database settings before running more tests.",
           };
         }
-        const realAppPath = getDyadAppPath(claimedApp.path);
+        const realAppPath = getNextBillionAppPath(claimedApp.path);
         try {
           // Written into the REAL app, before the capture, so the snapshot
           // carries it: a sandboxed preview run executes from the workspace,
@@ -2485,9 +2489,9 @@ async function executeAppTestsWithIsolation(
                 capturedEnv,
               ))
             ) {
-              throw new DyadError(
+              throw new NextBillionError(
                 CONFIGURATION_CHANGED_MESSAGE,
-                DyadErrorKind.Precondition,
+                NextBillionErrorKind.Precondition,
               );
             }
           } catch (error) {
@@ -2531,7 +2535,7 @@ async function executeAppTestsWithIsolation(
     workspace = prepareResult.workspace;
     const capturedProvider = prepareResult.provider;
     // Set here, not when the route was chosen: this flag drives the cleanup
-    // UI, and a run whose setup failed has no sandbox to claim Dyad is
+    // UI, and a run whose setup failed has no sandbox to claim NextBillion is
     // deleting. Recorded once rather than re-read later, because the setting
     // can change while the run is in flight and the UI has to describe what
     // this run actually did.
@@ -2782,7 +2786,7 @@ async function executeAppTestsWithIsolation(
                 results: [],
                 infraError: {
                   message:
-                    "Dyad couldn't authorize the isolated test server with Neon Auth, so the tests were not run. Check your Neon connection and try again.",
+                    "NextBillion couldn't authorize the isolated test server with Neon Auth, so the tests were not run. Check your Neon connection and try again.",
                 },
                 isolation: prepared.isolation,
               };
@@ -2933,11 +2937,15 @@ async function executeAppTestsWithIsolation(
     // Anything reaching here is a test-infrastructure failure (isolation setup,
     // teardown, spawn), not a product exception — classify it so telemetry
     // routes it by kind instead of counting it as unclassified.
-    throw isDyadError(error)
+    throw isNextBillionError(error)
       ? error
-      : new DyadError(finalResult.infraError!.message, DyadErrorKind.Internal, {
-          cause: error,
-        });
+      : new NextBillionError(
+          finalResult.infraError!.message,
+          NextBillionErrorKind.Internal,
+          {
+            cause: error,
+          },
+        );
   } finally {
     // Before the finished event: the renderer drops the native view as
     // soon as it sees the run go idle, and a still-standing claim would
@@ -3032,7 +3040,7 @@ export function registerTestsHandlers() {
   );
   createTypedHandler(testsContracts.listAppTests, async (_event, params) => {
     const app = await getApp(params.appId);
-    const appPath = getDyadAppPath(app.path);
+    const appPath = getNextBillionAppPath(app.path);
     const matches = await listSpecFiles(appPath);
     const specs = await Promise.all(
       matches.map(async (file) => ({
@@ -3052,7 +3060,7 @@ export function registerTestsHandlers() {
     testsContracts.getTestScreenshot,
     async (_event, params) => {
       const app = await getApp(params.appId);
-      const appPath = getDyadAppPath(app.path);
+      const appPath = getNextBillionAppPath(app.path);
       return {
         dataUrl: await readTestScreenshotDataUrl(
           appPath,
@@ -3072,15 +3080,15 @@ export function registerTestsHandlers() {
 
   createTypedHandler(testsContracts.deleteAppTest, async (_event, params) => {
     const app = await getApp(params.appId);
-    const appPath = getDyadAppPath(app.path);
+    const appPath = getNextBillionAppPath(app.path);
     // Only ever delete something that looks like one of the spec paths
     // `listAppTests` produces — the same guard the runner uses, so a
     // compromised renderer can't turn this into an arbitrary file delete.
     const testFile = normalizeRunTestFile(params.testFile);
     if (!testFile) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Invalid test file: ${params.testFile}`,
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
 
@@ -3113,9 +3121,9 @@ export function registerTestsHandlers() {
           await fs.promises.lstat(fullPath);
         } catch (error: any) {
           if (error?.code === "ENOENT") {
-            throw new DyadError(
+            throw new NextBillionError(
               `Test file not found: ${testFile}`,
-              DyadErrorKind.NotFound,
+              NextBillionErrorKind.NotFound,
             );
           }
           throw error;
@@ -3163,7 +3171,7 @@ export function registerTestsHandlers() {
     testsContracts.detectLegacyTests,
     async (_event, params) => {
       const app = await getApp(params.appId);
-      const appPath = getDyadAppPath(app.path);
+      const appPath = getNextBillionAppPath(app.path);
       const specs = await detectLegacyPlaywrightSpecs(appPath);
       const files = specs.map((file) => ({
         file,
@@ -3177,7 +3185,7 @@ export function registerTestsHandlers() {
     testsContracts.migrateLegacyTests,
     async (_event, params) => {
       const app = await getApp(params.appId);
-      const appPath = getDyadAppPath(app.path);
+      const appPath = getNextBillionAppPath(app.path);
       // Serialize against test runs (same numeric appId lock) so a move can't
       // interleave with a run's env swap / dev-server restart.
       //

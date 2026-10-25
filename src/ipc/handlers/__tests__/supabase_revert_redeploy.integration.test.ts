@@ -35,9 +35,9 @@ describe("Supabase redeploy after undo (integration)", () => {
       chatMode: "local-agent",
       settings: {
         isTestMode: true,
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: {
-          auto: { apiKey: { value: "testdyadkey" } },
+          auto: { apiKey: { value: "testnextbillionkey" } },
         },
       },
     });

@@ -208,7 +208,7 @@ export const PreviewIframe = ({
     // `page.goto("/that/path")` against the app — a destination the user never
     // visited. Unknown or off-origin means no hint at all.
     //
-    // And only for a route the user picked through Dyad's chrome: one the app
+    // And only for a route the user picked through NextBillion's chrome: one the app
     // reached itself is not a starting point anyone chose, and opening a
     // session there makes replay `goto` the destination and skip the
     // navigation — often a redirect that is the thing under test — that got to
@@ -221,7 +221,7 @@ export const PreviewIframe = ({
     // from.
     // Asks first — setup clears the preview's cookies and local storage.
     recorder.requestStartRecording(
-      iframeState.currentUrlSource === "dyad"
+      iframeState.currentUrlSource === "nextbillion"
         ? sameOriginStartPath(currentHistoryUrl, appUrl)
         : undefined,
     );
@@ -319,7 +319,7 @@ export const PreviewIframe = ({
 
     const requestId = crypto.randomUUID();
     pendingAnnotatorScreenshotRequestIdRef.current = requestId;
-    postPreviewMessage({ type: "dyad-take-screenshot", requestId });
+    postPreviewMessage({ type: "nextbillion-take-screenshot", requestId });
   };
 
   // AST Analysis State
@@ -391,15 +391,15 @@ export const PreviewIframe = ({
       sendIframeEvent({
         type: "IFRAME_ERROR",
         message: cloudSandboxStatus.lastErrorMessage
-          ? cloudSandboxStatus.lastErrorMessage.includes("Dyad stopped")
+          ? cloudSandboxStatus.lastErrorMessage.includes("NextBillion stopped")
             ? cloudSandboxStatus.lastErrorMessage
             : cloudSandboxStatus.terminationReason === "credits_exhausted"
-              ? "This cloud sandbox was stopped because your Dyad Pro credits ran out. Add credits and start it again."
-              : "This cloud sandbox was stopped because Dyad could not confirm billing. Please try starting it again."
+              ? "This cloud sandbox was stopped because your NextBillion Pro credits ran out. Add credits and start it again."
+              : "This cloud sandbox was stopped because NextBillion could not confirm billing. Please try starting it again."
           : cloudSandboxStatus.terminationReason === "credits_exhausted"
-            ? "This cloud sandbox was stopped because your Dyad Pro credits ran out. Add credits and start it again."
-            : "This cloud sandbox was stopped because Dyad could not confirm billing. Please try starting it again.",
-        source: "dyad-app",
+            ? "This cloud sandbox was stopped because your NextBillion Pro credits ran out. Add credits and start it again."
+            : "This cloud sandbox was stopped because NextBillion could not confirm billing. Please try starting it again.",
+        source: "nextbillion-app",
       });
     }
   }, [cloudSandboxStatus, isCloudMode, sendIframeEvent]);
@@ -455,7 +455,7 @@ export const PreviewIframe = ({
       if (result.hasStaticText && iframeRef.current?.contentWindow) {
         iframeRef.current.contentWindow.postMessage(
           {
-            type: "enable-dyad-text-editing",
+            type: "enable-nextbillion-text-editing",
             data: {
               componentId: componentId,
               runtimeId: visualEditingSelectedComponent?.runtimeId,
@@ -519,7 +519,7 @@ export const PreviewIframe = ({
       // Send message to iframe to get current styles
       iframeRef.current.contentWindow.postMessage(
         {
-          type: "get-dyad-component-styles",
+          type: "get-nextbillion-component-styles",
           data: {
             elementId: visualEditingSelectedComponent.id,
             runtimeId: visualEditingSelectedComponent.runtimeId,
@@ -545,7 +545,7 @@ export const PreviewIframe = ({
   useEffect(() => {
     if (iframeRef.current?.contentWindow && isComponentSelectorInitialized) {
       iframeRef.current.contentWindow.postMessage(
-        { type: "dyad-pro-mode", enabled: isProMode },
+        { type: "nextbillion-pro-mode", enabled: isProMode },
         "*",
       );
     }
@@ -680,30 +680,30 @@ export const PreviewIframe = ({
         return;
       }
 
-      if (event.data?.type === "dyad-component-selector-initialized") {
+      if (event.data?.type === "nextbillion-component-selector-initialized") {
         iframeRef.current?.contentWindow?.postMessage(
-          { type: "dyad-pro-mode", enabled: isProMode },
+          { type: "nextbillion-pro-mode", enabled: isProMode },
           "*",
         );
         return;
       }
 
-      if (event.data?.type === "dyad-preview-reload-shortcut") {
+      if (event.data?.type === "nextbillion-preview-reload-shortcut") {
         handleReload();
         return;
       }
 
-      if (event.data?.type === "dyad-text-updated") {
+      if (event.data?.type === "nextbillion-text-updated") {
         handleTextUpdated(event.data);
         return;
       }
 
-      if (event.data?.type === "dyad-text-finalized") {
+      if (event.data?.type === "nextbillion-text-finalized") {
         handleTextUpdated(event.data);
         return;
       }
 
-      if (event.data?.type === "dyad-component-selected") {
+      if (event.data?.type === "nextbillion-component-selected") {
         console.log("Component picked:", event.data);
 
         const component = parseComponentSelection(event.data);
@@ -741,14 +741,14 @@ export const PreviewIframe = ({
         return;
       }
 
-      if (event.data?.type === "dyad-component-deselected") {
+      if (event.data?.type === "nextbillion-component-deselected") {
         const componentId = event.data.componentId;
         if (componentId) {
           // Disable text editing for the deselected component
           if (iframeRef.current?.contentWindow) {
             iframeRef.current.contentWindow.postMessage(
               {
-                type: "disable-dyad-text-editing",
+                type: "disable-nextbillion-text-editing",
                 data: { componentId },
               },
               "*",
@@ -769,7 +769,7 @@ export const PreviewIframe = ({
         return;
       }
 
-      if (event.data?.type === "dyad-image-load-error") {
+      if (event.data?.type === "nextbillion-image-load-error") {
         showError("Image failed to load. Please check the URL and try again.");
         // Remove the broken image from pending changes
         const { elementId } = event.data;
@@ -798,14 +798,14 @@ export const PreviewIframe = ({
         return;
       }
 
-      if (event.data?.type === "dyad-component-coordinates-updated") {
+      if (event.data?.type === "nextbillion-component-coordinates-updated") {
         if (event.data.coordinates) {
           setCurrentComponentCoordinates(event.data.coordinates);
         }
         return;
       }
 
-      if (event.data?.type === "dyad-screenshot-response") {
+      if (event.data?.type === "nextbillion-screenshot-response") {
         const requestId =
           typeof event.data.requestId === "string"
             ? event.data.requestId
@@ -1656,7 +1656,9 @@ export const PreviewIframe = ({
         <PreviewLoadingScreen
           loading={loading}
           isAppUrlReady={!!appUrl}
-          hasStartupError={!loading && errorMessage?.source === "dyad-app"}
+          hasStartupError={
+            !loading && errorMessage?.source === "nextbillion-app"
+          }
         />
         {!loading && appUrl && (
           <div
@@ -1774,7 +1776,7 @@ function RecordingSetupOverlay({
         </p>
         <p className="text-sm text-muted-foreground">
           {recorder.phase === "starting" || recorder.phase === "authenticating"
-            ? "Dyad is preparing an isolated environment for your recording — hold off on interacting with the preview until it's ready."
+            ? "NextBillion is preparing an isolated environment for your recording — hold off on interacting with the preview until it's ready."
             : "Hold off on interacting with the preview until this finishes."}
         </p>
       </div>
@@ -1783,7 +1785,7 @@ function RecordingSetupOverlay({
 }
 
 function parseComponentSelection(data: any): ComponentSelection | null {
-  if (!data || data.type !== "dyad-component-selected") {
+  if (!data || data.type !== "nextbillion-component-selected") {
     return null;
   }
 

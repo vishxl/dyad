@@ -1,4 +1,7 @@
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 export type OperationRouteState = "unresolved" | "terminal";
 
@@ -64,21 +67,21 @@ export interface OperationRouteRegistryOptions<Route> {
   readonly sameRoute: (left: Route, right: Route) => boolean;
 }
 
-export class OperationRouteIdentityConflictError extends DyadError {
+export class OperationRouteIdentityConflictError extends NextBillionError {
   constructor(readonly operationId: string) {
     super(
       `Operation ${operationId} was reused with a conflicting presentation owner`,
-      DyadErrorKind.Conflict,
+      NextBillionErrorKind.Conflict,
     );
     this.name = "OperationRouteIdentityConflictError";
   }
 }
 
-export class OperationRouteCapacityError extends DyadError {
+export class OperationRouteCapacityError extends NextBillionError {
   constructor() {
     super(
       "Authoritative operation route capacity is exhausted",
-      DyadErrorKind.RateLimited,
+      NextBillionErrorKind.RateLimited,
     );
     this.name = "OperationRouteCapacityError";
   }
@@ -386,9 +389,9 @@ export class OperationRouteRegistry<Route> {
 
   private assertOpen(): void {
     if (!this.disposed) return;
-    throw new DyadError(
+    throw new NextBillionError(
       "Operation route registry is disposed",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 

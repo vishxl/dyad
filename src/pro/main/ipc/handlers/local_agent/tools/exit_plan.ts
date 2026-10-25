@@ -3,7 +3,10 @@ import log from "electron-log";
 import { eq } from "drizzle-orm";
 import { ToolDefinition, AgentContext } from "./types";
 import { safeSend } from "@/ipc/utils/safe_sender";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { db } from "@/db";
 import { apps } from "@/db/schema";
 import { startPlanHandoffFromMain } from "@/ipc/services/plan_handoff_service";
@@ -57,14 +60,14 @@ export const exitPlanTool: ToolDefinition<z.infer<typeof exitPlanSchema>> = {
   buildXml: (args) => {
     if (!args.confirmation) return undefined;
 
-    return `<dyad-exit-plan></dyad-exit-plan>`;
+    return `<nextbillion-exit-plan></nextbillion-exit-plan>`;
   },
 
   execute: async (args, ctx: AgentContext) => {
     if (!args.confirmation) {
-      throw new DyadError(
+      throw new NextBillionError(
         "User must confirm the plan before exiting plan mode",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 
@@ -96,18 +99,18 @@ export const exitPlanTool: ToolDefinition<z.infer<typeof exitPlanSchema>> = {
       response.decision === "decline" ||
       ctx.abortSignal?.aborted
     )
-      throw new DyadError(
+      throw new NextBillionError(
         "Plan acceptance cancelled",
-        DyadErrorKind.UserCancelled,
+        NextBillionErrorKind.UserCancelled,
       );
     if (
       serializePlanDocument(
         await readPlanFromDisk({ appPath: ctx.appPath, chatId: ctx.chatId }),
       ) !== acceptedVersion
     )
-      throw new DyadError(
+      throw new NextBillionError(
         "The plan changed. Review and accept the current version.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
 
     try {

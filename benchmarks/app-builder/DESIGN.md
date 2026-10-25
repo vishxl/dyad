@@ -4,9 +4,9 @@ Status: **proposed — gated on the spike plan in §7** · Authored: 2026-07-28 
 
 ## 1. What this benchmark measures
 
-Cost-effectiveness of building full-stack apps with Dyad across frontier models, on three axes:
+Cost-effectiveness of building full-stack apps with NextBillion across frontier models, on three axes:
 
-- **Cost** — dollars computed from exact captured token counts (uncached input, cached input, output) × published per-1M list prices. Billing actually flows through Dyad Pro credits via `DYAD_PRO_KEY`; list-price dollars are the reported, reproducible metric (same methodology as cursor.com/evals).
+- **Cost** — dollars computed from exact captured token counts (uncached input, cached input, output) × published per-1M list prices. Billing actually flows through NextBillion Pro credits via `NEXTBILLION_PRO_KEY`; list-price dollars are the reported, reproducible metric (same methodology as cursor.com/evals).
 - **Quality** — per-checkpoint score = **60%** fixed Playwright CUJ pass rate + **25%** adversarial security probes + **15%** LLM judge rubric (bugs, security, code quality, schema quality).
 - **Duration** — wall-clock per milestone turn and per app build.
 
@@ -16,24 +16,24 @@ Headline report per model (CursorBench-style): **Score %, $/app, tokens/app, min
 
 ## 2. Fixed decisions
 
-| Decision                 | Choice                                                                                                                                                                                                                                                                |
-| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Models (Dyad engine ids) | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `anthropic/claude-sonnet-5`, `anthropic/claude-opus-5`, `anthropic/claude-fable-5`, `openrouter/x-ai/grok-4.5`                                                                                                        |
-| Harness                  | Headless `chat_flow_harness` (real `chat:stream` pipeline, local-agent Pro mode); packaged-Electron parity smoke (§Runner)                                                                                                                                            |
-| Template                 | `dyad-sh/nextjs-template`, pinned snapshot vendored into the task bundle                                                                                                                                                                                              |
-| Backend                  | **neon-sim**: offline local Postgres behind a Neon v2 control-plane shim + serverless-driver SQL proxy + self-hosted better-auth standing in for Neon Auth (§neon-sim)                                                                                                |
-| Auth contract            | Identical across all 3 apps: custom sign-up/sign-in forms with pinned test ids; prebuilt AuthView disallowed; email verification off; a short factual auth-SDK note ships in the template's `AI_RULES.md` (+ identical `AGENTS.md` for phase 2)                       |
-| Milestone timeouts       | 30 min per milestone (raised from 15/20/25 after S-CELL showed wall-clock was dominated by transport stalls, not model speed — see §11; recalibrate on clean cells); timeout ⇒ outcome `truncated` (scored as-is, flagged — distinct from failure)                    |
-| Checkpoint capture       | Git commit + tag per milestone; DB captured via `CREATE DATABASE … TEMPLATE` snapshot in neon-sim; scoring clones the snapshot per attempt                                                                                                                            |
-| Judge                    | **Single fixed judge: `gpt-5.6-sol`** for every candidate (user decision 2026-07-29, superseding the cross-vendor pair scheme; same-vendor bias toward the gpt-5.6 candidates is disclosed in every report); inputs hard-capped (≤40k chars diff + ≤20k chars source) |
-| Scale                    | N=1, all 7 models (~$130–260 expected list-price; guards in §4)                                                                                                                                                                                                       |
-| Reasoning effort         | Dyad product defaults per model — recorded per run and disclosed (phase 1 measures "what a Dyad user gets")                                                                                                                                                           |
+| Decision                        | Choice                                                                                                                                                                                                                                                                |
+| ------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Models (NextBillion engine ids) | `gpt-5.6-sol`, `gpt-5.6-terra`, `gpt-5.6-luna`, `anthropic/claude-sonnet-5`, `anthropic/claude-opus-5`, `anthropic/claude-fable-5`, `openrouter/x-ai/grok-4.5`                                                                                                        |
+| Harness                         | Headless `chat_flow_harness` (real `chat:stream` pipeline, local-agent Pro mode); packaged-Electron parity smoke (§Runner)                                                                                                                                            |
+| Template                        | `dyad-sh/nextjs-template`, pinned snapshot vendored into the task bundle                                                                                                                                                                                              |
+| Backend                         | **neon-sim**: offline local Postgres behind a Neon v2 control-plane shim + serverless-driver SQL proxy + self-hosted better-auth standing in for Neon Auth (§neon-sim)                                                                                                |
+| Auth contract                   | Identical across all 3 apps: custom sign-up/sign-in forms with pinned test ids; prebuilt AuthView disallowed; email verification off; a short factual auth-SDK note ships in the template's `AI_RULES.md` (+ identical `AGENTS.md` for phase 2)                       |
+| Milestone timeouts              | 30 min per milestone (raised from 15/20/25 after S-CELL showed wall-clock was dominated by transport stalls, not model speed — see §11; recalibrate on clean cells); timeout ⇒ outcome `truncated` (scored as-is, flagged — distinct from failure)                    |
+| Checkpoint capture              | Git commit + tag per milestone; DB captured via `CREATE DATABASE … TEMPLATE` snapshot in neon-sim; scoring clones the snapshot per attempt                                                                                                                            |
+| Judge                           | **Single fixed judge: `gpt-5.6-sol`** for every candidate (user decision 2026-07-29, superseding the cross-vendor pair scheme; same-vendor bias toward the gpt-5.6 candidates is disclosed in every report); inputs hard-capped (≤40k chars diff + ≤20k chars source) |
+| Scale                           | N=1, all 7 models (~$130–260 expected list-price; guards in §4)                                                                                                                                                                                                       |
+| Reasoning effort                | NextBillion product defaults per model — recorded per run and disclosed (phase 1 measures "what a NextBillion user gets")                                                                                                                                             |
 
 ## 3. Feasibility findings (research summary)
 
-1. **Self-hosting real Neon is not viable.** Dyad's integration calls the Neon public v2 control-plane API (`@neondatabase/api-client` → `console.neon.tech/api/v2`; `src/neon_admin/neon_management_client.ts:388`), which is closed source. The OSS `neondatabase/neon` docker-compose ships only the storage layer (no management API, no proxy); "Neon Local" requires a cloud API key; current Neon Auth is "Managed Better Auth," a Neon-hosted REST service built on better-auth. Hence **neon-sim**: the shim reimplements exactly the endpoint surface Dyad is proven to depend on (mirrors the app's own E2E mock at `neon_management_client.ts:113-359`), a ~100-line HTTP-SQL proxy speaks the `@neondatabase/serverless` fetch protocol, and a self-hosted better-auth server stands in at `NEON_AUTH_BASE_URL`. The riskiest unknown — whether `@neondatabase/auth` tolerates a non-Neon base URL — is spike S-AUTH.
-2. **All 7 models are live in Dyad's remote catalog** (`api.dyad.sh/v1/language-model-catalog`, fetched 2026-07-28) and reachable through `engine.dyad.sh/v1` with `DYAD_PRO_KEY`. The catalog carries **no per-token pricing** (only a relative 0–10 scale), so pricing is pinned externally (§4). grok-4.5 exists only as the OpenRouter-prefixed engine id.
-3. **Exact token accounting requires interception.** Dyad persists only a lossy per-message max-total (`messages.maxTokensUsed`, a context-fullness proxy — explicitly not accumulated; `src/ipc/handlers/chat_stream_handlers.ts:2024`). But `DYAD_ENGINE_URL` is env-overridable (proven e2e pattern), and every engine request carries `X-Dyad-Request-Id` which equals `messages.requestId` in sqlite — so a local recording reverse proxy captures per-request `prompt_tokens`, `prompt_tokens_details.cached_tokens`, `completion_tokens`, raw payloads, and latency, cleanly correlated to chat turns. The same proxy pattern prices phase-2 CLI harnesses identically.
+1. **Self-hosting real Neon is not viable.** NextBillion's integration calls the Neon public v2 control-plane API (`@neondatabase/api-client` → `console.neon.tech/api/v2`; `src/neon_admin/neon_management_client.ts:388`), which is closed source. The OSS `neondatabase/neon` docker-compose ships only the storage layer (no management API, no proxy); "Neon Local" requires a cloud API key; current Neon Auth is "Managed Better Auth," a Neon-hosted REST service built on better-auth. Hence **neon-sim**: the shim reimplements exactly the endpoint surface NextBillion is proven to depend on (mirrors the app's own E2E mock at `neon_management_client.ts:113-359`), a ~100-line HTTP-SQL proxy speaks the `@neondatabase/serverless` fetch protocol, and a self-hosted better-auth server stands in at `NEON_AUTH_BASE_URL`. The riskiest unknown — whether `@neondatabase/auth` tolerates a non-Neon base URL — is spike S-AUTH.
+2. **All 7 models are live in NextBillion's remote catalog** (`api.dyad.sh/v1/language-model-catalog`, fetched 2026-07-28) and reachable through `engine.dyad.sh/v1` with `NEXTBILLION_PRO_KEY`. The catalog carries **no per-token pricing** (only a relative 0–10 scale), so pricing is pinned externally (§4). grok-4.5 exists only as the OpenRouter-prefixed engine id.
+3. **Exact token accounting requires interception.** NextBillion persists only a lossy per-message max-total (`messages.maxTokensUsed`, a context-fullness proxy — explicitly not accumulated; `src/ipc/handlers/chat_stream_handlers.ts:2024`). But `NEXTBILLION_ENGINE_URL` is env-overridable (proven e2e pattern), and every engine request carries `X-Dyad-Request-Id` which equals `messages.requestId` in sqlite — so a local recording reverse proxy captures per-request `prompt_tokens`, `prompt_tokens_details.cached_tokens`, `completion_tokens`, raw payloads, and latency, cleanly correlated to chat turns. The same proxy pattern prices phase-2 CLI harnesses identically.
 4. **The old packaged-app benchmark path is broken on main.** `benchmarks/code-explorer/run.mjs` drove chats by invoking the `chat:stream` IPC directly, but that handler is now test-only (`registerLegacyChatStreamTestHandler`, throws outside vitest; production goes through the chat state-machine actor). The headless `chat_flow_harness` runs the identical real pipeline (same handler, real file writes, git commits, local-agent tool loop; only `electron` mocked) — so headless is both the cheaper and the honest choice, with a packaged-app UI-driven smoke for parity. The code-explorer harness's isolation/resume/results conventions are reused.
 
 ## 4. Cost model
@@ -54,20 +54,20 @@ Pinned list prices (per 1M tokens; **pinned 2026-07-28**, sources in `pricing/pr
 
 **Spend guards:** projected-cost gate before the run (from per-milestone token envelopes in the app specs); live per-cell ceiling **$40** enforced by the recording proxy (abort ⇒ outcome `budget_abort`); global kill-switch **$300**. Judges add ~$10–20 (input-capped). Phase 2 has its own envelope (~$100–150).
 
-## 5. Benchmark-support patch set (Dyad changes required)
+## 5. Benchmark-support patch set (NextBillion changes required)
 
 One small upstreamable PR, three items:
 
-- **P1** — Neon control-plane base URL env override `DYAD_NEON_API_BASE_URL` at the `createApiClient` call sites (`src/neon_admin/neon_management_client.ts:388-395`); today no override exists.
+- **P1** — Neon control-plane base URL env override `NEXTBILLION_NEON_API_BASE_URL` at the `createApiClient` call sites (`src/neon_admin/neon_management_client.ts:388-395`); today no override exists.
 - **P2** — `fixtureAppPath` option in `chat_flow_harness` (absolute path to the template snapshot; today only `e2e-tests/fixtures/import-app/*` names resolve).
-- **P3** — harness catalog wiring: `useFakeCatalog:false` + `DYAD_LANGUAGE_MODEL_CATALOG_URL` at a local pinned catalog containing the 7 engine ids and the `auto` provider (today the harness catalog only knows `test-model`).
+- **P3** — harness catalog wiring: `useFakeCatalog:false` + `NEXTBILLION_LANGUAGE_MODEL_CATALOG_URL` at a local pinned catalog containing the 7 engine ids and the `auto` provider (today the harness catalog only knows `test-model`).
 
-`E2E_TEST_BUILD` must be **unset** in every benchmark process — if set, Dyad short-circuits to its in-process Neon mock (`neon_management_client.ts:112-113`) and nothing real is exercised; neon-sim only _mirrors_ that mock's endpoint surface.
+`E2E_TEST_BUILD` must be **unset** in every benchmark process — if set, NextBillion short-circuits to its in-process Neon mock (`neon_management_client.ts:112-113`) and nothing real is exercised; neon-sim only _mirrors_ that mock's endpoint surface.
 
 - **P4 (2026-08-13) — the harness now runs the app's real dev server.** Test-only; production untouched.
   - `src/testing/headless_app_preview.ts` registers `appRunDefinition` on the existing main-placement `ActorHost` and drives `appRunActorService.dispatchStart` — the exact path `app_handlers.ts` uses for the renderer's run button. `src/testing/headless_proxy_server.ts` supplies a `vi.mock` for `@/ipc/utils/start_proxy_server` that points at the real `worker/proxy_server.js` (production resolves it relative to the packaged bundle, which under vitest is a nonexistent `src/worker/proxy_server.js`, so every readiness wait would otherwise stall 120 s / 600 s).
   - `harness.startDevServer()` / `ensureDevServer()` / `warmDevServerRoutes()` are opt-in; `setupChatFlowHarness` still starts nothing implicitly.
-  - Ports come from `DYAD_E2E_PORT_BLOCK_INDEX` (`APPBENCH_PORT_BLOCK`, default block **4** ⇒ app **40301**, preview proxy **41301**, proxy fallback band 42300+), clear of 7788/7789/3000/3210 and of the default 32100 band. `run-cell.sh` sweeps those two ports and asserts `pnpm` is on PATH.
+  - Ports come from `NEXTBILLION_E2E_PORT_BLOCK_INDEX` (`APPBENCH_PORT_BLOCK`, default block **4** ⇒ app **40301**, preview proxy **41301**, proxy fallback band 42300+), clear of 7788/7789/3000/3210 and of the default 32100 band. `run-cell.sh` sweeps those two ports and asserts `pnpm` is on PATH.
 
 > **Comparability break.** Every cell measured **before 2026-08-13** ran with `restart_app`/`rebuild_app` failing ("Machine app_run is not registered") and `read_logs` always empty — 634 refused runtime-feedback calls across 130 milestone logs. Those numbers understate every model and are **not comparable** to any cell measured after this change. Cells also get slower: the default run command re-runs `pnpm install` on each restart, and `rebuild_app` deletes `node_modules` first. Re-baseline before comparing.
 >
@@ -78,7 +78,7 @@ One small upstreamable PR, three items:
 | #       | Spike                                                                   | Falsifiable question                                                                                                                                                                   | Blocks          |
 | ------- | ----------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------- |
 | S-AUTH  | `@neondatabase/auth` vs self-hosted better-auth over `http://localhost` | Does sign-up/sign-in/session work with a non-Neon `NEON_AUTH_BASE_URL`, and do `__Secure-` session cookies survive on trustworthy http://localhost (fallback: mkcert TLS front-proxy)? | Everything      |
-| S-SQL   | serverless driver + `dyad-execute-sql` against the SQL proxy            | Tagged queries, `sql.query`, transactions, error shapes, schema introspection, and `ts-pg-schema-diff`'s ssl-pinned TCP path all behave                                                | neon-sim        |
+| S-SQL   | serverless driver + `nextbillion-execute-sql` against the SQL proxy     | Tagged queries, `sql.query`, transactions, error shapes, schema introspection, and `ts-pg-schema-diff`'s ssl-pinned TCP path all behave                                                | neon-sim        |
 | S-CELL  | One full model × 3-milestone cell through the patched harness           | Wiring end-to-end (P1–P3, catalog, engine proxy, shim) + first real token/cost sample to calibrate the budget gate                                                                     | Runner + budget |
 | S-FORMS | 2–3 models against the CRM M1 prompt with verification off              | Do models produce working custom auth forms with the pinned test ids given the AI_RULES note?                                                                                          | App specs       |
 | S-SCORE | Snapshot-clone + full CUJ/probe run on the S-CELL checkpoints           | Clones score deterministically; every probe can obtain its target ids from pinned surfaces                                                                                             | Scoring         |
@@ -112,7 +112,7 @@ cookie prefix `neon-auth` required; auth errors THROW). **S-SQL confirmed 14/14*
 `neonConfig` patching; `ts-pg-schema-diff` handled by a TLS TCP front on 5433).
 **neon-sim built** (18 control-plane endpoints, per-branch better-auth in the branch
 DB's `neon_auth` schema + `users` compat view, snapshot/clone/reset; smoke 17/17 ×2).
-The Dyad patch set shrank to two code changes (`DYAD_NEON_API_BASE_URL`,
+The NextBillion patch set shrank to two code changes (`NEXTBILLION_NEON_API_BASE_URL`,
 `fixtureAppPath`). CUJ suite for checkpoint 1: 12/12 tests implemented.
 
 **Transport findings from the first S-CELL run (load-bearing for the duration metric):**
@@ -143,7 +143,7 @@ The Dyad patch set shrank to two code changes (`DYAD_NEON_API_BASE_URL`,
   `web_search`, `web_crawl`.
 - **node-pty is Electron-ABI**: under plain node (vitest) every PTY-run command
   (`add_dependency` → npm) dies with `posix_spawnp failed`. Patch P4:
-  `DYAD_DISABLE_PTY=1` child_process fallback in `pty_command_runner.ts`.
+  `NEXTBILLION_DISABLE_PTY=1` child_process fallback in `pty_command_runner.ts`.
 - **Build gate is compile/type errors, not lint**: `next build --no-lint` in the
   scorer — the template's eslint import-resolver false-positives on tsconfig
   aliases and package-exports subpaths would fail every model's app.
@@ -274,7 +274,7 @@ instead.
 | [design/app-5-slotline.md](design/app-5-slotline.md)               | App 5 spec: clinic scheduling — derived availability, double-booking, instants                            |
 | [design/app-6-curbside.md](design/app-6-curbside.md)               | App 6 spec: delivery marketplace — three asymmetric actor types, atomic claim, server-authoritative money |
 | [oracle/README.md](oracle/README.md)                               | The controls: reference app (must be 100%) + broken twin (every probe must fail), and the pre-flight gate |
-| [design/neon-sim.md](design/neon-sim.md)                           | Offline Neon stand-in: v2 API shim, SQL proxy, better-auth, snapshots, Dyad patch set, spikes             |
+| [design/neon-sim.md](design/neon-sim.md)                           | Offline Neon stand-in: v2 API shim, SQL proxy, better-auth, snapshots, NextBillion patch set, spikes      |
 | [design/runner-scoring.md](design/runner-scoring.md)               | Runner, engine recording proxy, scoring pipeline, cost module, results schema, reporting, parity smoke    |
 | [design/phase-2-cross-harness.md](design/phase-2-cross-harness.md) | Phase 2: Claude Code / Codex CLI adapters, task bundle, fairness protocol                                 |
 

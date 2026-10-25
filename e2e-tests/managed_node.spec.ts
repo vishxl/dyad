@@ -104,10 +104,10 @@ function createManagedNodeFixtureArchive(userDataDir: string) {
     .update(fs.readFileSync(archivePath))
     .digest("hex");
 
-  process.env.DYAD_TEST_MANAGED_NODE_ARCHIVE_URL =
+  process.env.NEXTBILLION_TEST_MANAGED_NODE_ARCHIVE_URL =
     pathToFileURL(archivePath).toString();
-  process.env.DYAD_TEST_MANAGED_NODE_SHA256 = sha256;
-  process.env.DYAD_TEST_MANAGED_NODE_EXPECTED_VERSION = isWindows
+  process.env.NEXTBILLION_TEST_MANAGED_NODE_SHA256 = sha256;
+  process.env.NEXTBILLION_TEST_MANAGED_NODE_EXPECTED_VERSION = isWindows
     ? process.version
     : MANAGED_NODE_VERSION;
 }
@@ -117,9 +117,9 @@ const test = testWithConfig({
     createManagedNodeFixtureArchive(userDataDir);
   },
   postLaunchHook: async () => {
-    delete process.env.DYAD_TEST_MANAGED_NODE_ARCHIVE_URL;
-    delete process.env.DYAD_TEST_MANAGED_NODE_SHA256;
-    delete process.env.DYAD_TEST_MANAGED_NODE_EXPECTED_VERSION;
+    delete process.env.NEXTBILLION_TEST_MANAGED_NODE_ARCHIVE_URL;
+    delete process.env.NEXTBILLION_TEST_MANAGED_NODE_SHA256;
+    delete process.env.NEXTBILLION_TEST_MANAGED_NODE_EXPECTED_VERSION;
   },
 });
 
@@ -164,7 +164,7 @@ test("managed Node exposes install, preference, and removal controls in Settings
       timeout: Timeout.LONG,
     })
     .toBe("managed");
-  await expect(runtimeSettings.getByText(/Dyad-managed/)).toBeVisible({
+  await expect(runtimeSettings.getByText(/NextBillion-managed/)).toBeVisible({
     timeout: Timeout.LONG,
   });
 
@@ -236,7 +236,7 @@ test("managed Node install persists after a renderer reload", async ({
       timeout: Timeout.MEDIUM,
     })
     .toBe("managed");
-  await expect(runtimeSettings.getByText(/Dyad-managed/)).toBeVisible({
+  await expect(runtimeSettings.getByText(/NextBillion-managed/)).toBeVisible({
     timeout: Timeout.LONG,
   });
   await expect(

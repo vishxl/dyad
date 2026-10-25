@@ -3,7 +3,10 @@ import * as fs from "fs/promises";
 import { app } from "electron";
 import log from "electron-log";
 import Database from "better-sqlite3";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { calculateFileChecksum } from "@/utils/file_checksum";
 
 const logger = log.scope("backup_manager");
@@ -168,9 +171,9 @@ export class BackupManager {
       } catch (cleanupError) {
         logger.error("Failed to clean up backup directory:", cleanupError);
       }
-      throw new DyadError(
+      throw new NextBillionError(
         `Backup creation failed: ${error}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   }
@@ -267,9 +270,9 @@ export class BackupManager {
       logger.info(`Deleted backup: ${backupName}`);
     } catch (error) {
       logger.error(`Failed to delete backup ${backupName}:`, error);
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to delete backup: ${error}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   }

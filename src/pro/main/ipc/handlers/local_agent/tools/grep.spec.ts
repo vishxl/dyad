@@ -113,9 +113,9 @@ function deepHello() {
       isSharedModulesChanged: false,
       sharedServerModulePaths: [],
       pendingFunctionDeploys: [],
-      isDyadPro: false,
+      isNextBillionPro: false,
       todos: [],
-      dyadRequestId: "test-request",
+      nextBillionRequestId: "test-request",
       fileEditTracker: {},
       testingEnabled: true,
       testRunAttempts: new Map(),
@@ -238,10 +238,10 @@ function deepHello() {
       await grepTool.execute({ query: "hello" }, mockContext);
 
       expect(mockContext.onXmlComplete).toHaveBeenCalledWith(
-        expect.stringContaining("<dyad-grep"),
+        expect.stringContaining("<nextbillion-grep"),
       );
       expect(mockContext.onXmlComplete).toHaveBeenCalledWith(
-        expect.stringContaining("</dyad-grep>"),
+        expect.stringContaining("</nextbillion-grep>"),
       );
     });
   });
@@ -360,10 +360,10 @@ function deepHello() {
     });
 
     it("searches hidden ignored files when include_ignored is true", async () => {
-      const dyadDir = path.join(testDir, ".dyad");
-      await fs.promises.mkdir(dyadDir, { recursive: true });
+      const nextBillionDir = path.join(testDir, ".nextbillion");
+      await fs.promises.mkdir(nextBillionDir, { recursive: true });
       await fs.promises.writeFile(
-        path.join(dyadDir, "backup.txt"),
+        path.join(nextBillionDir, "backup.txt"),
         "hiddenIgnoredNeedle",
       );
 
@@ -371,12 +371,12 @@ function deepHello() {
         {
           query: "hiddenIgnoredNeedle",
           include_ignored: true,
-          include_pattern: ".dyad/**",
+          include_pattern: ".nextbillion/**",
         },
         mockContext,
       );
 
-      expect(result).toContain(".dyad/backup.txt");
+      expect(result).toContain(".nextbillion/backup.txt");
     });
 
     it("excludes dotenv matches when ignored files are included", async () => {
@@ -648,7 +648,7 @@ function deepHello() {
 
     it("builds partial XML during streaming", () => {
       const result = grepTool.buildXml?.({ query: "hello" }, false);
-      expect(result).toContain("<dyad-grep");
+      expect(result).toContain("<nextbillion-grep");
       expect(result).toContain('query="hello"');
       expect(result).toContain("Searching...");
     });

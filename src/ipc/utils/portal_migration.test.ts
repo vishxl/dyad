@@ -1,6 +1,6 @@
 import type { ChildProcess } from "node:child_process";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { BufferedProcessSpawnError } from "./buffered_process";
 import { runPortalMigrationCommand } from "./portal_migration";
 
@@ -92,7 +92,7 @@ describe("runPortalMigrationCommand", () => {
     await expect(
       runPortalMigrationCommand({ appId: 7, appPath: "/tmp/app" }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.External,
+      kind: NextBillionErrorKind.External,
       message:
         "Migration creation failed (exit code 2)\n\nstdout tail\n\nErrors/Warnings:\nstderr tail",
     });
@@ -113,7 +113,7 @@ describe("runPortalMigrationCommand", () => {
         timeoutMs: 25,
       }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.External,
+      kind: NextBillionErrorKind.External,
       message: "Migration creation timed out after 25 ms\n\ntimeout tail",
     });
   });
@@ -131,7 +131,7 @@ describe("runPortalMigrationCommand", () => {
     await expect(
       runPortalMigrationCommand({ appId: 7, appPath: "/tmp/app" }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
       message: "No migration was created because no changes were found.",
     });
   });
@@ -148,7 +148,7 @@ describe("runPortalMigrationCommand", () => {
     await expect(
       runPortalMigrationCommand({ appId: 7, appPath: "/tmp/app" }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.External,
+      kind: NextBillionErrorKind.External,
       message:
         "Failed to run migration command: ENOENT\n\nOutput:\nbounded stdout\n\nErrors:\nbounded stderr",
     });

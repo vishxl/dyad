@@ -4,13 +4,16 @@ import {
   shellExecutionGuidance,
 } from "./shell_capability";
 
-const eligible = { settings: { enableShellTool: true }, isDyadPro: true };
+const eligible = {
+  settings: { enableShellTool: true },
+  isNextBillionPro: true,
+};
 describe("shell experiment eligibility", () => {
   it("allows opted-in Pro root Agent on host", () =>
     expect(isShellExperimentAvailable(eligible)).toBe(true));
   it.each([
     { settings: {} },
-    { isDyadPro: false },
+    { isNextBillionPro: false },
     { freeModelMode: true },
     { readOnly: true },
     { planModeOnly: true },

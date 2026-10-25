@@ -1,11 +1,14 @@
-import { DyadError, DyadErrorKind } from "../src/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "../src/errors/nextbillion_error";
 
 /** Stable browser identity; unlike proxy ports, app IDs are never reduced modulo a range. */
 export function getAppPreviewHostname(appId: number): string {
   if (!Number.isSafeInteger(appId) || appId <= 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Preview app ID must be a positive safe integer",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   return `app-${appId}.localhost`;

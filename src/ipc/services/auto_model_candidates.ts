@@ -3,7 +3,7 @@ import { resolveBuiltinModelAlias } from "../shared/remote_language_model_catalo
 import { resolveModelSelection } from "../utils/model_effort";
 import { resolveSubscriptionModel } from "./resolve_subscription_model";
 
-export const AUTO_DYAD_PRO_MODEL_ALIASES = [
+export const AUTO_NEXTBILLION_PRO_MODEL_ALIASES = [
   "dyad/auto/openai",
   "dyad/auto/anthropic",
   "dyad/auto/google",

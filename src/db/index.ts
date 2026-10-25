@@ -10,6 +10,7 @@ import path from "node:path";
 import fs from "node:fs";
 import { getUserDataPath } from "../paths/paths";
 import log from "electron-log";
+import { migrateLegacyTags } from "./legacy_tag_migration";
 
 const logger = log.scope("db");
 
@@ -90,6 +91,7 @@ export function initializeDatabase(): BetterSQLite3Database<typeof schema> & {
     const migrationsFolder = resolveMigrationsFolder();
     logger.log("Running migrations from:", migrationsFolder);
     migrate(_db, { migrationsFolder });
+    migrateLegacyTags(sqlite, (msg) => logger.log(msg));
   } catch (error) {
     logger.error("Migration error:", error);
     _db = null;

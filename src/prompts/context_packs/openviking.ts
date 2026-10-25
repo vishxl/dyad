@@ -16,8 +16,8 @@ import { CONTEXT_PACKS, type ContextPackId } from "./registry";
  */
 
 const OPENVIKING_URL =
-  process.env.DYAD_OPENVIKING_URL ?? "http://127.0.0.1:1933";
-const OPENVIKING_API_KEY = process.env.DYAD_OPENVIKING_API_KEY;
+  process.env.NEXTBILLION_OPENVIKING_URL ?? "http://127.0.0.1:1933";
+const OPENVIKING_API_KEY = process.env.NEXTBILLION_OPENVIKING_API_KEY;
 const FIND_TIMEOUT_MS = 10_000;
 const HITS_PER_PACK = 6;
 const MAX_HIT_CHARS = 2000;

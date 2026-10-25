@@ -1,7 +1,7 @@
 /**
  * Templates for the generated `e2e-tests/fixtures/test-user.ts` sign-in helper.
  * Auth-gated specs call `await signIn(page)` instead of driving the login UI;
- * the helper reads the isolated-session credentials Dyad injects into the run.
+ * the helper reads the isolated-session credentials NextBillion injects into the run.
  */
 
 export type RecorderAuthMode =
@@ -15,10 +15,10 @@ export type RecorderAuthMode =
  * user's own" — an app that moved between Neon and Supabase needs a new file.
  */
 export function fixtureMarker(mode: Exclude<RecorderAuthMode, "none">): string {
-  return `// dyad-generated-fixture: ${mode}`;
+  return `// nextbillion-generated-fixture: ${mode}`;
 }
 
-/** The auth mode a fixture declares, or null when it isn't Dyad-generated. */
+/** The auth mode a fixture declares, or null when it isn't NextBillion-generated. */
 export function readFixtureMode(
   source: string,
 ): Exclude<RecorderAuthMode, "none"> | null {
@@ -34,23 +34,23 @@ const NEON_BETTER_AUTH_FIXTURE: string[] = [
   `import { expect, type Page } from "@playwright/test";`,
   ``,
   `/**`,
-  ` * Sign in the Dyad-provisioned test user by driving the app's own Better Auth`,
+  ` * Sign in the NextBillion-provisioned test user by driving the app's own Better Auth`,
   ` * endpoint from the page itself, so Chromium accepts the HttpOnly session`,
   ` * cookie exactly as it does for an interactive sign-in.`,
   ` *`,
-  ` * Dyad provisions an isolated user per test case and injects its credentials`,
-  ` * via DYAD_TEST_USER_EMAIL / DYAD_TEST_USER_PASSWORD.`,
+  ` * NextBillion provisions an isolated user per test case and injects its credentials`,
+  ` * via NEXTBILLION_TEST_USER_EMAIL / NEXTBILLION_TEST_USER_PASSWORD.`,
   ` */`,
   `export async function signIn(page: Page): Promise<void> {`,
-  `  const email = process.env.DYAD_TEST_USER_EMAIL;`,
-  `  const password = process.env.DYAD_TEST_USER_PASSWORD;`,
+  `  const email = process.env.NEXTBILLION_TEST_USER_EMAIL;`,
+  `  const password = process.env.NEXTBILLION_TEST_USER_PASSWORD;`,
   `  if (!email || !password) {`,
   `    throw new Error(`,
-  `      "DYAD_TEST_USER_EMAIL / DYAD_TEST_USER_PASSWORD are not set. Run from Dyad's Tests panel and read credentials inside a test or beforeEach, after the isolated user is provisioned; they are unavailable at module scope or in beforeAll.",`,
+  `      "NEXTBILLION_TEST_USER_EMAIL / NEXTBILLION_TEST_USER_PASSWORD are not set. Run from NextBillion's Tests panel and read credentials inside a test or beforeEach, after the isolated user is provisioned; they are unavailable at module scope or in beforeAll.",`,
   `    );`,
   `  }`,
   `  const origin = new URL(`,
-  `    process.env.DYAD_TEST_BASE_URL || "http://localhost:32100",`,
+  `    process.env.NEXTBILLION_TEST_BASE_URL || "http://localhost:32100",`,
   `  ).origin;`,
   `  if (page.url() === "about:blank" || new URL(page.url()).origin !== origin) {`,
   `    await page.goto(origin);`,
@@ -79,19 +79,19 @@ const SUPABASE_PASSWORD_FIXTURE: string[] = [
   `import { expect, type Page } from "@playwright/test";`,
   ``,
   `/**`,
-  ` * Sign in the Dyad-provisioned Supabase test user via the password grant,`,
+  ` * Sign in the NextBillion-provisioned Supabase test user via the password grant,`,
   ` * then seed supabase-js's session into localStorage before the app loads so`,
-  ` * it boots authenticated. Dyad injects the project URL, anon key, and the`,
+  ` * it boots authenticated. NextBillion injects the project URL, anon key, and the`,
   ` * isolated user's credentials.`,
   ` */`,
   `export async function signIn(page: Page): Promise<void> {`,
-  `  const url = process.env.DYAD_TEST_SUPABASE_URL;`,
-  `  const anonKey = process.env.DYAD_TEST_SUPABASE_ANON_KEY;`,
-  `  const email = process.env.DYAD_TEST_USER_EMAIL;`,
-  `  const password = process.env.DYAD_TEST_USER_PASSWORD;`,
+  `  const url = process.env.NEXTBILLION_TEST_SUPABASE_URL;`,
+  `  const anonKey = process.env.NEXTBILLION_TEST_SUPABASE_ANON_KEY;`,
+  `  const email = process.env.NEXTBILLION_TEST_USER_EMAIL;`,
+  `  const password = process.env.NEXTBILLION_TEST_USER_PASSWORD;`,
   `  if (!url || !anonKey || !email || !password) {`,
   `    throw new Error(`,
-  `      "Supabase test credentials are not set. Run from Dyad's Tests panel and read credentials inside a test or beforeEach, after the isolated user is provisioned; they are unavailable at module scope or in beforeAll.",`,
+  `      "Supabase test credentials are not set. Run from NextBillion's Tests panel and read credentials inside a test or beforeEach, after the isolated user is provisioned; they are unavailable at module scope or in beforeAll.",`,
   `    );`,
   `  }`,
   `  const response = await page.request.post(`,

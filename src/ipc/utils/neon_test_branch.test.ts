@@ -150,7 +150,7 @@ describe("createTempTestBranch", () => {
     // just as happily if the write had come second.
     mocks.ensureNeonAuth.mockImplementationOnce(async () => {
       expect(mocks.set).toHaveBeenCalledWith({
-        neonTestBranchId: "dyad-cleanup-only:v1:test-new-branch-id",
+        neonTestBranchId: "nextbillion-cleanup-only:v1:test-new-branch-id",
       });
       return "https://auth.example";
     });
@@ -209,7 +209,9 @@ describe("createTempTestBranch", () => {
     // Nothing pointed the real app at that branch, so there is no env to put
     // back — restoring one would rewrite a file this run never touched.
     await createTempTestBranch(
-      makeApp({ neonTestBranchId: "dyad-cleanup-only:v1:leaked-branch-id" }),
+      makeApp({
+        neonTestBranchId: "nextbillion-cleanup-only:v1:leaked-branch-id",
+      }),
       { cleanupOnly: true },
     );
 
@@ -368,7 +370,7 @@ describe("deleteTempTestBranch", () => {
           response: { status: 404 },
         });
       const deleting = deleteTempTestBranch(
-        makeApp({ neonTestBranchId: "dyad-cleanup-only:v1:test-br" }),
+        makeApp({ neonTestBranchId: "nextbillion-cleanup-only:v1:test-br" }),
       );
       await vi.advanceTimersByTimeAsync(0);
       expect(mocks.set).not.toHaveBeenCalled();
@@ -429,7 +431,7 @@ describe("deleteTempTestBranch", () => {
 
   it("strips a cleanup-only marker before calling Neon", async () => {
     await deleteTempTestBranch(
-      makeApp({ neonTestBranchId: "dyad-cleanup-only:v1:test-br" }),
+      makeApp({ neonTestBranchId: "nextbillion-cleanup-only:v1:test-br" }),
     );
     expect(mocks.deleteProjectBranch).toHaveBeenCalledWith("proj-1", "test-br");
     expect(mocks.set).toHaveBeenCalledWith({ neonTestBranchId: null });
@@ -505,7 +507,7 @@ describe("markAndDeleteTempTestBranch", () => {
       "test-br",
     );
     expect(mocks.set).toHaveBeenCalledWith({
-      neonTestBranchId: "dyad-cleanup-only:v1:test-br",
+      neonTestBranchId: "nextbillion-cleanup-only:v1:test-br",
     });
     expect(mocks.deleteProjectBranch).toHaveBeenCalledWith("proj-1", "test-br");
     const markedAt = mocks.set.mock.invocationCallOrder[0];
@@ -525,7 +527,7 @@ describe("markAndDeleteTempTestBranch", () => {
   });
 
   it("reports the failure without throwing when the remote delete fails", async () => {
-    // Callers promise the user "Dyad will retry remote cleanup on next
+    // Callers promise the user "NextBillion will retry remote cleanup on next
     // startup", so they need the verdict — but a teardown must never throw.
     mocks.deleteProjectBranch.mockRejectedValueOnce({
       response: { status: 500 },
@@ -591,11 +593,11 @@ describe("restoreAppFromTestBranch", () => {
       ),
     ).resolves.toBe(true);
 
-    expect(isTestBranchCleanupOnly("dyad-cleanup-only:v1:leaked-br")).toBe(
-      true,
-    );
+    expect(
+      isTestBranchCleanupOnly("nextbillion-cleanup-only:v1:leaked-br"),
+    ).toBe(true);
     expect(mocks.set).toHaveBeenCalledWith({
-      neonTestBranchId: "dyad-cleanup-only:v1:leaked-br",
+      neonTestBranchId: "nextbillion-cleanup-only:v1:leaked-br",
     });
     expect(mocks.set).not.toHaveBeenCalledWith({ neonTestBranchId: null });
   });
@@ -604,7 +606,7 @@ describe("restoreAppFromTestBranch", () => {
     await expect(
       restoreAppFromTestBranch(
         makeApp({
-          neonTestBranchId: "dyad-cleanup-only:v1:leaked-br",
+          neonTestBranchId: "nextbillion-cleanup-only:v1:leaked-br",
         }),
       ),
     ).resolves.toBe(true);

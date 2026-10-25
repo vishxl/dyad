@@ -2,7 +2,10 @@ import { createHash, generateKeyPairSync, randomBytes } from "crypto";
 import * as fs from "fs";
 import * as path from "path";
 import log from "electron-log";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { getUserDataPath } from "@/paths/paths";
 
 const logger = log.scope("coolify_deploy_key");
@@ -10,21 +13,21 @@ const logger = log.scope("coolify_deploy_key");
 /**
  * Manages the keypair Coolify uses to clone a private repository.
  *
- * Dyad never connects over SSH itself: it generates a keypair, hands the
+ * NextBillion never connects over SSH itself: it generates a keypair, hands the
  * public half to GitHub as a deploy key and the private half to Coolify.
  * GitHub allows a deploy key on only one repository, so each repo gets its own.
  */
 
 /** Written into the key so a human reading the directory sees where it came from. */
-const KEY_COMMENT = "dyad-deploy";
+const KEY_COMMENT = "nextbillion-deploy";
 
 /**
- * Dyad's own directory, not ~/.ssh.
+ * NextBillion's own directory, not ~/.ssh.
  *
- * These are keys Dyad generates and manages, not the user's. ~/.ssh is a
- * directory Dyad treats as off-limits everywhere else — the sandbox's
+ * These are keys NextBillion generates and manages, not the user's. ~/.ssh is a
+ * directory NextBillion treats as off-limits everywhere else — the sandbox's
  * protected-path list and the MCP consent policy both name it — and writing
- * an unencrypted private key into it puts Dyad's own files among identities
+ * an unencrypted private key into it puts NextBillion's own files among identities
  * the user maintains by hand.
  */
 export function deployKeyDirPath(): string {
@@ -62,7 +65,7 @@ export function repoKeyName(owner: string, repo: string): string {
     .update(`${owner}/${repo}`)
     .digest("hex")
     .slice(0, 8);
-  return `dyad_deploy_${readable}_${distinct}`;
+  return `nextbillion_deploy_${readable}_${distinct}`;
 }
 
 /**
@@ -141,10 +144,10 @@ export function generateDeployKeyPair(comment: string): {
   const { x } = pair.publicKey.export({ format: "jwk" });
   const { d } = pair.privateKey.export({ format: "jwk" });
   if (!x || !d) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Could not generate a deploy key: the runtime returned an ed25519 key " +
         "without its raw halves.",
-      DyadErrorKind.Internal,
+      NextBillionErrorKind.Internal,
     );
   }
   const publicBytes = Buffer.from(x, "base64url");
@@ -260,7 +263,7 @@ export async function ensureDeployKey(keyName: string): Promise<string> {
     // pair being replaced.
     const derived = publicKeyFromPrivate(readPrivateKey(keyName));
     if (!derived) {
-      throw new DyadError(
+      throw new NextBillionError(
         `The deploy key at ${keyPath} could not be read, and its public half ` +
           `is missing. Delete it to have a new pair generated, then add the ` +
           `new key to the repository's deploy keys.`,
@@ -270,7 +273,7 @@ export async function ensureDeployKey(keyName: string): Promise<string> {
         // path — the OS username on macOS and Windows — plus the owner and
         // repo in the filename. External is not filtered, so classifying it
         // that way shipped all three to PostHog.
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     fs.writeFileSync(`${keyPath}.pub`, derived, { mode: 0o644 });
@@ -290,10 +293,10 @@ export async function ensureDeployKey(keyName: string): Promise<string> {
 
   const publicKey = readPublicKey(keyName);
   if (!publicKey) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Deploy key exists but ${keyPath}.pub is unreadable`,
       // Same reason as above: the message embeds the userData path.
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   return publicKey;

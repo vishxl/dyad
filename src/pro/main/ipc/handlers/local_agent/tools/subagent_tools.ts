@@ -1,6 +1,10 @@
 import { z } from "zod";
 import type { ToolSet } from "ai";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import type { SubagentThreadSummary } from "@/ipc/types";
 import { getErrorMessage } from "@/lib/errors";
 
@@ -252,7 +256,7 @@ export const spawnAgentTool: ToolDefinition<
   usesEngineEndpoint: true,
   isEnabled: (ctx) =>
     Boolean(
-      ctx.isDyadPro &&
+      ctx.isNextBillionPro &&
       (ctx.canUseExplorerSubagent || ctx.canUseImplementerSubagent) &&
       !ctx.subagentThreadId,
     ),
@@ -277,7 +281,7 @@ export const spawnAgentTool: ToolDefinition<
       ctx.spawnedImplementerThreadIds.push(threadId);
     }
     ctx.onXmlComplete(
-      `<dyad-subagent chat-id="${escapeXmlAttr(String(ctx.chatId))}" thread-id="${escapeXmlAttr(threadId)}" persona="${escapeXmlAttr(args.persona)}" task-name="${escapeXmlAttr(args.task_name)}"></dyad-subagent>`,
+      `<nextbillion-subagent chat-id="${escapeXmlAttr(String(ctx.chatId))}" thread-id="${escapeXmlAttr(threadId)}" persona="${escapeXmlAttr(args.persona)}" task-name="${escapeXmlAttr(args.task_name)}"></nextbillion-subagent>`,
     );
     let subagent: SubagentThreadSummary;
     try {
@@ -292,13 +296,13 @@ export const spawnAgentTool: ToolDefinition<
       } catch (cancellationError) {
         // Keep the thread registered so the end-of-turn barrier remains
         // fail-closed when cancellation itself did not complete.
-        throw new DyadError(
+        throw new NextBillionError(
           `The sub-agent wait failed: ${getErrorMessage(error)} Cancellation also failed: ${getErrorMessage(cancellationError)}`,
-          isDyadError(error)
+          isNextBillionError(error)
             ? error.kind
-            : isDyadError(cancellationError)
+            : isNextBillionError(cancellationError)
               ? cancellationError.kind
-              : DyadErrorKind.Conflict,
+              : NextBillionErrorKind.Conflict,
           { cause: new AggregateError([error, cancellationError]) },
         );
       }
@@ -349,7 +353,9 @@ const threadIdsSchema = z.object({ thread_ids: z.array(z.string()).min(1) });
 
 function canUseAdvancedSubagentTools(ctx: AgentContext): boolean {
   return Boolean(
-    ctx.isDyadPro && ctx.canUseAdvancedSubagentTools && !ctx.subagentThreadId,
+    ctx.isNextBillionPro &&
+    ctx.canUseAdvancedSubagentTools &&
+    !ctx.subagentThreadId,
   );
 }
 
@@ -483,7 +489,7 @@ export const exploreCodeTool: ToolDefinition<
       )),
   buildXml: (args, isComplete) => {
     if (!args.query || isComplete) return undefined;
-    return `<dyad-explore-code${buildExploreCodeAttributes(args)}>Exploring...`;
+    return `<nextbillion-explore-code${buildExploreCodeAttributes(args)}>Exploring...`;
   },
   execute: async (args, ctx) => {
     const appPath = resolveTargetAppPath(ctx, args.app_name);
@@ -503,7 +509,7 @@ export const exploreCodeTool: ToolDefinition<
       truncated: result.truncated,
     });
     ctx.onXmlComplete(
-      `<dyad-explore-code${attributes}>\n${escapeXmlContent(resultText)}\n</dyad-explore-code>`,
+      `<nextbillion-explore-code${attributes}>\n${escapeXmlContent(resultText)}\n</nextbillion-explore-code>`,
     );
     return resultText;
   },

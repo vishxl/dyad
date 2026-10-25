@@ -69,7 +69,7 @@ export function toMcpToolResult(
   if (safe.truncated)
     content.push({
       type: "text",
-      text: "[Tool result truncated to the Dyad safety limit.]",
+      text: "[Tool result truncated to the NextBillion safety limit.]",
     });
   let imageBytes = 0;
   for (const part of additions) {

@@ -58,7 +58,7 @@ vi.mock("../utils/git_utils", () => ({
   getCurrentCommitHash: mocks.getCurrentCommitHash,
 }));
 vi.mock("../../paths/paths", () => ({
-  getDyadAppPath: (appPath: string) => `/apps/${appPath}`,
+  getNextBillionAppPath: (appPath: string) => `/apps/${appPath}`,
 }));
 vi.mock("./tests_handlers", () => ({ isTestRunActive: mocks.isTestRunActive }));
 vi.mock("@/main/settings", () => ({ readSettings: mocks.readSettings }));
@@ -373,7 +373,7 @@ describe("recording:start / recording:stop", () => {
     const prepared = makePrepared({
       authSetup: {
         mode: "neon-better-auth",
-        email: "t@dyad.test",
+        email: "t@nextbillion.test",
         password: "pw",
       },
     });
@@ -385,7 +385,7 @@ describe("recording:start / recording:stop", () => {
     expect(result.isolation).toEqual({ mode: "neon-branch" });
     expect(result.auth).toEqual({
       mode: "neon-better-auth",
-      email: "t@dyad.test",
+      email: "t@nextbillion.test",
       password: "pw",
     });
     expect(result.authBootstrapToken).toBe(
@@ -439,7 +439,7 @@ describe("recording:start / recording:stop", () => {
     const prepared = makePrepared({
       authSetup: {
         mode: "supabase-password",
-        email: "t@dyad.test",
+        email: "t@nextbillion.test",
         password: "pw",
         projectUrl: "https://ref.supabase.co",
         anonKey: "anon",
@@ -576,7 +576,7 @@ describe("recording:start / recording:stop", () => {
     expect(mocks.insertValues).toHaveBeenCalledWith({
       appId: 1,
       title: "New chat",
-      executionBackend: "dyad",
+      executionBackend: "nextbillion",
       modelSelection: undefined,
       initialCommitHash: "abc123",
       chatMode: null,

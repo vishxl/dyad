@@ -6,7 +6,7 @@ const mocks = vi.hoisted(() => ({
   attachments: [] as any[],
   effectiveDefaultChatMode: "build",
   hasManuallySelectedChatMode: false,
-  hasDyadProApiKey: false,
+  hasNextBillionProApiKey: false,
   inputValue: "Build a notes app",
   isAnyProviderSetup: false,
   isLoadingLanguageModelProviders: false,
@@ -79,7 +79,7 @@ vi.mock("@/hooks/useFreeAgentQuota", () => ({
 vi.mock("@/lib/schemas", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/lib/schemas")>()),
   getEffectiveDefaultChatMode: () => mocks.effectiveDefaultChatMode,
-  hasDyadProKey: () => mocks.hasDyadProApiKey,
+  hasNextBillionProKey: () => mocks.hasNextBillionProApiKey,
 }));
 vi.mock("@/lib/homeChatMode", () => ({
   getHomeDefaultChatMode: () => mocks.effectiveDefaultChatMode,
@@ -119,7 +119,7 @@ describe("HomePage first-prompt projection", () => {
     mocks.attachments = [];
     mocks.effectiveDefaultChatMode = "build";
     mocks.hasManuallySelectedChatMode = false;
-    mocks.hasDyadProApiKey = false;
+    mocks.hasNextBillionProApiKey = false;
     mocks.inputValue = "Build a notes app";
     mocks.isAnyProviderSetup = false;
     mocks.isLoadingLanguageModelProviders = false;

@@ -27,7 +27,10 @@ import {
   type HybridChatHarness,
 } from "@/testing/hybrid_chat_harness";
 import { h } from "@/testing/hybrid.setup";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { githubOpsService } from "@/ipc/services/github_ops_service";
 
 type TestApp = {
@@ -206,7 +209,9 @@ describe("GitHub connector actions (integration)", () => {
     ].join("\n");
     const runSpy = vi
       .spyOn(githubOpsService, "run")
-      .mockRejectedValueOnce(new DyadError(pushError, DyadErrorKind.Conflict));
+      .mockRejectedValueOnce(
+        new NextBillionError(pushError, NextBillionErrorKind.Conflict),
+      );
 
     fireEvent.click(
       within(connectedRepo).getByRole("button", { name: "Sync to GitHub" }),
@@ -226,7 +231,10 @@ describe("GitHub connector actions (integration)", () => {
     ).toBeTruthy();
 
     runSpy.mockRejectedValueOnce(
-      new DyadError("Not authenticated with GitHub.", DyadErrorKind.Auth),
+      new NextBillionError(
+        "Not authenticated with GitHub.",
+        NextBillionErrorKind.Auth,
+      ),
     );
     fireEvent.click(
       within(connectedRepo).getByRole("button", { name: "Sync to GitHub" }),

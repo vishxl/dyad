@@ -2,7 +2,10 @@ import { neon } from "@neondatabase/serverless";
 import { IS_TEST_BUILD } from "./test_utils";
 import { retryTestDatabaseCleanup } from "./test_database_cleanup_retry";
 import { getNeonClient } from "../../neon_admin/neon_management_client";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 interface TestDatabaseTable {
   schema_name: string;
@@ -41,9 +44,9 @@ export async function createNeonTestDataCleaner({
   protectedBranchIds: (string | null)[];
 }): Promise<(signal?: AbortSignal) => Promise<void>> {
   if (!branchId || protectedBranchIds.includes(branchId)) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Refusing to clear a non-test Neon branch.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   if (IS_TEST_BUILD) return async () => {};
@@ -55,9 +58,9 @@ export async function createNeonTestDataCleaner({
       (endpoint) => endpoint.branch_id === branchId && endpoint.host === host,
     )
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Refusing to clear a database outside the temporary Neon branch.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   return (signal) =>

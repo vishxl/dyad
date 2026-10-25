@@ -4,7 +4,10 @@ import { prompts } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { createTypedHandler } from "./base";
 import { promptContracts } from "../types/prompts";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const _logger = log.scope("prompt_handlers");
 
@@ -25,9 +28,9 @@ export function registerPromptHandlers() {
   createTypedHandler(promptContracts.create, async (_, params) => {
     const { title, content, description, slug } = params;
     if (!title || !content) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Title and content are required",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
     const result = db

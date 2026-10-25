@@ -22,7 +22,9 @@ const { findApp, gitAdd } = vi.hoisted(() => ({
   findApp: vi.fn(),
   gitAdd: vi.fn(),
 }));
-vi.mock("@/paths/paths", () => ({ getDyadAppPath: (value: string) => value }));
+vi.mock("@/paths/paths", () => ({
+  getNextBillionAppPath: (value: string) => value,
+}));
 vi.mock("@/ipc/utils/git_utils", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/ipc/utils/git_utils")>()),
   gitAdd,
@@ -50,7 +52,9 @@ vi.mock("@/main/settings", () => ({
 describe("captured Supabase deployment inputs", () => {
   let appPath: string;
   beforeEach(async () => {
-    appPath = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-deploy-snapshot-"));
+    appPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-deploy-snapshot-"),
+    );
     findApp.mockResolvedValue({ path: appPath, supabaseProjectId: "project" });
     gitAdd.mockReset();
     for (const name of ["alpha", "beta", "_shared"]) {

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 
 const mocks = vi.hoisted(() => ({
   findApp: vi.fn(),
@@ -8,7 +8,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/db", () => ({
   db: { query: { apps: { findFirst: mocks.findApp } } },
 }));
-vi.mock("@/paths/paths", () => ({ getDyadAppPath: (path: string) => path }));
+vi.mock("@/paths/paths", () => ({
+  getNextBillionAppPath: (path: string) => path,
+}));
 vi.mock("../utils/app_env_var_utils", () => ({
   readEnvVarsOrEmpty: mocks.readEnv,
 }));
@@ -175,7 +177,7 @@ describe("Neon preview domain registration", () => {
       }),
     ).rejects.toMatchObject({
       message: "Invalid app preview origin",
-      kind: DyadErrorKind.Validation,
+      kind: NextBillionErrorKind.Validation,
     });
     expect(register).not.toHaveBeenCalled();
   });
@@ -214,7 +216,7 @@ describe("Neon preview domain registration", () => {
       { key: "NEON_AUTH_BASE_URL", value: "https://auth.example" },
     ]);
     await expect(resolveNeonPreviewTarget(42)).rejects.toMatchObject({
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
     });
   });
 });

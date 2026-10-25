@@ -3,7 +3,10 @@ import { ipc } from "@/ipc/types";
 import type { CreateAppParams, CreateAppResult } from "@/ipc/types";
 import { showError } from "@/lib/toast";
 import { queryKeys } from "@/lib/queryKeys";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 export function useCreateApp() {
   const queryClient = useQueryClient();
@@ -11,7 +14,10 @@ export function useCreateApp() {
   const mutation = useMutation<CreateAppResult, Error, CreateAppParams>({
     mutationFn: async (params: CreateAppParams) => {
       if (!params.name.trim()) {
-        throw new DyadError("App name is required", DyadErrorKind.Validation);
+        throw new NextBillionError(
+          "App name is required",
+          NextBillionErrorKind.Validation,
+        );
       }
 
       return ipc.app.createApp(params);

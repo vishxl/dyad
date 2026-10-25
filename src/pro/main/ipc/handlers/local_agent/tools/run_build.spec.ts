@@ -149,7 +149,9 @@ describe("run_build", () => {
   });
 
   it("creates a Git-aware worktree with the live state of a nested app", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const repoPath = path.join(root, "repo");
     const modulePath = path.join(root, "module");
@@ -315,7 +317,9 @@ describe("run_build", () => {
         ),
       ).resolves.toBe("live\n");
       await expect(
-        fs.lstat(path.join(snapshot.worktreePath, ".dyad-build-snapshot")),
+        fs.lstat(
+          path.join(snapshot.worktreePath, ".nextbillion-build-snapshot"),
+        ),
       ).rejects.toMatchObject({ code: "ENOENT" });
     } finally {
       await removeSnapshot(snapshot.worktreePath, snapshot.sourceRepoPath);
@@ -323,7 +327,9 @@ describe("run_build", () => {
   }, 15_000);
 
   it("uses only applicable workspace roots for package-manager signals", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const workspaceRoot = path.join(root, "workspace");
     const workspaceApp = path.join(workspaceRoot, "packages", "app");
@@ -375,7 +381,9 @@ describe("run_build", () => {
   });
 
   it("accepts a repository with an empty .gitmodules file", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const repoPath = path.join(root, "repo");
     const snapshotsPath = path.join(root, "snapshots");
@@ -431,7 +439,9 @@ describe("run_build", () => {
   });
 
   it("bounds concurrent filesystem work in the Windows snapshot copier", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const sourceRoot = path.join(root, "app");
     const snapshotRoot = path.join(root, "snapshot");
@@ -501,7 +511,7 @@ describe("run_build", () => {
 
   it("records Docker previews as requiring a clean host snapshot", async () => {
     const appPath = await fs.mkdtemp(
-      path.join(os.tmpdir(), "dyad-build-test-"),
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
     );
     temporaryDirectories.push(appPath);
     await Promise.all([
@@ -528,7 +538,7 @@ describe("run_build", () => {
 
   it("refreshes framework facts after a Vite app gains Nitro", async () => {
     const appPath = await fs.mkdtemp(
-      path.join(os.tmpdir(), "dyad-build-test-"),
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
     );
     temporaryDirectories.push(appPath);
     await Promise.all([
@@ -599,7 +609,9 @@ describe("run_build", () => {
   });
 
   it("rewrites links to source dependencies into the private snapshot", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const sourceRoot = path.join(root, "app");
     const snapshotRoot = path.join(root, "snapshot");
@@ -635,7 +647,9 @@ describe("run_build", () => {
   });
 
   it("rejects links from an isolated snapshot to external paths", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const sourceRoot = path.join(root, "app");
     const snapshotRoot = path.join(root, "snapshot");
@@ -662,7 +676,9 @@ describe("run_build", () => {
   it.runIf(process.platform !== "win32")(
     "uses Dirent metadata instead of serial lstat calls on POSIX",
     async () => {
-      const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+      const root = await fs.mkdtemp(
+        path.join(os.tmpdir(), "nextbillion-build-test-"),
+      );
       temporaryDirectories.push(root);
       const sourceRoot = path.join(root, "app");
       const snapshotRoot = path.join(root, "snapshot");
@@ -680,7 +696,9 @@ describe("run_build", () => {
   );
 
   it("rejects external file links in the Windows copy backend", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const sourceRoot = path.join(root, "app");
     const snapshotRoot = path.join(root, "snapshot");
@@ -713,7 +731,9 @@ describe("run_build", () => {
     // step produces. Deleting it makes the snapshot differ from the tree it is
     // supposed to reproduce, and nothing can leak through a link that resolves
     // to nothing.
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const sourceRoot = path.join(root, "app");
     const snapshotRoot = path.join(root, "snapshot");
@@ -734,7 +754,9 @@ describe("run_build", () => {
     // The target does not exist yet, so containment is judged on the link text:
     // something creating that path later must not become a way out. Dropped
     // rather than fatal — a stale link must not make the workspace unusable.
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const sourceRoot = path.join(root, "app");
     const snapshotRoot = path.join(root, "snapshot");
@@ -752,7 +774,9 @@ describe("run_build", () => {
     // against it and testing against the REAL root would refuse an ordinary
     // in-workspace link on any path behind a symlink (`/var` on macOS, or a
     // dev user-data dir).
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const realRoot = path.join(root, "real");
     const sourceRoot = path.join(realRoot, "app");
@@ -780,7 +804,9 @@ describe("run_build", () => {
     // root alone deletes a link the repository legitimately contains. Remapping
     // it is the point: left alone it would still name the user's checkout, and
     // whatever later creates that path would read and write straight through.
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const realRoot = path.join(root, "real");
     await fs.mkdir(path.join(realRoot, "app"), { recursive: true });
@@ -805,13 +831,15 @@ describe("run_build", () => {
     ).toBe(path.join(realSnapshotRoot, "missing-package"));
   });
 
-  it("cleans only marked Dyad-owned snapshot directories", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+  it("cleans only marked NextBillion-owned snapshot directories", async () => {
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     const repoPath = path.join(root, "repo");
     const snapshotRoot = path.join(root, "snapshots");
-    const owned = path.join(snapshotRoot, ".dyad-build-ABC123");
-    const unowned = path.join(snapshotRoot, ".dyad-build-DEF456");
+    const owned = path.join(snapshotRoot, ".nextbillion-build-ABC123");
+    const unowned = path.join(snapshotRoot, ".nextbillion-build-DEF456");
     await Promise.all([fs.mkdir(repoPath), fs.mkdir(snapshotRoot)]);
     await fs.mkdir(unowned);
     await fs.writeFile(path.join(repoPath, "package.json"), "{}");
@@ -831,7 +859,7 @@ describe("run_build", () => {
     await fs.writeFile(
       `${owned}.owner.json`,
       JSON.stringify({
-        schema: "dyad-build-worktree-v1",
+        schema: "nextbillion-build-worktree-v1",
         sourceRepoPath: repoPath,
       }),
     );
@@ -922,7 +950,9 @@ describe("run_build", () => {
   });
 
   it("records snapshot setup failures before allowing another build", async () => {
-    const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-build-test-"));
+    const root = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-build-test-"),
+    );
     temporaryDirectories.push(root);
     await fs.writeFile(
       path.join(root, "package.json"),

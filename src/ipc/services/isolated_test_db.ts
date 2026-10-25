@@ -1,8 +1,11 @@
 import fs from "node:fs";
 import log from "electron-log";
-import { DyadError, DyadErrorKind } from "../../errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "../../errors/nextbillion_error";
 
-import { getDyadAppPath } from "../../paths/paths";
+import { getNextBillionAppPath } from "../../paths/paths";
 import { apps } from "../../db/schema";
 import {
   createTempTestBranch,
@@ -215,7 +218,7 @@ export async function prepareIsolatedTestDatabase({
     };
   }
 
-  const appPath = appPathOverride ?? getDyadAppPath(app.path);
+  const appPath = appPathOverride ?? getNextBillionAppPath(app.path);
   // The env file this teardown restores lives inside the disposable sandbox,
   // not in the user's project. Nothing the user can see depends on that restore
   // succeeding, and the directory is deleted moments later either way.
@@ -251,7 +254,7 @@ export async function prepareIsolatedTestDatabase({
           `Failed to restore .env.local for app ${app.id}: ${error}`,
         );
         emit(
-          "Warning: Dyad couldn't restore your real database settings, so the temporary Neon branch was kept tracked for retry. Restore .env.local before running more tests.\n",
+          "Warning: NextBillion couldn't restore your real database settings, so the temporary Neon branch was kept tracked for retry. Restore .env.local before running more tests.\n",
           "setup",
         );
       }
@@ -263,7 +266,7 @@ export async function prepareIsolatedTestDatabase({
             `Failed to restart app ${app.id} back onto its real branch: ${error}`,
           );
           emit(
-            "Warning: Dyad restored your real database settings, but couldn't restart the preview. Restart the app manually before continuing.\n",
+            "Warning: NextBillion restored your real database settings, but couldn't restart the preview. Restart the app manually before continuing.\n",
             "setup",
           );
         }
@@ -297,7 +300,10 @@ export async function prepareIsolatedTestDatabase({
     // Stop pressed during that wait before creating the branch, rewriting
     // .env.local, and restarting the dev server (twice) for nothing.
     if (signal?.aborted) {
-      throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+      throw new NextBillionError(
+        "Test run stopped.",
+        NextBillionErrorKind.UserCancelled,
+      );
     }
     emit("Setting up isolated test environment…\n", "setup");
 
@@ -377,9 +383,9 @@ export async function prepareIsolatedTestDatabase({
       if (restartApp) {
         const info = runningApps.get(app.id);
         if (!info?.proxyUrl)
-          throw new DyadError(
+          throw new NextBillionError(
             "The preview URL is unavailable for Neon Auth sign-in.",
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         const previewUrl = new URL(info.proxyUrl);
         const target = {
@@ -418,8 +424,8 @@ export async function prepareIsolatedTestDatabase({
           : undefined;
         if (account) {
           testCredentials = {
-            DYAD_TEST_USER_EMAIL: account.email,
-            DYAD_TEST_USER_PASSWORD: account.password,
+            NEXTBILLION_TEST_USER_EMAIL: account.email,
+            NEXTBILLION_TEST_USER_PASSWORD: account.password,
           };
           authSetup = {
             mode: "neon-better-auth",
@@ -442,7 +448,10 @@ export async function prepareIsolatedTestDatabase({
     // Honor Stop during the auth network calls before publishing a ready
     // session. The catch below restores the real branch.
     if (signal?.aborted) {
-      throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+      throw new NextBillionError(
+        "Test run stopped.",
+        NextBillionErrorKind.UserCancelled,
+      );
     }
 
     if (perTestCase)
@@ -472,8 +481,8 @@ export async function prepareIsolatedTestDatabase({
                 signal: caseSignal,
               });
               return {
-                DYAD_TEST_USER_EMAIL: account.email,
-                DYAD_TEST_USER_PASSWORD: account.password,
+                NEXTBILLION_TEST_USER_EMAIL: account.email,
+                NEXTBILLION_TEST_USER_PASSWORD: account.password,
               };
             },
             afterEach: (caseSignal) => clearTestData(caseSignal),
@@ -651,13 +660,19 @@ async function prepareSupabaseTestUserIsolation({
     // two of them so cancellation takes effect promptly instead of only after
     // the whole setup completes.
     if (signal?.aborted) {
-      throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+      throw new NextBillionError(
+        "Test run stopped.",
+        NextBillionErrorKind.UserCancelled,
+      );
     }
     // RLS gate (warn, don't refuse): surface unprotected tables to the user.
     const rls = await checkRls({ projectId, organizationSlug });
 
     if (signal?.aborted) {
-      throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+      throw new NextBillionError(
+        "Test run stopped.",
+        NextBillionErrorKind.UserCancelled,
+      );
     }
     // The test signs the isolated user in through the app's OWN login UI, so a
     // legacy key in the app's generated client is a test failure waiting to
@@ -667,7 +682,7 @@ async function prepareSupabaseTestUserIsolation({
     // client code this run will actually sign in through, not the live project
     // it was snapshotted from.
     const legacyKey = await detectLegacyAppKey({
-      appPath: appPathOverride ?? getDyadAppPath(app.path),
+      appPath: appPathOverride ?? getNextBillionAppPath(app.path),
       projectId,
       organizationSlug,
     });
@@ -679,7 +694,10 @@ async function prepareSupabaseTestUserIsolation({
     const warning = buildRlsWarning(rls);
 
     if (signal?.aborted) {
-      throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+      throw new NextBillionError(
+        "Test run stopped.",
+        NextBillionErrorKind.UserCancelled,
+      );
     }
     if (!perTestCase) {
       emit("Creating an isolated test user…\n", "setup");
@@ -714,14 +732,17 @@ async function prepareSupabaseTestUserIsolation({
     // the catch below is what tears the temporary user back down and reports the
     // stopped result.
     if (signal?.aborted) {
-      throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+      throw new NextBillionError(
+        "Test run stopped.",
+        NextBillionErrorKind.UserCancelled,
+      );
     }
 
     const credentialsFor = (user: TempTestUser): Record<string, string> => ({
-      DYAD_TEST_USER_EMAIL: user.email,
-      DYAD_TEST_USER_PASSWORD: user.password,
-      DYAD_TEST_SUPABASE_URL: user.projectUrl,
-      ...(anonKey ? { DYAD_TEST_SUPABASE_ANON_KEY: anonKey } : {}),
+      NEXTBILLION_TEST_USER_EMAIL: user.email,
+      NEXTBILLION_TEST_USER_PASSWORD: user.password,
+      NEXTBILLION_TEST_SUPABASE_URL: user.projectUrl,
+      ...(anonKey ? { NEXTBILLION_TEST_SUPABASE_ANON_KEY: anonKey } : {}),
     });
     const testCredentials = testUser ? credentialsFor(testUser) : undefined;
     let authSetup: IsolationAuthSetup | undefined;
@@ -817,7 +838,7 @@ function buildRlsWarning(rls: {
   unverified?: boolean;
 }): string | undefined {
   if (rls.unverified) {
-    return "Tests ran as an isolated test user, but Dyad couldn't verify Row-Level Security — some real data may be reachable.";
+    return "Tests ran as an isolated test user, but NextBillion couldn't verify Row-Level Security — some real data may be reachable.";
   }
   if (rls.tablesWithoutRls.length === 0) {
     return undefined;
@@ -913,7 +934,10 @@ async function waitForServerReady(
   let lastReason = "the dev server never started";
   while (Date.now() < deadline) {
     if (signal?.aborted) {
-      throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+      throw new NextBillionError(
+        "Test run stopped.",
+        NextBillionErrorKind.UserCancelled,
+      );
     }
     const appInfo = runningApps.get(appId);
     if (!appInfo) {

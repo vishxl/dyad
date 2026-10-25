@@ -17,7 +17,7 @@ test("voice-to-text button is hidden on home page for non-pro users", async ({
 test("voice-to-text button visible on home page for pro users", async ({
   po,
 }) => {
-  await po.setUpDyadPro();
+  await po.setUpNextBillionPro();
 
   // On the home page, the mic button should be visible
   const micButton = po.chatActions
@@ -28,7 +28,7 @@ test("voice-to-text button visible on home page for pro users", async ({
 });
 
 test("voice-to-text button changes state when recording", async ({ po }) => {
-  await po.setUpDyadPro();
+  await po.setUpNextBillionPro();
   await po.importApp("minimal");
 
   const micButton = po.page.getByRole("button", { name: "Voice to text" });

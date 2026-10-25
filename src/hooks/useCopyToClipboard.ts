@@ -3,21 +3,21 @@ import { getLanguage } from "@/utils/get_language";
 import { unescapeXmlAttr, unescapeXmlContent } from "../../shared/xmlEscape";
 
 const CUSTOM_TAG_NAMES = [
-  "dyad-write",
-  "dyad-rename",
-  "dyad-delete",
-  "dyad-add-dependency",
-  "dyad-execute-sql",
-  "dyad-add-integration",
-  "dyad-suggest-plugin",
-  "dyad-output",
-  "dyad-problem-report",
-  "dyad-chat-summary",
-  "dyad-edit",
-  "dyad-codebase-context",
-  "dyad-script",
+  "nextbillion-write",
+  "nextbillion-rename",
+  "nextbillion-delete",
+  "nextbillion-add-dependency",
+  "nextbillion-execute-sql",
+  "nextbillion-add-integration",
+  "nextbillion-suggest-plugin",
+  "nextbillion-output",
+  "nextbillion-problem-report",
+  "nextbillion-chat-summary",
+  "nextbillion-edit",
+  "nextbillion-codebase-context",
+  "nextbillion-script",
   "think",
-  "dyad-command",
+  "nextbillion-command",
 ];
 export const useCopyToClipboard = () => {
   const [copied, setCopied] = useState(false);
@@ -32,8 +32,9 @@ export const useCopyToClipboard = () => {
 
   const copyMessageContent = async (messageContent: string) => {
     try {
-      // Use the same parsing logic as DyadMarkdownParser but convert to clean text
-      const formattedContent = convertDyadContentToMarkdown(messageContent);
+      // Use the same parsing logic as NextBillionMarkdownParser but convert to clean text
+      const formattedContent =
+        convertNextBillionContentToMarkdown(messageContent);
 
       // Copy to clipboard
       await navigator.clipboard.writeText(formattedContent);
@@ -53,11 +54,11 @@ export const useCopyToClipboard = () => {
     }
   };
 
-  // Convert Dyad content to clean markdown using the same parsing logic as DyadMarkdownParser
-  const convertDyadContentToMarkdown = (content: string): string => {
+  // Convert NextBillion content to clean markdown using the same parsing logic as NextBillionMarkdownParser
+  const convertNextBillionContentToMarkdown = (content: string): string => {
     if (!content) return "";
 
-    // Use the same parsing functions from DyadMarkdownParser
+    // Use the same parsing functions from NextBillionMarkdownParser
     const contentPieces = parseCustomTags(content);
 
     let result = "";
@@ -108,7 +109,7 @@ export const useCopyToClipboard = () => {
     return collapsed.trim();
   };
 
-  // Convert individual custom tags to markdown (reuse the same logic from DyadMarkdownParser)
+  // Convert individual custom tags to markdown (reuse the same logic from NextBillionMarkdownParser)
   const convertCustomTagToMarkdown = (tagInfo: any): string => {
     const { tag, attributes, content } = tagInfo;
 
@@ -116,7 +117,7 @@ export const useCopyToClipboard = () => {
       case "think":
         return `### Thinking\n\n${content}\n\n`;
 
-      case "dyad-write": {
+      case "nextbillion-write": {
         const writePath = attributes.path || "file";
         const writeDesc = attributes.description || "";
         const language = getLanguage(writePath);
@@ -129,7 +130,7 @@ export const useCopyToClipboard = () => {
         return writeResult;
       }
 
-      case "dyad-edit": {
+      case "nextbillion-edit": {
         const editPath = attributes.path || "file";
         const editDesc = attributes.description || "";
         const editLang = getLanguage(editPath);
@@ -142,23 +143,23 @@ export const useCopyToClipboard = () => {
         return editResult;
       }
 
-      case "dyad-rename": {
+      case "nextbillion-rename": {
         const from = attributes.from || "";
         const to = attributes.to || "";
         return `### Rename: ${from} → ${to}\n\n`;
       }
 
-      case "dyad-delete": {
+      case "nextbillion-delete": {
         const deletePath = attributes.path || "";
         return `### Delete: ${deletePath}\n\n`;
       }
 
-      case "dyad-add-dependency": {
+      case "nextbillion-add-dependency": {
         const packages = attributes.packages || "";
         return `### Add Dependencies\n\n\`\`\`bash\n${packages}\n\`\`\`\n\n`;
       }
 
-      case "dyad-execute-sql": {
+      case "nextbillion-execute-sql": {
         const sqlDesc = attributes.description || "";
         let sqlResult = `### Execute SQL\n\n`;
         if (sqlDesc) {
@@ -168,11 +169,11 @@ export const useCopyToClipboard = () => {
         return sqlResult;
       }
 
-      case "dyad-add-integration": {
+      case "nextbillion-add-integration": {
         return `### Add Database Integration\n\n`;
       }
 
-      case "dyad-suggest-plugin": {
+      case "nextbillion-suggest-plugin": {
         // Only settled outcomes appear in a transcript: a pending card is
         // superseded by its terminal card, and a dismissed one never
         // rendered.
@@ -188,7 +189,7 @@ export const useCopyToClipboard = () => {
         return `### Suggested plugin: ${pluginName}\n\n${reason ? `${reason}\n\n` : ""}`;
       }
 
-      case "dyad-codebase-context": {
+      case "nextbillion-codebase-context": {
         const files = attributes.files || "";
         let contextResult = `### Codebase Context\n\n`;
         if (files) {
@@ -198,7 +199,7 @@ export const useCopyToClipboard = () => {
         return contextResult;
       }
 
-      case "dyad-output": {
+      case "nextbillion-output": {
         const outputType = attributes.type || "info";
         const message = attributes.message || "";
         const emoji =
@@ -218,7 +219,7 @@ export const useCopyToClipboard = () => {
         return outputResult + "\n\n";
       }
 
-      case "dyad-script": {
+      case "nextbillion-script": {
         const description = attributes.description || "Script";
         try {
           const payload = JSON.parse(content) as {
@@ -231,7 +232,7 @@ export const useCopyToClipboard = () => {
         }
       }
 
-      case "dyad-problem-report": {
+      case "nextbillion-problem-report": {
         const summary = attributes.summary || "";
         let problemResult = `### Problem Report\n\n`;
         if (summary) {
@@ -243,8 +244,8 @@ export const useCopyToClipboard = () => {
         return problemResult + "\n\n";
       }
 
-      case "dyad-chat-summary":
-      case "dyad-command":
+      case "nextbillion-chat-summary":
+      case "nextbillion-command":
         // Don't include these in copy
         return "";
 
@@ -253,7 +254,7 @@ export const useCopyToClipboard = () => {
     }
   };
 
-  // Reuse the same parsing functions from DyadMarkdownParser but simplified
+  // Reuse the same parsing functions from NextBillionMarkdownParser but simplified
   const parseCustomTags = (content: string) => {
     const { processedContent } = preprocessUnclosedTags(content);
 

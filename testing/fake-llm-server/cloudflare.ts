@@ -3,7 +3,7 @@ import type { Express, Request, Response } from "express";
 /**
  * Enough of the Cloudflare API to set up a Worker deployment against.
  *
- * Dyad is pointed here by the same build-time redirect the GitHub mock uses:
+ * NextBillion is pointed here by the same build-time redirect the GitHub mock uses:
  * Cloudflare's API host is fixed, so unlike a self-hosted service there is no
  * address for a test to type in.
  *
@@ -45,7 +45,7 @@ interface State {
   builds: FakeBuild[];
 }
 
-// In Cloudflare's format: Dyad refuses an account id in any other.
+// In Cloudflare's format: NextBillion refuses an account id in any other.
 const ACCOUNT_ID = "fa4ec10df1a7e0000000000000000001";
 
 function initialState(): State {

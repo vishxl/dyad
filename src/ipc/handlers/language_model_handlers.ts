@@ -22,7 +22,10 @@ import {
 } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { IpcMainInvokeEvent } from "electron";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const logger = log.scope("language_model_handlers");
 const handle = createLoggedHandler(logger);
@@ -46,23 +49,23 @@ export function registerLanguageModelHandlers() {
 
       // Validation
       if (!id) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider ID is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
       if (!name) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider name is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
       if (!apiBaseUrl) {
-        throw new DyadError(
+        throw new NextBillionError(
           "API base URL is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -74,9 +77,9 @@ export function registerLanguageModelHandlers() {
         .get();
 
       if (existingProvider) {
-        throw new DyadError(
+        throw new NextBillionError(
           `A provider with ID "${id}" already exists`,
-          DyadErrorKind.Conflict,
+          NextBillionErrorKind.Conflict,
         );
       }
 
@@ -117,21 +120,21 @@ export function registerLanguageModelHandlers() {
 
       // Validation
       if (!apiName) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Model API name is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (!displayName) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Model display name is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (!providerId) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider ID is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -139,9 +142,9 @@ export function registerLanguageModelHandlers() {
       const providers = await getLanguageModelProviders();
       const provider = providers.find((p) => p.id === providerId);
       if (!provider) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Provider with ID "${providerId}" not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -176,21 +179,21 @@ export function registerLanguageModelHandlers() {
       } = params;
 
       if (!apiName) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Model API name is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (!displayName) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Model display name is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (!providerId) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider ID is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -199,15 +202,15 @@ export function registerLanguageModelHandlers() {
         (candidate) => candidate.id === providerId,
       );
       if (!provider) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Provider with ID "${providerId}" not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
       if (provider.type === "local") {
-        throw new DyadError(
+        throw new NextBillionError(
           "Local models cannot be updated",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -232,9 +235,9 @@ export function registerLanguageModelHandlers() {
         .run();
 
       if (result.changes === 0) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Custom model with ID "${id}" was not found for provider "${providerId}"`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -251,21 +254,21 @@ export function registerLanguageModelHandlers() {
       const { id, name, apiBaseUrl, envVarName } = params;
 
       if (!id) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider ID is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (!name) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider name is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (!apiBaseUrl) {
-        throw new DyadError(
+        throw new NextBillionError(
           "API base URL is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -277,9 +280,9 @@ export function registerLanguageModelHandlers() {
         .get();
 
       if (!existingProvider) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Provider with ID "${id}" not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -300,9 +303,9 @@ export function registerLanguageModelHandlers() {
           .run();
 
         if (updateResult.changes === 0) {
-          throw new DyadError(
+          throw new NextBillionError(
             `Failed to update provider with ID "${id}"`,
-            DyadErrorKind.External,
+            NextBillionErrorKind.External,
           );
         }
 
@@ -329,9 +332,9 @@ export function registerLanguageModelHandlers() {
 
       // Validation
       if (!apiName) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Model API name (modelId) is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -368,9 +371,9 @@ export function registerLanguageModelHandlers() {
         `Handling delete-custom-model for ${providerId} / ${modelApiName}`,
       );
       if (!providerId || !modelApiName) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider ID and Model API Name are required.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
       logger.info(
@@ -380,15 +383,15 @@ export function registerLanguageModelHandlers() {
       const providers = await getLanguageModelProviders();
       const provider = providers.find((p) => p.id === providerId);
       if (!provider) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Provider with ID "${providerId}" not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
       if (provider.type === "local") {
-        throw new DyadError(
+        throw new NextBillionError(
           "Local models cannot be deleted",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
       const result = db
@@ -426,9 +429,9 @@ export function registerLanguageModelHandlers() {
 
       // Validation
       if (!providerId) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider ID is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -492,23 +495,23 @@ export function registerLanguageModelHandlers() {
       params: { providerId: string },
     ): Promise<LanguageModel[]> => {
       if (!params || typeof params.providerId !== "string") {
-        throw new DyadError(
+        throw new NextBillionError(
           "Invalid parameters: providerId (string) is required.",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       const providers = await getLanguageModelProviders();
       const provider = providers.find((p) => p.id === params.providerId);
       if (!provider) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Provider with ID "${params.providerId}" not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
       if (provider.type === "local") {
-        throw new DyadError(
+        throw new NextBillionError(
           "Local models cannot be fetched",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
       return getLanguageModels({ providerId: params.providerId });

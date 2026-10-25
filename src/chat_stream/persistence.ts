@@ -7,7 +7,10 @@ import {
   chatQueueStates,
   chatTurnIntents,
 } from "@/db/schema";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   hasMatchingDueFollowUp,
   rejectDueFollowUp,
@@ -89,9 +92,9 @@ function assertMatchingIntent(
     existing.chatId !== intent.chatId ||
     existing.payloadHash !== intent.payloadHash
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Intent id was already used with a different immutable payload",
-      DyadErrorKind.Conflict,
+      NextBillionErrorKind.Conflict,
     );
   }
 }
@@ -111,9 +114,9 @@ export function assertChatTurnPayloadHash(
 ): void {
   const expected = computeChatTurnPayloadHash(intent);
   if (expected !== intent.payloadHash) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Chat turn payload hash does not match its immutable payload",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 }
@@ -144,9 +147,9 @@ export function assertQueueSnapshotWithinLimit(
   maxBytes = CHAT_STREAM_MAX_QUEUE_BYTES,
 ): void {
   if (serialize(entries).byteLength <= maxBytes) return;
-  throw new DyadError(
+  throw new NextBillionError(
     "The queued messages are too large to synchronize between windows",
-    DyadErrorKind.RateLimited,
+    NextBillionErrorKind.RateLimited,
   );
 }
 
@@ -298,9 +301,9 @@ export function hydrateChatStreamPersistence(
 
 function assertMatchingDueFollowUp(intent: SerializableChatTurnIntent): void {
   if (intent.owner?.kind !== "user-input-follow-up") {
-    throw new DyadError(
+    throw new NextBillionError(
       "Session queue requires a live user-input owner",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   if (
@@ -310,9 +313,9 @@ function assertMatchingDueFollowUp(intent: SerializableChatTurnIntent): void {
       prompt: intent.prompt,
     })
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "No matching due user-input follow-up",
-      DyadErrorKind.NotFound,
+      NextBillionErrorKind.NotFound,
     );
   }
 }
@@ -522,9 +525,9 @@ export function persistQueuedIntent(
   options?: { resumeQueue?: boolean },
 ): PersistAdmissionResult {
   if (intent.owner?.kind === "user-input-follow-up") {
-    throw new DyadError(
+    throw new NextBillionError(
       "Memory-owned follow-ups must use the live session queue",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   return persistIntentInQueue(
@@ -775,7 +778,10 @@ export function markIntentAccepted(
   if (!intentId) return;
   const record = recordFor(intentId);
   if (!record) {
-    throw new DyadError("Chat turn intent not found", DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      "Chat turn intent not found",
+      NextBillionErrorKind.NotFound,
+    );
   }
   record.acceptance = "message-accepted";
   record.recovery = "started";
@@ -797,9 +803,9 @@ export async function mutateChatQueue(
   return withChatQueueLock(chatId, async () => {
     const aggregate = queueFor(chatId);
     if (aggregate.revision !== command.expectedQueueRevision) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Chat queue changed in another window",
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
     const mutation = command.mutation;
@@ -819,18 +825,18 @@ export async function mutateChatQueue(
         ({ record }) => record.intent.owner?.kind === "plan-handoff",
       )
     ) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Plan implementation turns cannot be removed while their handoff is active",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     if (
       (mutation.type === "edit" || mutation.type === "reorder") &&
       selected.some(({ entry }) => !entry.editable)
     ) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Machine-owned queued messages cannot be edited or reordered",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 
@@ -863,9 +869,9 @@ export async function mutateChatQueue(
       case "edit": {
         const selectedRecord = selected[0]?.record;
         if (!selectedRecord) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Queued message not found",
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
         const withoutHash = {
@@ -892,9 +898,9 @@ export async function mutateChatQueue(
       case "reorder": {
         const from = aggregate.intentIds.indexOf(mutation.itemId);
         if (from < 0 || mutation.toIndex >= aggregate.intentIds.length) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Queued message reorder is out of range",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
         const [moved] = aggregate.intentIds.splice(from, 1);
@@ -903,9 +909,9 @@ export async function mutateChatQueue(
       }
       case "remove": {
         if (selected.length === 0) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Queued message not found",
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
         const removedId = selected[0].record.intent.intentId;
@@ -1037,7 +1043,10 @@ export function markIntentTerminal(
     if (intent.owner?.kind === "user-input-follow-up") {
       return loadChatQueue(database, intent.chatId);
     }
-    throw new DyadError("Chat turn intent not found", DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      "Chat turn intent not found",
+      NextBillionErrorKind.NotFound,
+    );
   }
   const aggregate = queueFor(record.chatId);
   const originalAggregate = {
@@ -1152,9 +1161,9 @@ export async function claimQueueHead(
           )
           .run();
         if (claimed.changes !== 1) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Queued chat intent could not be claimed",
-            DyadErrorKind.Conflict,
+            NextBillionErrorKind.Conflict,
           );
         }
         tx.update(chatQueueStates)

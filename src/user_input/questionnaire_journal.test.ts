@@ -16,7 +16,9 @@ import {
   settleQuestionnaire,
 } from "./questionnaire_journal";
 beforeEach(async () => {
-  state.directory = await mkdtemp(path.join(tmpdir(), "dyad-questionnaire-"));
+  state.directory = await mkdtemp(
+    path.join(tmpdir(), "nextbillion-questionnaire-"),
+  );
 });
 afterEach(async () => {
   await rm(state.directory, { recursive: true, force: true });

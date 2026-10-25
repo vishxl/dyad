@@ -65,7 +65,7 @@ type ParsedMultipartUpload = {
 async function parseMultipartUpload(
   init: RequestInit | undefined,
 ): Promise<ParsedMultipartUpload> {
-  const request = new Request("https://dyad.test/upload", {
+  const request = new Request("https://nextbillion.test/upload", {
     method: "POST",
     body: init?.body as BodyInit,
     headers: init?.headers,
@@ -106,7 +106,9 @@ describe("cloud_sandbox_provider incremental sync", () => {
 
   beforeEach(async () => {
     vi.useFakeTimers();
-    appPath = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-cloud-sync-"));
+    appPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-cloud-sync-"),
+    );
     fetchMock = vi.fn(async () => {
       return new Response(
         JSON.stringify({
@@ -745,7 +747,7 @@ describe("cloud_sandbox_provider response validation", () => {
     expect(error).toBeInstanceOf(CloudSandboxApiError);
     expect(error).toMatchObject({
       message:
-        "Dyad’s cloud sandbox service is temporarily unavailable. Please try again.",
+        "NextBillion’s cloud sandbox service is temporarily unavailable. Please try again.",
       status: 503,
     });
   });

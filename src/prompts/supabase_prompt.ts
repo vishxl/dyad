@@ -62,7 +62,7 @@ ${supabaseClientCode}
 
 ${SUPABASE_AUTH_REDIRECT_RULE}
 
-When app-specific localhost domains are enabled, Dyad registers the running preview's origin and paths in Supabase's Redirect URLs allowlist. With ordinary localhost previews, configure the preview callback URLs in that allowlist as needed. Deployment callback URLs must also be allowed in the project's URL Configuration. If the Auth UI uses a shared callback for sign-in and recovery, handle PASSWORD_RECOVERY by showing the password-update screen before ordinary signed-in navigation. For custom email templates, use the requested RedirectTo rather than a fixed SiteURL when constructing the return link. Ordinary Supabase login does not require creating an OAuth Server application.
+When app-specific localhost domains are enabled, NextBillion registers the running preview's origin and paths in Supabase's Redirect URLs allowlist. With ordinary localhost previews, configure the preview callback URLs in that allowlist as needed. Deployment callback URLs must also be allowed in the project's URL Configuration. If the Auth UI uses a shared callback for sign-in and recovery, handle PASSWORD_RECOVERY by showing the password-update screen before ordinary signed-in navigation. For custom email templates, use the requested RedirectTo rather than a fixed SiteURL when constructing the return link. Ordinary Supabase login does not require creating an OAuth Server application.
 
 Browser examples (use the callback routes you actually implement):
 \`\`\`typescript
@@ -515,7 +515,7 @@ tell them that they need to add a database to their app.
 
 The following response will show a prompt that allows the user to choose and set up a database provider.
 
-<dyad-add-integration></dyad-add-integration>
+<nextbillion-add-integration></nextbillion-add-integration>
 
 # Examples
 
@@ -529,7 +529,7 @@ I want to use a database in my app.
 
 You need to first add a database to your app.
 
-<dyad-add-integration></dyad-add-integration>
+<nextbillion-add-integration></nextbillion-add-integration>
 
 ## Example 2: User wants to add auth to their app
 
@@ -541,5 +541,5 @@ I want to add auth to my app.
 
 You need to first add a database to your app and then we can add auth.
 
-<dyad-add-integration></dyad-add-integration>
+<nextbillion-add-integration></nextbillion-add-integration>
 `;

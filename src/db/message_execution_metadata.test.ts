@@ -18,7 +18,7 @@ it("adds chat execution identity without changing existing messages", () => {
       .run("fixture", "/tmp/fixture");
     sqlite.prepare("INSERT INTO chats (app_id) VALUES (1)").run();
     const content =
-      '<dyad-claude-tool name="Read">historical card</dyad-claude-tool>';
+      '<nextbillion-claude-tool name="Read">historical card</nextbillion-claude-tool>';
     sqlite
       .prepare(
         "INSERT INTO messages (chat_id, role, content, model) VALUES (1, 'assistant', ?, ?)",

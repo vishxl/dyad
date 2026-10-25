@@ -1,5 +1,5 @@
 import type { RuntimeMode2 } from "@/lib/schemas";
-import type { DyadErrorKind } from "@/errors/dyad_error";
+import type { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import type { InvocationRef } from "@/state_machines/invocation_ref";
 import type { StaleOperationIgnoreReason } from "@/state_machines/types";
 
@@ -35,14 +35,14 @@ export interface RestartOptions {
 
 export interface RunErrorInfo {
   message: string;
-  kind?: DyadErrorKind;
+  kind?: NextBillionErrorKind;
 }
 
 export type PreviewAuthStatus =
   | { provider: "neon" | "supabase"; state: "pending" }
   | { provider: "neon" | "supabase"; state: "error"; message: string };
 
-/** A ready dev-server URL as reported by the dyad proxy server. */
+/** A ready dev-server URL as reported by the nextbillion proxy server. */
 export interface RunUrl {
   previewAuth?: PreviewAuthStatus;
   appUrl: string;

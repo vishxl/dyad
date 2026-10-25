@@ -6,7 +6,9 @@ import path from "node:path";
 import { savePlanToDisk, readPlanFromDisk } from "./planPersistence";
 
 it("keeps the accepted implementation version immutable while the source draft is revised", async () => {
-  const appPath = await mkdtemp(path.join(tmpdir(), "dyad-plan-version-"));
+  const appPath = await mkdtemp(
+    path.join(tmpdir(), "nextbillion-plan-version-"),
+  );
   const draft = {
     appPath,
     chatId: 1,
@@ -26,7 +28,7 @@ it("keeps the accepted implementation version immutable while the source draft i
     });
     expect(
       await readFile(
-        path.join(appPath, ".dyad", "plans", `${slug}.md`),
+        path.join(appPath, ".nextbillion", "plans", `${slug}.md`),
         "utf8",
       ),
     ).toContain("Accepted steps");
@@ -48,8 +50,10 @@ it("keeps the accepted implementation version immutable while the source draft i
 it("loads the same newest legacy draft for display and acceptance, excluding handoff snapshots", async () => {
   const { mkdir, writeFile } = await import("node:fs/promises");
   const { loadPlanForChat } = await import("./planPersistence");
-  const appPath = await mkdtemp(path.join(tmpdir(), "dyad-legacy-plan-"));
-  const directory = path.join(appPath, ".dyad", "plans");
+  const appPath = await mkdtemp(
+    path.join(tmpdir(), "nextbillion-legacy-plan-"),
+  );
+  const directory = path.join(appPath, ".nextbillion", "plans");
   try {
     await mkdir(directory, { recursive: true });
     await writeFile(

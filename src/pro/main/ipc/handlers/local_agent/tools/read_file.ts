@@ -2,9 +2,12 @@ import fs from "node:fs/promises";
 import { z } from "zod";
 import { ToolDefinition, AgentContext, escapeXmlAttr } from "./types";
 import { safeJoin } from "@/ipc/utils/path_utils";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
 import {
-  assertDyadInternalAccessAllowed,
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
+import {
+  assertNextBillionInternalAccessAllowed,
   resolveTargetAppPath,
 } from "./resolve_app_context";
 import { resolveAttachmentLogicalPath } from "@/ipc/utils/media_path_utils";
@@ -103,7 +106,7 @@ export const readFileTool: ToolDefinition<z.infer<typeof readFileSchema>> = {
         `end_line="${escapeXmlAttr(String(args.end_line_one_indexed_inclusive))}"`,
       );
     }
-    return `<dyad-read ${attrs.join(" ")}></dyad-read>`;
+    return `<nextbillion-read ${attrs.join(" ")}></nextbillion-read>`;
   },
 
   execute: async (args, ctx: AgentContext) => {
@@ -116,9 +119,9 @@ export const readFileTool: ToolDefinition<z.infer<typeof readFileSchema>> = {
       );
       if (!attachment) {
         const appContext = args.app_name ? ` (in app: ${args.app_name})` : "";
-        throw new DyadError(
+        throw new NextBillionError(
           `Attachment does not exist: ${args.path}${appContext}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
       fullFilePath = attachment.filePath;
@@ -126,7 +129,7 @@ export const readFileTool: ToolDefinition<z.infer<typeof readFileSchema>> = {
       fullFilePath = safeJoin(targetAppPath, args.path);
     }
 
-    assertDyadInternalAccessAllowed({
+    assertNextBillionInternalAccessAllowed({
       targetAppPath,
       fullFilePath,
       appName: args.app_name,
@@ -152,7 +155,7 @@ export const readFileTool: ToolDefinition<z.infer<typeof readFileSchema>> = {
         displayPath,
         maxBytes: SANDBOX_READ_FILE_LIMIT_BYTES,
         validateRealPath: (realPath, realRootPath) =>
-          assertDyadInternalAccessAllowed({
+          assertNextBillionInternalAccessAllowed({
             targetAppPath: realRootPath,
             fullFilePath: realPath,
             appName: args.app_name,
@@ -176,7 +179,7 @@ export const readFileTool: ToolDefinition<z.infer<typeof readFileSchema>> = {
       startLine: args.start_line_one_indexed,
       endLineInclusive: args.end_line_one_indexed_inclusive,
       validateRealPath: (realPath, realRootPath) =>
-        assertDyadInternalAccessAllowed({
+        assertNextBillionInternalAccessAllowed({
           targetAppPath: realRootPath,
           fullFilePath: realPath,
           appName: args.app_name,

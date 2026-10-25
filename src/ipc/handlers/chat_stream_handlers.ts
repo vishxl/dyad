@@ -61,8 +61,8 @@ import {
 } from "../../neon_admin/neon_prompt_context";
 import { NEON_DISCONNECTED_SYSTEM_PROMPT } from "../../prompts/neon_prompt";
 import { getContextPackBlocks } from "../../prompts/context_packs/openviking";
-import { getDyadAppPath } from "../../paths/paths";
-import { buildDyadMediaUrl } from "../../lib/dyadMediaUrl";
+import { getNextBillionAppPath } from "../../paths/paths";
+import { buildNextBillionMediaUrl } from "../../lib/nextBillionMediaUrl";
 import type { ChatStreamParams } from "@/ipc/types";
 import type { ChatStreamInvocationRef } from "@/chat_stream/invocation";
 import { resolveRootDatabasePromptState } from "@/shared/database_provider";
@@ -74,7 +74,11 @@ import type {
   ChatStreamStartPayload,
   ChatStreamTransportEndPayload,
 } from "@/chat_stream/protocol";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import {
   CodebaseFile,
   extractCodebase,
@@ -84,7 +88,7 @@ import {
   dryRunSearchReplace,
   processFullResponseActions,
 } from "../processors/response_processor";
-import { getDyadExecuteSqlTags } from "../utils/dyad_tag_parser";
+import { getNextBillionExecuteSqlTags } from "../utils/nextbillion_tag_parser";
 import { doesSqlDeleteData } from "@/lib/sqlSchemaMutation";
 import {
   streamTestResponse,
@@ -131,7 +135,7 @@ import { queryInvalidationBus } from "@/window_infrastructure/main/query_invalid
 import { cancelOrphanedBaseStream } from "../utils/stream_text_utils";
 import { cleanFullResponse } from "../utils/cleanFullResponse";
 import { escapeXmlAttr, escapeXmlContent } from "../../../shared/xmlEscape";
-import { buildDyadAttachmentTag } from "../../../shared/dyadAttachment";
+import { buildNextBillionAttachmentTag } from "../../../shared/nextBillionAttachment";
 import { appendCancelledResponseNotice } from "@/shared/chatCancellation";
 import {
   isModelRefusal,
@@ -155,16 +159,16 @@ import { replacePromptReference } from "../utils/replacePromptReference";
 import { replaceSlashSkillReference } from "../utils/replaceSlashSkillReference";
 import { resolveMediaMentions } from "../utils/resolve_media_mentions";
 import { parsePlanFile, validatePlanId } from "./planUtils";
-import { ensureDyadGitignored } from "./gitignoreUtils";
+import { ensureNextBillionGitignored } from "./gitignoreUtils";
 import {
   appendAttachmentManifestEntriesWithLogicalNames,
   createUniqueAttachmentLogicalName,
-  DYAD_MEDIA_DIR_NAME,
+  NEXTBILLION_MEDIA_DIR_NAME,
   type AttachmentManifestEntryInput,
 } from "../utils/media_path_utils";
 import {
   isBasicAgentMode,
-  isDyadProEnabled,
+  isNextBillionProEnabled,
   isLocalAgentBackedMode,
   isTurboEditsV2Enabled,
 } from "@/lib/schemas";
@@ -931,15 +935,15 @@ export async function processStreamChunks({
         inThinkingBlock = true;
       }
 
-      chunk += escapeDyadTags(part.text);
+      chunk += escapeNextBillionTags(part.text);
     } else if (part.type === "tool-call") {
       const { serverName, toolName } = parseMcpToolKey(part.toolName);
-      const content = escapeDyadTags(JSON.stringify(part.input));
-      chunk = `<dyad-mcp-tool-call server="${escapeXmlAttr(serverName)}" tool="${escapeXmlAttr(toolName)}" call-id="${escapeXmlAttr(part.toolCallId)}">\n${content}\n</dyad-mcp-tool-call>\n`;
+      const content = escapeNextBillionTags(JSON.stringify(part.input));
+      chunk = `<nextbillion-mcp-tool-call server="${escapeXmlAttr(serverName)}" tool="${escapeXmlAttr(toolName)}" call-id="${escapeXmlAttr(part.toolCallId)}">\n${content}\n</nextbillion-mcp-tool-call>\n`;
     } else if (part.type === "tool-result") {
       const { serverName, toolName } = parseMcpToolKey(part.toolName);
       const content = escapeXmlContent(part.output);
-      chunk = `<dyad-mcp-tool-result server="${escapeXmlAttr(serverName)}" tool="${escapeXmlAttr(toolName)}" call-id="${escapeXmlAttr(part.toolCallId)}">\n${content}\n</dyad-mcp-tool-result>\n`;
+      chunk = `<nextbillion-mcp-tool-result server="${escapeXmlAttr(serverName)}" tool="${escapeXmlAttr(toolName)}" call-id="${escapeXmlAttr(part.toolCallId)}">\n${content}\n</nextbillion-mcp-tool-result>\n`;
     } else if (part.type === "tool-error") {
       // Emit an errored result so the merged card terminates in an error
       // state instead of staying on "Running".
@@ -949,7 +953,7 @@ export async function processStreamChunks({
       const content = escapeXmlContent(
         sanitizeMcpToolResult(message).serialized,
       );
-      chunk = `<dyad-mcp-tool-result server="${escapeXmlAttr(serverName)}" tool="${escapeXmlAttr(toolName)}" call-id="${escapeXmlAttr(part.toolCallId)}" is-error="true">\n${content}\n</dyad-mcp-tool-result>\n`;
+      chunk = `<nextbillion-mcp-tool-result server="${escapeXmlAttr(serverName)}" tool="${escapeXmlAttr(toolName)}" call-id="${escapeXmlAttr(part.toolCallId)}" is-error="true">\n${content}\n</nextbillion-mcp-tool-result>\n`;
     }
 
     if (!chunk) {
@@ -1032,14 +1036,14 @@ export function registerChatStreamHandlers() {
       // contract explicitly before any attachment string is decoded.
       const parsedRequest = ChatStreamParamsSchema.safeParse(req);
       if (!parsedRequest.success) {
-        throw new DyadError(
+        throw new NextBillionError(
           parsedRequest.error.issues[0]?.message ?? "Invalid chat request.",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       req = parsedRequest.data;
 
-      let dyadRequestId: string | undefined;
+      let nextBillionRequestId: string | undefined;
       trackedStream = {
         abortController,
         sender: event.sender,
@@ -1074,9 +1078,9 @@ export function registerChatStreamHandlers() {
       }
 
       if (!chat) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Chat not found: ${req.chatId}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -1101,9 +1105,9 @@ export function registerChatStreamHandlers() {
         }
 
         if (!chat) {
-          throw new DyadError(
+          throw new NextBillionError(
             `Chat not found: ${req.chatId}`,
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
 
@@ -1183,24 +1187,30 @@ export function registerChatStreamHandlers() {
       assertChatModeCompatibleWithModel(storedSettings, selectedChatMode);
       if (
         executionBackendForModel(selectedModel) !==
-        (chat.executionBackend ?? "dyad")
+        (chat.executionBackend ?? "nextbillion")
       )
-        throw new DyadError(BACKEND_SWITCH_MESSAGE, DyadErrorKind.Precondition);
+        throw new NextBillionError(
+          BACKEND_SWITCH_MESSAGE,
+          NextBillionErrorKind.Precondition,
+        );
       if (chat.executionBackend === "claude-code") {
         if (trackedStream) trackedStream.drainBeforeEnd = true;
         if (!baseSettings.enableClaudeCodeSubscription)
-          throw new DyadError(
+          throw new NextBillionError(
             'Turn on "Enable Claude Code subscription" in Settings → Experiments before using this chat.',
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         if (req.redo)
-          throw new DyadError(
+          throw new NextBillionError(
             "Claude Code cannot replace an earlier turn without retaining hidden CLI context. Start a new chat to retry; your current chat stays unchanged.",
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         const status = await claudeStatus();
         if (!status.connected || !status.compatible)
-          throw new DyadError(status.detail, DyadErrorKind.Precondition);
+          throw new NextBillionError(
+            status.detail,
+            NextBillionErrorKind.Precondition,
+          );
       }
 
       // Reserve quota before redo or attachment persistence. The reservation
@@ -1264,13 +1274,13 @@ export function registerChatStreamHandlers() {
 
       // Process attachments if any
       let attachmentInfo = "";
-      // Display-only attachment info uses <dyad-attachment> tags for inline rendering
+      // Display-only attachment info uses <nextbillion-attachment> tags for inline rendering
       let displayAttachmentInfo = "";
       let storedAttachments: StoredChatAttachment[] = [];
       const pendingStoredAttachments: PendingStoredChatAttachment[] = [];
       const manifestEntries: AttachmentManifestEntryInput[] = [];
       const usedLogicalNames = new Set<string>();
-      const appPath = getDyadAppPath(chat.app.path);
+      const appPath = getNextBillionAppPath(chat.app.path);
 
       // Detach the serialized payloads from the long-lived stream request as
       // soon as they are persisted. Otherwise every base64 string remains
@@ -1280,28 +1290,28 @@ export function registerChatStreamHandlers() {
       if (incomingAttachments && incomingAttachments.length > 0) {
         attachmentInfo = "\n\nAttachments:\n";
 
-        // Create persistent .dyad/media directory for this app
-        const mediaDir = path.join(appPath, DYAD_MEDIA_DIR_NAME);
+        // Create persistent .nextbillion/media directory for this app
+        const mediaDir = path.join(appPath, NEXTBILLION_MEDIA_DIR_NAME);
         if (!fs.existsSync(mediaDir)) {
           fs.mkdirSync(mediaDir, { recursive: true });
         }
-        await ensureDyadGitignored(appPath);
+        await ensureNextBillionGitignored(appPath);
 
         for (const attachment of incomingAttachments) {
           if (
             chat.executionBackend === "claude-code" &&
             isDotenvFilePath(attachment.name)
           ) {
-            throw new DyadError(
+            throw new NextBillionError(
               "Claude Code cannot read dotenv attachments. Remove the attachment before sending.",
-              DyadErrorKind.Validation,
+              NextBillionErrorKind.Validation,
             );
           }
           const inspection = inspectBase64DataUrl(attachment.data);
           if (!inspection.ok) {
-            throw new DyadError(
+            throw new NextBillionError(
               `"${attachment.name}" is not a valid base64 attachment.`,
-              DyadErrorKind.Validation,
+              NextBillionErrorKind.Validation,
             );
           }
           const base64Data = attachment.data.slice(inspection.payloadStart);
@@ -1317,7 +1327,7 @@ export function registerChatStreamHandlers() {
             usedLogicalNames,
           );
 
-          // Save to .dyad/media dir
+          // Save to .nextbillion/media dir
           const persistentPath = path.join(mediaDir, filename);
           await writeFile(persistentPath, fileBuffer);
           attachmentPaths.push(persistentPath);
@@ -1341,14 +1351,14 @@ export function registerChatStreamHandlers() {
             sizeBytes: fileBuffer.byteLength,
           });
 
-          // Build dyad-media:// URL for display
+          // Build nextbillion-media:// URL for display
           // Use a fixed hostname to avoid URL hostname normalization (lowercasing)
           // Encode path segments so special characters (spaces, #, ?, %) don't
           // break URL parsing. The protocol handler already decodeURIComponent's.
-          const mediaUrl = `dyad-media://media/${encodeURIComponent(chat.app.path)}/.dyad/media/${encodeURIComponent(filename)}`;
+          const mediaUrl = `nextbillion-media://media/${encodeURIComponent(chat.app.path)}/.nextbillion/media/${encodeURIComponent(filename)}`;
 
           // Build display tag for inline rendering (escape attribute values)
-          displayAttachmentInfo += buildDyadAttachmentTag({
+          displayAttachmentInfo += buildNextBillionAttachmentTag({
             name: attachment.name,
             type: attachment.type,
             url: mediaUrl,
@@ -1357,16 +1367,16 @@ export function registerChatStreamHandlers() {
           });
 
           if (attachment.attachmentType === "upload-to-codebase") {
-            // Provide the .dyad/media path so the AI can copy it into the codebase
-            attachmentInfo += `\n\nFile to upload to codebase: "${attachment.name}" (path: ${persistentPath})\nUse the copy_file tool when tools are available, or emit a <dyad-copy> tag otherwise, to copy this file into the codebase at the appropriate location.\n`;
+            // Provide the .nextbillion/media path so the AI can copy it into the codebase
+            attachmentInfo += `\n\nFile to upload to codebase: "${attachment.name}" (path: ${persistentPath})\nUse the copy_file tool when tools are available, or emit a <nextbillion-copy> tag otherwise, to copy this file into the codebase at the appropriate location.\n`;
           } else {
             // For chat-context, provide file info for reference (no path to avoid auto-copying)
             attachmentInfo += `- ${attachment.name} (${attachment.type})\n`;
             // If it's a text-based file, try to include the content
             if (await isTextFile(persistentPath)) {
               try {
-                attachmentInfo += `<dyad-text-attachment filename="${escapeXmlAttr(attachment.name)}" type="${escapeXmlAttr(attachment.type)}" path="${escapeXmlAttr(persistentPath)}">
-                </dyad-text-attachment>
+                attachmentInfo += `<nextbillion-text-attachment filename="${escapeXmlAttr(attachment.name)}" type="${escapeXmlAttr(attachment.type)}" path="${escapeXmlAttr(persistentPath)}">
+                </nextbillion-text-attachment>
                 \n\n`;
               } catch (err) {
                 logger.error(`Error reading file content: ${err}`);
@@ -1380,7 +1390,7 @@ export function registerChatStreamHandlers() {
       // Build the full AI prompt. Attachment-specific instructions are added
       // to the user message, never the system prompt.
       let userPrompt = req.prompt;
-      // Build the display prompt (with <dyad-attachment> tags for inline rendering)
+      // Build the display prompt (with <nextbillion-attachment> tags for inline rendering)
       // This separates what the user sees from what the AI receives.
       let displayUserPrompt: string | undefined;
       if (displayAttachmentInfo) {
@@ -1456,8 +1466,11 @@ export function registerChatStreamHandlers() {
               sizeBytes: stat.size,
               createdAt: new Date().toISOString(),
             });
-            const mediaUrl = buildDyadMediaUrl(chat.app.path, media.fileName);
-            mediaDisplayInfo += buildDyadAttachmentTag({
+            const mediaUrl = buildNextBillionMediaUrl(
+              chat.app.path,
+              media.fileName,
+            );
+            mediaDisplayInfo += buildNextBillionAttachmentTag({
               name: media.fileName,
               type: media.mimeType,
               url: mediaUrl,
@@ -1515,10 +1528,10 @@ export function registerChatStreamHandlers() {
           implementPlanDisplayPrompt = userPrompt;
           const planSlug = implementPlanMatch[1];
           validatePlanId(planSlug);
-          const appPath = getDyadAppPath(chat.app.path);
+          const appPath = getNextBillionAppPath(chat.app.path);
           const planFilePath = path.join(
             appPath,
-            ".dyad",
+            ".nextbillion",
             "plans",
             `${planSlug}.md`,
           );
@@ -1528,7 +1541,7 @@ export function registerChatStreamHandlers() {
           const acceptedSnapshot = /^chat-\d+-plan-[a-f0-9]{64}$/.test(
             planSlug,
           );
-          const planPath = `.dyad/plans/${acceptedSnapshot ? `chat-${req.chatId}-plan` : planSlug}.md`;
+          const planPath = `.nextbillion/plans/${acceptedSnapshot ? `chat-${req.chatId}-plan` : planSlug}.md`;
           implementPlanDisplayPrompt = `Implement plan: ${meta.title || "Implementation Plan"}`;
 
           userPrompt = `Please implement the following plan:
@@ -1554,7 +1567,10 @@ Update the working plan at \`${planPath}\` to mark your progress. Do not modify 
           let componentSnippet = "[component snippet not available]";
           try {
             const componentFileContent = await readFile(
-              path.join(getDyadAppPath(chat.app.path), component.relativePath),
+              path.join(
+                getNextBillionAppPath(chat.app.path),
+                component.relativePath,
+              ),
               "utf8",
             );
             const lines = componentFileContent.split(/\r?\n/);
@@ -1604,9 +1620,9 @@ ${componentSnippet}
           .where(eq(chats.id, req.chatId))
           .get();
         if (!latestChat) {
-          throw new DyadError(
+          throw new NextBillionError(
             `Chat not found: ${req.chatId}`,
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
 
@@ -1615,7 +1631,7 @@ ${componentSnippet}
       const readAdmissionSettings = () => {
         const current = readSettings();
         return {
-          enableDyadPro: current.enableDyadPro,
+          enableNextBillionPro: current.enableNextBillionPro,
           enableClaudeCodeSubscription: current.enableClaudeCodeSubscription,
           proModelUsage: current.proModelUsage,
           providerSettings: current.providerSettings,
@@ -1868,16 +1884,16 @@ ${componentSnippet}
         streamId: req.streamId,
         effectiveChatMode: selectedChatMode,
       } satisfies ChatStreamChunkPayload);
-      // Only Dyad Pro requests have request ids.
-      if (settings.enableDyadPro) {
+      // Only NextBillion Pro requests have request ids.
+      if (settings.enableNextBillionPro) {
         // Generate requestId early so it can be saved with the message
-        dyadRequestId = uuidv4();
+        nextBillionRequestId = uuidv4();
       }
       const willUseLocalAgentStream = isLocalAgentBackedMode(selectedChatMode);
       if (!willUseLocalAgentStream) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Chat mode ${selectedChatMode} is not backed by the local agent stream`,
-          DyadErrorKind.Internal,
+          NextBillionErrorKind.Internal,
         );
       }
 
@@ -1892,7 +1908,7 @@ ${componentSnippet}
           // messages as already handled so legacy proposal actions cannot
           // replay tool XML after an error or cancellation.
           approvalState: willUseLocalAgentStream ? "approved" : null,
-          requestId: dyadRequestId,
+          requestId: nextBillionRequestId,
           model:
             chat.executionBackend === "claude-code"
               ? null
@@ -1900,7 +1916,7 @@ ${componentSnippet}
                 ? `ChatGPT subscription (${selectedModel.name})`
                 : selectedModel.name,
           sourceCommitHash: await getCurrentCommitHash({
-            path: getDyadAppPath(chat.app.path),
+            path: getNextBillionAppPath(chat.app.path),
           }),
         })
         .returning();
@@ -1920,9 +1936,9 @@ ${componentSnippet}
       });
 
       if (!updatedChat) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Chat not found: ${req.chatId}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -1965,7 +1981,7 @@ ${componentSnippet}
         const isLocalAgentMode = selectedChatMode === "local-agent";
         const isAskMode = selectedChatMode === "ask";
         const isPlanMode = selectedChatMode === "plan";
-        const appPath = getDyadAppPath(updatedChat.app.path);
+        const appPath = getNextBillionAppPath(updatedChat.app.path);
         // When we don't have smart context enabled, we
         // only include the selected components' files for codebase context.
         //
@@ -2022,7 +2038,7 @@ ${componentSnippet}
 
         // For smart context and selected components, we will mark the selected components' files as focused.
         // This means that we don't do the regular smart context handling, but we'll allow fetching
-        // additional files through <dyad-read> as needed.
+        // additional files through <nextbillion-read> as needed.
         if (
           isSmartContextEnabled &&
           req.selectedComponents &&
@@ -2127,7 +2143,7 @@ ${componentSnippet}
         }));
 
         // The DB stores display-friendly versions (short /implement-plan= form
-        // or clean <dyad-attachment> tags). Replace the last user message with the
+        // or clean <nextbillion-attachment> tags). Replace the last user message with the
         // full AI prompt so the model receives expanded plan content or attachment paths.
         if (implementPlanDisplayPrompt || displayUserPrompt) {
           for (let i = messageHistory.length - 1; i >= 0; i--) {
@@ -2141,7 +2157,7 @@ ${componentSnippet}
           }
         }
 
-        // For Dyad Pro + Deep Context, we set to 200 chat turns (+1)
+        // For NextBillion Pro + Deep Context, we set to 200 chat turns (+1)
         // this is to enable more cache hits. Practically, users should
         // rarely go over this limit because they will hit the model's
         // context window limit.
@@ -2185,7 +2201,9 @@ ${componentSnippet}
           );
         }
 
-        const aiRules = await readAiRules(getDyadAppPath(updatedChat.app.path));
+        const aiRules = await readAiRules(
+          getNextBillionAppPath(updatedChat.app.path),
+        );
 
         // Get theme prompt for the app (null themeId means "no theme")
         const themePrompt = await getThemePromptById(updatedChat.app.themeId);
@@ -2199,7 +2217,7 @@ ${componentSnippet}
         // persona is disabled. Code-index readiness is independent now that
         // spawn_agent replaces the old explore_code tool.
         const codeExplorerAvailable =
-          isDyadProEnabled(settings) &&
+          isNextBillionProEnabled(settings) &&
           settings.enableExplorerSubagent !== false &&
           settings.agentToolConsents?.["spawn_agent"] !== "never";
         // Mirrors explore_chat_history's toolset inclusion (Pro, and not
@@ -2207,11 +2225,11 @@ ${componentSnippet}
         // that isn't in the toolset. Consent is read from settings directly
         // because this module must not import the pro tool registry.
         const historyExplorerAvailable =
-          isDyadProEnabled(settings) &&
+          isNextBillionProEnabled(settings) &&
           settings.agentToolConsents?.["explore_chat_history"] !== "never";
         const implementerAvailable =
           selectedChatMode === "local-agent" &&
-          isDyadProEnabled(settings) &&
+          isNextBillionProEnabled(settings) &&
           isImplementerSubagentEnabled(settings);
         const restartAppToolAvailable =
           settings.agentToolConsents?.["restart_app"] !== "never";
@@ -2286,7 +2304,7 @@ ${componentSnippet}
             readGuideAvailable,
           } = capabilityState;
           const refreshedFrameworkType = detectFrameworkType(
-            getDyadAppPath(refreshedApp.path),
+            getNextBillionAppPath(refreshedApp.path),
           );
           const neonEmailVerificationEnabled =
             provider === "neon" &&
@@ -2371,7 +2389,7 @@ ${componentSnippet}
         if (isSecurityReviewIntent) {
           systemPrompt = SECURITY_REVIEW_SYSTEM_PROMPT;
           try {
-            const appPath = getDyadAppPath(updatedChat.app.path);
+            const appPath = getNextBillionAppPath(updatedChat.app.path);
             const rulesPath = path.join(appPath, "SECURITY_RULES.md");
             let securityRules = "";
 
@@ -2464,7 +2482,7 @@ ${componentSnippet}
 
 When files are attached to this conversation for upload to the codebase, copy them into the project using this exact format:
 
-<dyad-copy from="/absolute/path/to/.dyad/media/source.ext" to="path/to/destination/filename.ext" description="Upload file to codebase"></dyad-copy>
+<nextbillion-copy from="/absolute/path/to/.nextbillion/media/source.ext" to="path/to/destination/filename.ext" description="Upload file to codebase"></nextbillion-copy>
 
 Use the attached file path from the user's message as the \`from\` value. Choose an appropriate project-relative \`to\` path.
 
@@ -2521,10 +2539,10 @@ This conversation includes one or more image attachments. When the user uploads 
           // and eats up extra tokens.
           content:
             selectedChatMode === "ask"
-              ? removeDyadTags(removeNonEssentialTags(msg.content))
+              ? removeNextBillionTags(removeNonEssentialTags(msg.content))
               : removeNonEssentialTags(msg.content),
           providerOptions: {
-            "dyad-engine": {
+            "nextbillion-engine": {
               sourceCommitHash: msg.sourceCommitHash,
               commitHash: msg.commitHash,
             },
@@ -2573,9 +2591,9 @@ This conversation includes one or more image attachments. When the user uploads 
               } else if (hasInlineMediaParts(chatMessages[lastUserIndex])) {
                 // Without the structured message the model would only see
                 // the plain-text prompt, silently missing the attachments.
-                throw new DyadError(
+                throw new NextBillionError(
                   INLINE_ATTACHMENTS_TOO_LARGE_MESSAGE,
-                  DyadErrorKind.Validation,
+                  NextBillionErrorKind.Validation,
                 );
               }
             }
@@ -2613,7 +2631,7 @@ This conversation includes one or more image attachments. When the user uploads 
           modelClient,
           tools,
           systemPromptOverride = systemPrompt,
-          dyadDisableFiles = false,
+          nextBillionDisableFiles = false,
           files,
         }: {
           chatMessages: ModelMessage[];
@@ -2621,12 +2639,12 @@ This conversation includes one or more image attachments. When the user uploads 
           files: CodebaseFile[];
           tools?: ToolSet;
           systemPromptOverride?: string;
-          dyadDisableFiles?: boolean;
+          nextBillionDisableFiles?: boolean;
         }) => {
           if (isEngineEnabled) {
             logger.log(
               "sending AI request to engine with request id:",
-              dyadRequestId,
+              nextBillionRequestId,
             );
           } else {
             logger.log("sending AI request");
@@ -2643,9 +2661,9 @@ This conversation includes one or more image attachments. When the user uploads 
             ? "deep"
             : "balanced";
           const providerOptions = getProviderOptions({
-            dyadAppId: updatedChat.app.id,
-            dyadRequestId,
-            dyadDisableFiles,
+            nextBillionAppId: updatedChat.app.id,
+            nextBillionRequestId,
+            nextBillionDisableFiles,
             smartContextMode,
             files,
             versionedFiles,
@@ -2665,13 +2683,15 @@ This conversation includes one or more image attachments. When the user uploads 
             {
               sessionId: String(updatedChat.id),
               traceName: "chat-stream",
-              metadata: { dyadRequestId: dyadRequestId ?? "[no-request-id]" },
+              metadata: {
+                nextBillionRequestId: nextBillionRequestId ?? "[no-request-id]",
+              },
             },
             () =>
               streamText({
                 headers: getAiHeaders({
                   builtinProviderId: modelClient.builtinProviderId,
-                  dyadRequestId,
+                  nextBillionRequestId,
                 }),
                 maxOutputTokens,
                 temperature,
@@ -2725,7 +2745,7 @@ This conversation includes one or more image attachments. When the user uploads 
                   }
                   const message = errorMessage || JSON.stringify(error);
                   const requestIdPrefix = isEngineEnabled
-                    ? `[Request ID: ${dyadRequestId}] `
+                    ? `[Request ID: ${nextBillionRequestId}] `
                     : "";
                   logger.error(
                     `AI stream text error for request: ${requestIdPrefix} errorMessage=${errorMessage} error=`,
@@ -2765,7 +2785,7 @@ This conversation includes one or more image attachments. When the user uploads 
         let lastDbSaveAt = 0;
         // Tracks what was last sent to the renderer so we can emit only the
         // tail diff. `cleanFullResponse` may retroactively rewrite earlier
-        // bytes inside an in-progress dyad-tag's attribute values, so we
+        // bytes inside an in-progress nextbillion-tag's attribute values, so we
         // compute the longest common prefix on each send rather than
         // assuming pure appends.
         let lastSentContent = "";
@@ -2842,7 +2862,7 @@ This conversation includes one or more image attachments. When the user uploads 
               // This is OK because those intents should always happen in a new chat
               // and new chats will default to non-ask modes.
               systemPrompt: readOnlySystemPrompt,
-              dyadRequestId: dyadRequestId ?? "[no-request-id]",
+              nextBillionRequestId: nextBillionRequestId ?? "[no-request-id]",
               readOnly: true,
               messageOverride: isSummarizeIntent ? chatMessages : undefined,
               settingsOverride: settings,
@@ -2893,7 +2913,7 @@ This conversation includes one or more image attachments. When the user uploads 
             {
               placeholderMessageId: placeholderAssistantMessage.id,
               systemPrompt: planModeSystemPrompt,
-              dyadRequestId: dyadRequestId ?? "[no-request-id]",
+              nextBillionRequestId: nextBillionRequestId ?? "[no-request-id]",
               planModeOnly: true,
               messageOverride: isSummarizeIntent ? chatMessages : undefined,
               settingsOverride: settings,
@@ -2923,7 +2943,7 @@ This conversation includes one or more image attachments. When the user uploads 
             {
               placeholderMessageId: placeholderAssistantMessage.id,
               systemPrompt,
-              dyadRequestId: dyadRequestId ?? "[no-request-id]",
+              nextBillionRequestId: nextBillionRequestId ?? "[no-request-id]",
               readOnly: readOnlyBuildTurn,
               toolProfile: "build",
               messageOverride: isSummarizeIntent ? chatMessages : undefined,
@@ -2957,7 +2977,7 @@ This conversation includes one or more image attachments. When the user uploads 
             {
               placeholderMessageId: placeholderAssistantMessage.id,
               systemPrompt,
-              dyadRequestId: dyadRequestId ?? "[no-request-id]",
+              nextBillionRequestId: nextBillionRequestId ?? "[no-request-id]",
               messageOverride: isSummarizeIntent ? chatMessages : undefined,
               settingsOverride: settings,
               modelSelectionOverride: selectedModel,
@@ -3013,7 +3033,7 @@ This conversation includes one or more image attachments. When the user uploads 
           if (!modelRefused && isTurboEditsV2Enabled(settings)) {
             let issues = await dryRunSearchReplace({
               fullResponse,
-              appPath: getDyadAppPath(updatedChat.app.path),
+              appPath: getNextBillionAppPath(updatedChat.app.path),
             });
             sendTelemetryEvent("search_replace:fix", {
               attemptNumber: 0,
@@ -3042,7 +3062,7 @@ This conversation includes one or more image attachments. When the user uploads 
                 })
                 .join("\n\n");
 
-              fullResponse += `<dyad-output type="warning" message="Could not apply Turbo Edits properly for some of the files; re-generating code...">${formattedSearchReplaceIssues}</dyad-output>`;
+              fullResponse += `<nextbillion-output type="warning" message="Could not apply Turbo Edits properly for some of the files; re-generating code...">${formattedSearchReplaceIssues}</nextbillion-output>`;
               await processResponseChunkUpdate({
                 fullResponse,
               });
@@ -3053,8 +3073,8 @@ This conversation includes one or more image attachments. When the user uploads 
 
               const fixSearchReplacePrompt =
                 searchReplaceFixAttempts === 0
-                  ? `There was an issue with the following \`dyad-search-replace\` tags. Make sure you use \`dyad-read\` to read the latest version of the file and then trying to do search & replace again.`
-                  : `There was an issue with the following \`dyad-search-replace\` tags. Please fix the errors by generating the code changes using \`dyad-write\` tags instead.`;
+                  ? `There was an issue with the following \`nextbillion-search-replace\` tags. Make sure you use \`nextbillion-read\` to read the latest version of the file and then trying to do search & replace again.`
+                  : `There was an issue with the following \`nextbillion-search-replace\` tags. Please fix the errors by generating the code changes using \`nextbillion-write\` tags instead.`;
               searchReplaceFixAttempts++;
               const userPrompt = {
                 role: "user",
@@ -3094,7 +3114,7 @@ This conversation includes one or more image attachments. When the user uploads 
               // Re-check for issues after the fix attempt
               issues = await dryRunSearchReplace({
                 fullResponse: result.incrementalResponse,
-                appPath: getDyadAppPath(updatedChat.app.path),
+                appPath: getNextBillionAppPath(updatedChat.app.path),
               });
 
               sendTelemetryEvent("search_replace:fix", {
@@ -3112,16 +3132,16 @@ This conversation includes one or more image attachments. When the user uploads 
           if (
             !modelRefused &&
             !abortController.signal.aborted &&
-            hasUnclosedDyadWrite(fullResponse)
+            hasUnclosedNextBillionWrite(fullResponse)
           ) {
             let continuationAttempts = 0;
             while (
-              hasUnclosedDyadWrite(fullResponse) &&
+              hasUnclosedNextBillionWrite(fullResponse) &&
               continuationAttempts < 2 &&
               !abortController.signal.aborted
             ) {
               logger.warn(
-                `Received unclosed dyad-write tag, attempting to continue, attempt #${continuationAttempts + 1}`,
+                `Received unclosed nextbillion-write tag, attempting to continue, attempt #${continuationAttempts + 1}`,
               );
               continuationAttempts++;
 
@@ -3213,9 +3233,9 @@ This conversation includes one or more image attachments. When the user uploads 
       // src/chat_stream/host_transition.ts.
       // Only save the response and process it if we weren't aborted
       if (!abortController.signal.aborted && fullResponse) {
-        // Scrape from: <dyad-chat-summary>Renaming profile file</dyad-chat-title>
+        // Scrape from: <nextbillion-chat-summary>Renaming profile file</nextbillion-chat-title>
         const chatTitle = fullResponse.match(
-          /<dyad-chat-summary>(.*?)<\/dyad-chat-summary>/,
+          /<nextbillion-chat-summary>(.*?)<\/nextbillion-chat-summary>/,
         );
         if (chatTitle) {
           await db
@@ -3237,7 +3257,7 @@ This conversation includes one or more image attachments. When the user uploads 
           latestSettings.autoApproveChanges && selectedChatMode !== "ask";
         const hasDestructiveSql =
           shouldAutoApply &&
-          getDyadExecuteSqlTags(fullResponse).some((query) =>
+          getNextBillionExecuteSqlTags(fullResponse).some((query) =>
             doesSqlDeleteData(query.content),
           );
         if (shouldAutoApply && !hasDestructiveSql) {
@@ -3309,7 +3329,9 @@ This conversation includes one or more image attachments. When the user uploads 
       return req.chatId;
     } catch (error) {
       logger.error("Error calling LLM:", error);
-      const errorMessage = isDyadError(error) ? error.message : String(error);
+      const errorMessage = isNextBillionError(error)
+        ? error.message
+        : String(error);
       const rendererError =
         error instanceof SubscriptionBillingError
           ? error.serialize()
@@ -3449,7 +3471,7 @@ async function replaceTextAttachmentWithContent(
       const xmlEscapedPath = escapeXmlAttr(filePath);
       const escapedPath = xmlEscapedPath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
       const tagPattern = new RegExp(
-        `<dyad-text-attachment filename="[^"]*" type="[^"]*" path="${escapedPath}">\\s*<\\/dyad-text-attachment>`,
+        `<nextbillion-text-attachment filename="[^"]*" type="[^"]*" path="${escapedPath}">\\s*<\\/nextbillion-text-attachment>`,
         "g",
       );
 
@@ -3561,18 +3583,18 @@ function removeThinkingTags(text: string): string {
 
 export function removeProblemReportTags(text: string): string {
   const problemReportRegex =
-    /<dyad-problem-report[^>]*>[\s\S]*?<\/dyad-problem-report>/g;
+    /<nextbillion-problem-report[^>]*>[\s\S]*?<\/nextbillion-problem-report>/g;
   return text.replace(problemReportRegex, "").trim();
 }
 
-export function removeDyadTags(text: string): string {
-  const dyadRegex = /<dyad-[^>]*>[\s\S]*?<\/dyad-[^>]*>/g;
-  return text.replace(dyadRegex, "").trim();
+export function removeNextBillionTags(text: string): string {
+  const nextBillionRegex = /<nextbillion-[^>]*>[\s\S]*?<\/nextbillion-[^>]*>/g;
+  return text.replace(nextBillionRegex, "").trim();
 }
 
-export function hasUnclosedDyadWrite(text: string): boolean {
-  // Find the last opening dyad-write tag
-  const openRegex = /<dyad-write[^>]*>/g;
+export function hasUnclosedNextBillionWrite(text: string): boolean {
+  // Find the last opening nextbillion-write tag
+  const openRegex = /<nextbillion-write[^>]*>/g;
   let lastOpenIndex = -1;
   let match;
 
@@ -3587,19 +3609,21 @@ export function hasUnclosedDyadWrite(text: string): boolean {
 
   // Look for a closing tag after the last opening tag
   const textAfterLastOpen = text.substring(lastOpenIndex);
-  const hasClosingTag = /<\/dyad-write>/.test(textAfterLastOpen);
+  const hasClosingTag = /<\/nextbillion-write>/.test(textAfterLastOpen);
 
   return !hasClosingTag;
 }
 
-function escapeDyadTags(text: string): string {
-  // Escape dyad tags in reasoning content
+function escapeNextBillionTags(text: string): string {
+  // Escape nextbillion tags in reasoning content
   // We are replacing the opening tag with a look-alike character
-  // to avoid issues where thinking content includes dyad tags
+  // to avoid issues where thinking content includes nextbillion tags
   // and are mishandled by:
   // 1. FE markdown parser
   // 2. Main process response processor
-  return text.replace(/<dyad/g, "＜dyad").replace(/<\/dyad/g, "＜/dyad");
+  return text
+    .replace(/<nextbillion/g, "＜nextbillion")
+    .replace(/<\/nextbillion/g, "＜/nextbillion");
 }
 
 const CODEBASE_PROMPT_PREFIX = "This is my codebase.";

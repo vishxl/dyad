@@ -4,45 +4,47 @@ import fs from "node:fs";
 import { IS_TEST_BUILD } from "../ipc/utils/test_utils";
 import { readSettings } from "../main/settings";
 
-// Cached result of getDyadAppsBaseDirectory
+// Cached result of getNextBillionAppsBaseDirectory
 let cachedBaseDirectory: string | null = null;
 let cachedCustomFolderSetting: string | null | undefined;
-// Whether `dyad-apps` has been created
+// Whether `nextbillion-apps` has been created
 let defaultDirCreated = false;
 
 /**
- * Gets the default path of the base dyad-apps directory (without a specific app subdirectory)
+ * Gets the default path of the base nextbillion-apps directory (without a specific app subdirectory)
  */
-export function getDefaultDyadAppsDirectory(): string {
-  if (IS_TEST_BUILD) {
-    const electron = getElectron();
-    return path.join(electron!.app.getPath("userData"), "dyad-apps");
-  }
-  return path.join(os.homedir(), "dyad-apps");
+export function getDefaultNextBillionAppsDirectory(): string {
+  const parent = IS_TEST_BUILD
+    ? getElectron()!.app.getPath("userData")
+    : os.homedir();
+  const dir = path.join(parent, "nextbillion-apps");
+  // Installs from before the rebrand keep their existing apps folder.
+  const legacyDir = path.join(parent, "dyad-apps");
+  return !fs.existsSync(dir) && fs.existsSync(legacyDir) ? legacyDir : dir;
 }
 
 /**
- * Gets the default path of the base dyad-apps directory (without a specific app subdirectory),
+ * Gets the default path of the base nextbillion-apps directory (without a specific app subdirectory),
  * but creates the directory the first time that this function is called
  */
-function resolveDefaultDyadAppsDirectory(): string {
-  const defaultDir = getDefaultDyadAppsDirectory();
+function resolveDefaultNextBillionAppsDirectory(): string {
+  const defaultDir = getDefaultNextBillionAppsDirectory();
   if (!defaultDirCreated) {
     try {
       fs.mkdirSync(defaultDir, { recursive: true });
       defaultDirCreated = true;
     } catch {
       // Fall through; if it fails then the user will see error toasts
-      // when they try to do anything meaningful, but we don't want Dyad to crash
+      // when they try to do anything meaningful, but we don't want NextBillion to crash
     }
   }
   return defaultDir;
 }
 
 /**
- * Clears base directory cache, so the next call to getDyadAppsBaseDirectory will re-read the settings
+ * Clears base directory cache, so the next call to getNextBillionAppsBaseDirectory will re-read the settings
  */
-export function invalidateDyadAppsBaseDirectoryCache(): void {
+export function invalidateNextBillionAppsBaseDirectoryCache(): void {
   cachedBaseDirectory = null;
   cachedCustomFolderSetting = undefined;
 }
@@ -57,11 +59,11 @@ export function getCustomFolderCache(): string | null | undefined {
 /**
  * Gets the user's preferred apps directory path (without a specific app subdirectory)
  */
-export function getDyadAppsBaseDirectory(): string {
+export function getNextBillionAppsBaseDirectory(): string {
   const appsPath =
     cachedBaseDirectory ??
     (cachedCustomFolderSetting = readSettings().customAppsFolder) ??
-    resolveDefaultDyadAppsDirectory();
+    resolveDefaultNextBillionAppsDirectory();
 
   cachedBaseDirectory = appsPath;
   return cachedBaseDirectory;
@@ -69,7 +71,7 @@ export function getDyadAppsBaseDirectory(): string {
 
 /**
  * Given a path, determines whether that path exists, is a directory, and is writable.
- * Can determine, for example, whether the output of `getDyadAppsBaseDirectory` is usable
+ * Can determine, for example, whether the output of `getNextBillionAppsBaseDirectory` is usable
  */
 export function isDirectoryAccessible(directoryPath: string): boolean {
   try {
@@ -82,18 +84,18 @@ export function isDirectoryAccessible(directoryPath: string): boolean {
   }
 }
 
-export function getDyadAppPath(appPath: string): string {
+export function getNextBillionAppPath(appPath: string): string {
   // If appPath is already absolute, use it as-is
   if (path.isAbsolute(appPath)) {
     return appPath;
   }
   // Otherwise, use the user's preferred base path
-  return path.join(getDyadAppsBaseDirectory(), appPath);
+  return path.join(getNextBillionAppsBaseDirectory(), appPath);
 }
 
 /**
  * Given an app path, determines whether that path is accessible within the filesystem.
- * The input to this function is assumed to be the result of `getDyadAppPath`.
+ * The input to this function is assumed to be the result of `getNextBillionAppPath`.
  */
 export function isAppLocationAccessible(resolvedPath: string): boolean {
   const containingFolder = path.dirname(resolvedPath);
@@ -118,7 +120,7 @@ export function getTypeScriptCachePath(): string {
 
 export function getUserDataPath(): string {
   const electron = getElectron();
-  const devUserDataDir = process.env.DYAD_DEV_USER_DATA_DIR?.trim();
+  const devUserDataDir = process.env.NEXTBILLION_DEV_USER_DATA_DIR?.trim();
 
   if (process.env.NODE_ENV === "development" && devUserDataDir) {
     return path.resolve(devUserDataDir);

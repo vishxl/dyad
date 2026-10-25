@@ -1,17 +1,17 @@
 // Read-only compatibility for persisted cards produced by prototype commit
-// 171069cc4 (native-tool backend), before 868819db7 migrated to shared Dyad cards.
+// 171069cc4 (native-tool backend), before 868819db7 migrated to shared NextBillion cards.
 // No current execution path produces this tag.
 import { claudeToolCardSchema } from "@/shared/claude_tool_cards";
-import { DyadRead } from "./DyadRead";
-import { DyadListFiles } from "./DyadListFiles";
-import { DyadWrite } from "./DyadWrite";
-import { DyadSearchReplace } from "./DyadSearchReplace";
-import { DyadLogs } from "./DyadLogs";
-import { DyadAddDependency } from "./DyadAddDependency";
-import { DyadStatus } from "./DyadStatus";
+import { NextBillionRead } from "./NextBillionRead";
+import { NextBillionListFiles } from "./NextBillionListFiles";
+import { NextBillionWrite } from "./NextBillionWrite";
+import { NextBillionSearchReplace } from "./NextBillionSearchReplace";
+import { NextBillionLogs } from "./NextBillionLogs";
+import { NextBillionAddDependency } from "./NextBillionAddDependency";
+import { NextBillionStatus } from "./NextBillionStatus";
 
 // This tag contains escaped JSON display data. Never send its fields through
-// the markdown/action parser, even if file contents contain Dyad tags.
+// the markdown/action parser, even if file contents contain NextBillion tags.
 export function ClaudeCodeToolCard({ content }: { content: string }) {
   let value: unknown;
   try {
@@ -26,25 +26,27 @@ export function ClaudeCodeToolCard({ content }: { content: string }) {
   switch (card.kind) {
     case "read":
       return (
-        <DyadRead node={node}>
+        <NextBillionRead node={node}>
           {card.state === "error" ? card.summary : undefined}
-        </DyadRead>
+        </NextBillionRead>
       );
     case "list":
       return (
-        <DyadListFiles node={{ properties: { ...card, directory: card.path } }}>
+        <NextBillionListFiles
+          node={{ properties: { ...card, directory: card.path } }}
+        >
           {card.body}
-        </DyadListFiles>
+        </NextBillionListFiles>
       );
     case "write":
       return (
-        <DyadWrite node={node} allowEdit={false}>
+        <NextBillionWrite node={node} allowEdit={false}>
           {card.body}
-        </DyadWrite>
+        </NextBillionWrite>
       );
     case "edit":
       return (
-        <DyadSearchReplace
+        <NextBillionSearchReplace
           node={node}
           blocks={card.blocks?.filter(
             (b) => b.searchContent || b.replaceContent,
@@ -52,18 +54,18 @@ export function ClaudeCodeToolCard({ content }: { content: string }) {
         />
       );
     case "logs":
-      return <DyadLogs node={node}>{card.body}</DyadLogs>;
+      return <NextBillionLogs node={node}>{card.body}</NextBillionLogs>;
     case "packages":
       return (
-        <DyadAddDependency node={node} execution>
+        <NextBillionAddDependency node={node} execution>
           {card.body}
-        </DyadAddDependency>
+        </NextBillionAddDependency>
       );
     case "status":
       return (
-        <DyadStatus node={node}>
+        <NextBillionStatus node={node}>
           {[card.summary, card.body].filter(Boolean).join("\n")}
-        </DyadStatus>
+        </NextBillionStatus>
       );
   }
 }

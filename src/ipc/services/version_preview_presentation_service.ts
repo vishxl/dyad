@@ -4,7 +4,10 @@ import {
 } from "@/window_infrastructure/main/window_registry";
 import type { WindowSessionId } from "@/window_infrastructure/types";
 import type { VersionCommandResult } from "@/ipc/types";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { safeSend } from "../utils/safe_sender";
 
 export class VersionPreviewPresentationService {
@@ -31,9 +34,9 @@ export class VersionPreviewPresentationService {
       return;
     }
     if (this.initiatorByOperationId.size >= 256) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Too many version preview operations are still settling. Please try again.",
-        DyadErrorKind.Auth,
+        NextBillionErrorKind.Auth,
       );
     }
     const entry = {

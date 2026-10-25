@@ -43,10 +43,12 @@ describe("Claude Code execution policy", () => {
     expect(assistantAttribution("claude-code", null)).toBe(
       "Claude Code (model unavailable)",
     );
-    expect(assistantAttribution("dyad", "existing-model")).toBe(
+    expect(assistantAttribution("nextbillion", "existing-model")).toBe(
       "existing-model",
     );
-    expect(executionBackendForModel({ provider: "anthropic" })).toBe("dyad");
+    expect(executionBackendForModel({ provider: "anthropic" })).toBe(
+      "nextbillion",
+    );
     expect(executionBackendForModel({ provider: "claude-code" })).toBe(
       "claude-code",
     );

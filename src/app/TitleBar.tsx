@@ -7,12 +7,12 @@ import { useSettings } from "@/hooks/useSettings";
 import { Button } from "@/components/ui/button";
 import { AppAvatar } from "@/components/AppAvatar";
 // @ts-ignore
-import logo from "../../assets/logo.svg";
+import logo from "../../assets/logo.png";
 import { providerSettingsRoute } from "@/routes/settings/providers/$provider";
 import { cn } from "@/lib/utils";
 import { useDeepLink } from "@/contexts/DeepLinkContext";
 import { useEffect, useState } from "react";
-import { DyadProSuccessDialog } from "@/components/DyadProSuccessDialog";
+import { NextBillionProSuccessDialog } from "@/components/NextBillionProSuccessDialog";
 import { useTheme } from "@/contexts/ThemeContext";
 import { ipc } from "@/ipc/types";
 import { useSystemPlatform } from "@/hooks/useSystemPlatform";
@@ -49,9 +49,9 @@ export const TitleBar = () => {
   const { lastDeepLink, clearLastDeepLink } = useDeepLink();
   useEffect(() => {
     const handleDeepLink = async () => {
-      if (lastDeepLink?.type === "dyad-pro-return") {
+      if (lastDeepLink?.type === "nextbillion-pro-return") {
         await refreshSettings();
-        // Refetch user budget when Dyad Pro key is set via deep link
+        // Refetch user budget when NextBillion Pro key is set via deep link
         queryClient.invalidateQueries({ queryKey: queryKeys.userBudget.info });
         if (hasArmedPayload) {
           const refreshedSettings = queryClient.getQueryData<UserSettings>(
@@ -83,8 +83,8 @@ export const TitleBar = () => {
     }
   };
 
-  const isDyadPro = !!settings?.providerSettings?.auto?.apiKey?.value;
-  const isDyadProEnabled = Boolean(settings?.enableDyadPro);
+  const isNextBillionPro = !!settings?.providerSettings?.auto?.apiKey?.value;
+  const isNextBillionProEnabled = Boolean(settings?.enableNextBillionPro);
 
   return (
     <>
@@ -98,7 +98,7 @@ export const TitleBar = () => {
         <div className="flex items-center shrink-0">
           <div className={`${showWindowControls ? "pl-2" : "pl-18"}`}></div>
 
-          <img src={logo} alt="Dyad" className="ml-2 w-5 h-5 shrink-0" />
+          <img src={logo} alt="NextBillion" className="ml-2 w-5 h-5 shrink-0" />
 
           <Tooltip>
             <TooltipTrigger
@@ -138,7 +138,11 @@ export const TitleBar = () => {
             </TooltipTrigger>
             <TooltipContent>{displayText}</TooltipContent>
           </Tooltip>
-          {isDyadPro && <DyadProButton isDyadProEnabled={isDyadProEnabled} />}
+          {isNextBillionPro && (
+            <NextBillionProButton
+              isNextBillionProEnabled={isNextBillionProEnabled}
+            />
+          )}
         </div>
 
         <div className="flex-1 min-w-0 overflow-hidden self-end">
@@ -149,7 +153,7 @@ export const TitleBar = () => {
       </div>
 
       <SubscriptionConnectionStatus />
-      <DyadProSuccessDialog
+      <NextBillionProSuccessDialog
         isOpen={isSuccessDialogOpen}
         onClose={() => setIsSuccessDialogOpen(false)}
       />
@@ -237,16 +241,16 @@ function WindowsControls() {
   );
 }
 
-export function DyadProButton({
-  isDyadProEnabled,
+export function NextBillionProButton({
+  isNextBillionProEnabled,
 }: {
-  isDyadProEnabled: boolean;
+  isNextBillionProEnabled: boolean;
 }) {
   const { navigate } = useRouter();
   const { userBudget } = useUserBudgetInfo();
   return (
     <Button
-      data-testid="title-bar-dyad-pro-button"
+      data-testid="title-bar-nextbillion-pro-button"
       onClick={() => {
         navigate({
           to: providerSettingsRoute.id,
@@ -256,17 +260,17 @@ export function DyadProButton({
       variant="outline"
       className={cn(
         "hidden @2xl:block ml-1 no-app-region-drag h-7 text-xs px-2 pt-1 pb-1",
-        isDyadProEnabled &&
+        isNextBillionProEnabled &&
           "bg-indigo-50 text-indigo-700 border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-900 dark:hover:bg-indigo-900/40",
       )}
       size="sm"
     >
-      {isDyadProEnabled
+      {isNextBillionProEnabled
         ? userBudget?.isTrial
           ? "Pro Trial"
           : "Pro"
         : "Pro (off)"}
-      {userBudget && isDyadProEnabled && (
+      {userBudget && isNextBillionProEnabled && (
         <AICreditStatus userBudget={userBudget} />
       )}
     </Button>

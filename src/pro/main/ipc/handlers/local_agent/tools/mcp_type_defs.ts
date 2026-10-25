@@ -17,7 +17,10 @@ import { eq } from "drizzle-orm";
 import { sanitizeMcpName } from "@/ipc/utils/mcp_tool_utils";
 import { requireMcpToolConsent } from "@/ipc/utils/mcp_consent";
 import { readSettings } from "@/main/settings";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { AgentContext, escapeXmlAttr, escapeXmlContent } from "./types";
 import { jsonSchemaToTs } from "./json_schema_to_ts";
 import { buildMcpAutoApprove } from "../mcp_auto_consent";
@@ -229,7 +232,7 @@ export function buildMcpCapabilityMap(params: {
       const autoApprove = buildMcpAutoApprove({
         signal: params.ctx.abortSignal,
         settings: readSettings(),
-        isDyadPro: params.ctx.isDyadPro,
+        isNextBillionPro: params.ctx.isNextBillionPro,
         freeModelMode: params.ctx.freeModelMode,
         chatId: params.ctx.chatId,
         serverName: def.serverName,
@@ -257,9 +260,9 @@ export function buildMcpCapabilityMap(params: {
           error: "Consent declined",
           executed: false,
         });
-        throw new DyadError(
+        throw new NextBillionError(
           `User declined running tool ${def.toolKey}`,
-          DyadErrorKind.UserCancelled,
+          NextBillionErrorKind.UserCancelled,
         );
       }
 
@@ -267,9 +270,9 @@ export function buildMcpCapabilityMap(params: {
       const toolSet = await client.tools();
       const mcpTool = toolSet[def.toolName];
       if (!mcpTool || typeof mcpTool.execute !== "function") {
-        throw new DyadError(
+        throw new NextBillionError(
           `MCP tool ${def.toolKey} not found at runtime`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -278,7 +281,7 @@ export function buildMcpCapabilityMap(params: {
         ? ` auto-approved-reason="${escapeXmlAttr(autoApprovedReason)}"`
         : "";
       params.ctx.onXmlComplete(
-        `<dyad-mcp-tool-call server="${escapeXmlAttr(def.serverName)}" tool="${escapeXmlAttr(def.toolName)}" call-id="${escapeXmlAttr(callId)}"${autoApprovedAttr}>\n${escapeXmlContent(contentPretty)}\n</dyad-mcp-tool-call>`,
+        `<nextbillion-mcp-tool-call server="${escapeXmlAttr(def.serverName)}" tool="${escapeXmlAttr(def.toolName)}" call-id="${escapeXmlAttr(callId)}"${autoApprovedAttr}>\n${escapeXmlContent(contentPretty)}\n</nextbillion-mcp-tool-call>`,
       );
 
       let executionStarted = false;
@@ -303,7 +306,7 @@ export function buildMcpCapabilityMap(params: {
           result: safeResult.value,
         });
         params.ctx.onXmlComplete(
-          `<dyad-mcp-tool-result server="${escapeXmlAttr(def.serverName)}" tool="${escapeXmlAttr(def.toolName)}" call-id="${escapeXmlAttr(callId)}">\n${escapeXmlContent(safeResult.serialized)}\n</dyad-mcp-tool-result>`,
+          `<nextbillion-mcp-tool-result server="${escapeXmlAttr(def.serverName)}" tool="${escapeXmlAttr(def.toolName)}" call-id="${escapeXmlAttr(callId)}">\n${escapeXmlContent(safeResult.serialized)}\n</nextbillion-mcp-tool-result>`,
         );
         return safeResult.value;
       } catch (error) {
@@ -322,10 +325,10 @@ export function buildMcpCapabilityMap(params: {
         // Terminate the merged card in an error state instead of leaving it
         // stuck on "Running".
         params.ctx.onXmlComplete(
-          `<dyad-mcp-tool-result server="${escapeXmlAttr(def.serverName)}" tool="${escapeXmlAttr(def.toolName)}" call-id="${escapeXmlAttr(callId)}" is-error="true">\n${escapeXmlContent(safeErrorMessage)}\n</dyad-mcp-tool-result>`,
+          `<nextbillion-mcp-tool-result server="${escapeXmlAttr(def.serverName)}" tool="${escapeXmlAttr(def.toolName)}" call-id="${escapeXmlAttr(callId)}" is-error="true">\n${escapeXmlContent(safeErrorMessage)}\n</nextbillion-mcp-tool-result>`,
         );
         params.ctx.onXmlComplete(
-          `<dyad-output type="error" message="MCP tool '${escapeXmlAttr(def.toolKey)}' failed: ${escapeXmlAttr(safeErrorMessage)}">${escapeXmlContent(safeErrorDetails)}</dyad-output>`,
+          `<nextbillion-output type="error" message="MCP tool '${escapeXmlAttr(def.toolKey)}' failed: ${escapeXmlAttr(safeErrorMessage)}">${escapeXmlContent(safeErrorDetails)}</nextbillion-output>`,
         );
         throw error;
       }
@@ -383,7 +386,7 @@ export const MCP_INLINE_TOKEN_THRESHOLD = 20_000;
 // Overrides the threshold for tests. 0 forces search on any catalog; a large
 // value forces inline. Invalid values fall back to the default.
 export function getMcpInlineTokenThreshold(): number {
-  const raw = process.env.DYAD_MCP_INLINE_TOKEN_THRESHOLD;
+  const raw = process.env.NEXTBILLION_MCP_INLINE_TOKEN_THRESHOLD;
   if (raw !== undefined) {
     const n = Number(raw);
     if (Number.isFinite(n) && n >= 0) return n;

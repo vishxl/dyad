@@ -10,7 +10,7 @@ const h = vi.hoisted(() => ({
 
 vi.mock("electron", () => ({
   app: {
-    getPath: vi.fn(() => "/tmp/dyad-native-theme-test"),
+    getPath: vi.fn(() => "/tmp/nextbillion-native-theme-test"),
     getAppPath: vi.fn(() => process.cwd()),
     isPackaged: false,
   },
@@ -49,7 +49,7 @@ describe("native theme handlers", () => {
     expect(result).toEqual({ shouldUseDarkColors: true });
   });
 
-  it("publishes native theme changes to every live Dyad window", () => {
+  it("publishes native theme changes to every live NextBillion window", () => {
     const firstSend = vi.fn();
     const secondSend = vi.fn();
     h.windows = [

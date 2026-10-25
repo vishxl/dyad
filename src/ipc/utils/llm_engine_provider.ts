@@ -8,10 +8,13 @@ import {
 } from "@ai-sdk/provider-utils";
 
 import log from "electron-log";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { getExtraProviderOptionsForEngine } from "./thinking_utils";
 import { getTestFetchOption } from "./test_fetch_override";
-import { DYAD_INTERNAL_REQUEST_ID_HEADER } from "./provider_options";
+import { NEXTBILLION_INTERNAL_REQUEST_ID_HEADER } from "./provider_options";
 import {
   describeRequestUrl,
   fetchWithRequestLogging,
@@ -33,7 +36,7 @@ export interface ChatParams {
   providerId: string;
 }
 
-type DyadEngineProviderOptions = Record<string, any>;
+type NextBillionEngineProviderOptions = Record<string, any>;
 
 export interface ExampleProviderSettings {
   /**
@@ -58,7 +61,7 @@ or to provide a custom fetch implementation for e.g. testing.
 */
   fetch?: FetchFunction;
 
-  dyadOptions: {
+  nextBillionOptions: {
     enableLazyEdits?: boolean;
     enableSmartFilesContext?: boolean;
     enableWebSearch?: boolean;
@@ -67,7 +70,7 @@ or to provide a custom fetch implementation for e.g. testing.
   modelSelection?: ModelSelection;
 }
 
-export interface DyadEngineProvider {
+export interface NextBillionEngineProvider {
   /**
 Creates a model for text generation.
 */
@@ -92,13 +95,13 @@ Creates a chat model for text generation.
 // to know when a model uses it before sending files.
 const engineFreeModels = new WeakSet<object>();
 
-export function isDyadEngineFreeModel(model: LanguageModel) {
+export function isNextBillionEngineFreeModel(model: LanguageModel) {
   return typeof model === "object" && engineFreeModels.has(model);
 }
 
-export function createDyadEngine(
+export function createNextBillionEngine(
   options: ExampleProviderSettings,
-): DyadEngineProvider {
+): NextBillionEngineProvider {
   const modelSelection =
     options.modelSelection ??
     ({
@@ -106,13 +109,13 @@ export function createDyadEngine(
       effortLevel: "medium",
     } satisfies ModelSelection);
   const baseURL = withoutTrailingSlash(options.baseURL);
-  logger.debug("creating dyad engine with baseURL", baseURL);
+  logger.debug("creating nextbillion engine with baseURL", baseURL);
 
   // Track request ID attempts
   const requestIdAttempts = new Map<string, number>();
 
   const getHeaders = () => ({
-    Authorization: `Bearer ${getDyadEngineApiKey(options.apiKey)}`,
+    Authorization: `Bearer ${getNextBillionEngineApiKey(options.apiKey)}`,
     ...options.headers,
   });
 
@@ -124,7 +127,7 @@ export function createDyadEngine(
   }
 
   const getCommonModelConfig = (pathPrefix = ""): CommonModelConfig => ({
-    provider: `dyad-engine`,
+    provider: `nextbillion-engine`,
     url: ({ path }) => {
       const url = new URL(`${baseURL}${pathPrefix}${path}`);
       if (options.queryParams) {
@@ -161,16 +164,16 @@ export function createDyadEngine(
     return input;
   };
 
-  // Custom fetch implementation that adds dyad-specific options to the request
-  const createDyadFetch = ({
+  // Custom fetch implementation that adds nextbillion-specific options to the request
+  const createNextBillionFetch = ({
     providerId,
-    dyadProviderOptions,
-    disableDyadOptions = false,
+    nextBillionProviderOptions,
+    disableNextBillionOptions = false,
     includeFreeQuotaKey = false,
   }: {
     providerId: string;
-    dyadProviderOptions?: DyadEngineProviderOptions;
-    disableDyadOptions?: boolean;
+    nextBillionProviderOptions?: NextBillionEngineProviderOptions;
+    disableNextBillionOptions?: boolean;
     includeFreeQuotaKey?: boolean;
   }): FetchFunction => {
     return (input: RequestInfo | URL, init?: RequestInit) => {
@@ -188,44 +191,53 @@ export function createDyadEngine(
           ...getExtraProviderOptionsForEngine(providerId, modelSelection),
         };
 
-        const getDyadOption = (key: string) =>
-          key in parsedBody ? parsedBody[key] : dyadProviderOptions?.[key];
+        const getNextBillionOption = (key: string) =>
+          key in parsedBody
+            ? parsedBody[key]
+            : nextBillionProviderOptions?.[key];
 
-        const dyadVersionedFiles = getDyadOption("dyadVersionedFiles");
-        if ("dyadVersionedFiles" in parsedBody) {
-          delete parsedBody.dyadVersionedFiles;
+        const nextBillionVersionedFiles = getNextBillionOption(
+          "nextBillionVersionedFiles",
+        );
+        if ("nextBillionVersionedFiles" in parsedBody) {
+          delete parsedBody.nextBillionVersionedFiles;
         }
-        const dyadFiles = getDyadOption("dyadFiles");
-        if ("dyadFiles" in parsedBody) {
-          delete parsedBody.dyadFiles;
+        const nextBillionFiles = getNextBillionOption("nextBillionFiles");
+        if ("nextBillionFiles" in parsedBody) {
+          delete parsedBody.nextBillionFiles;
         }
         // Read from body (OpenAICompatible models spread providerOptions into
         // the body) with a fallback to an internal header (OpenAIResponses
         // models don't forward providerOptions, so we pass it via header).
         const requestId =
-          getDyadOption("dyadRequestId") ??
+          getNextBillionOption("nextBillionRequestId") ??
           (init.headers as Record<string, string> | undefined)?.[
-            DYAD_INTERNAL_REQUEST_ID_HEADER
+            NEXTBILLION_INTERNAL_REQUEST_ID_HEADER
           ];
-        if ("dyadRequestId" in parsedBody) {
-          delete parsedBody.dyadRequestId;
+        if ("nextBillionRequestId" in parsedBody) {
+          delete parsedBody.nextBillionRequestId;
         }
-        const dyadAppId = getDyadOption("dyadAppId");
-        if ("dyadAppId" in parsedBody) {
-          delete parsedBody.dyadAppId;
+        const nextBillionAppId = getNextBillionOption("nextBillionAppId");
+        if ("nextBillionAppId" in parsedBody) {
+          delete parsedBody.nextBillionAppId;
         }
-        const dyadDisableFiles =
-          disableDyadOptions || getDyadOption("dyadDisableFiles");
-        if ("dyadDisableFiles" in parsedBody) {
-          delete parsedBody.dyadDisableFiles;
+        const nextBillionDisableFiles =
+          disableNextBillionOptions ||
+          getNextBillionOption("nextBillionDisableFiles");
+        if ("nextBillionDisableFiles" in parsedBody) {
+          delete parsedBody.nextBillionDisableFiles;
         }
-        const dyadMentionedApps = getDyadOption("dyadMentionedApps");
-        if ("dyadMentionedApps" in parsedBody) {
-          delete parsedBody.dyadMentionedApps;
+        const nextBillionMentionedApps = getNextBillionOption(
+          "nextBillionMentionedApps",
+        );
+        if ("nextBillionMentionedApps" in parsedBody) {
+          delete parsedBody.nextBillionMentionedApps;
         }
-        const dyadSmartContextMode = getDyadOption("dyadSmartContextMode");
-        if ("dyadSmartContextMode" in parsedBody) {
-          delete parsedBody.dyadSmartContextMode;
+        const nextBillionSmartContextMode = getNextBillionOption(
+          "nextBillionSmartContextMode",
+        );
+        if ("nextBillionSmartContextMode" in parsedBody) {
+          delete parsedBody.nextBillionSmartContextMode;
         }
 
         // Track and modify requestId with attempt number
@@ -237,25 +249,27 @@ export function createDyadEngine(
         }
 
         // Add files to the request if they exist
-        if (!dyadDisableFiles) {
+        if (!nextBillionDisableFiles) {
           parsedBody.dyad_options = {
-            files: dyadFiles,
-            versioned_files: dyadVersionedFiles,
-            enable_lazy_edits: options.dyadOptions.enableLazyEdits,
+            files: nextBillionFiles,
+            versioned_files: nextBillionVersionedFiles,
+            enable_lazy_edits: options.nextBillionOptions.enableLazyEdits,
             enable_smart_files_context:
-              options.dyadOptions.enableSmartFilesContext,
-            smart_context_mode: dyadSmartContextMode,
-            enable_web_search: options.dyadOptions.enableWebSearch,
-            app_id: dyadAppId,
+              options.nextBillionOptions.enableSmartFilesContext,
+            smart_context_mode: nextBillionSmartContextMode,
+            enable_web_search: options.nextBillionOptions.enableWebSearch,
+            app_id: nextBillionAppId,
           };
-          if (dyadMentionedApps?.length) {
-            parsedBody.dyad_options.mentioned_apps = dyadMentionedApps;
+          if (nextBillionMentionedApps?.length) {
+            parsedBody.dyad_options.mentioned_apps = nextBillionMentionedApps;
           }
         }
 
         // Return modified request with files included and requestId in headers
-        const { [DYAD_INTERNAL_REQUEST_ID_HEADER]: _, ...outgoingHeaders } =
-          (init.headers as Record<string, string>) ?? {};
+        const {
+          [NEXTBILLION_INTERNAL_REQUEST_ID_HEADER]: _,
+          ...outgoingHeaders
+        } = (init.headers as Record<string, string>) ?? {};
         const modifiedInit = {
           ...init,
           headers: {
@@ -296,9 +310,9 @@ export function createDyadEngine(
   ) => {
     const config = {
       ...getCommonModelConfig(pathPrefix),
-      fetch: createDyadFetch({
+      fetch: createNextBillionFetch({
         providerId: chatParams.providerId,
-        disableDyadOptions: pathPrefix === "/free",
+        disableNextBillionOptions: pathPrefix === "/free",
         includeFreeQuotaKey: pathPrefix === "/free",
       }),
     };
@@ -321,7 +335,7 @@ export function createDyadEngine(
   ) => {
     const config = {
       ...getCommonModelConfig(),
-      fetch: createDyadFetch({ providerId: chatParams.providerId }),
+      fetch: createNextBillionFetch({ providerId: chatParams.providerId }),
     };
 
     return new OpenAIResponsesLanguageModel(modelId, config);
@@ -331,26 +345,28 @@ export function createDyadEngine(
     modelId: ExampleChatModelId,
     chatParams: ChatParams,
   ) => {
-    const createModel = (dyadProviderOptions?: DyadEngineProviderOptions) => {
+    const createModel = (
+      nextBillionProviderOptions?: NextBillionEngineProviderOptions,
+    ) => {
       const provider = createAnthropic({
-        authToken: getDyadEngineApiKey(options.apiKey),
+        authToken: getNextBillionEngineApiKey(options.apiKey),
         baseURL,
         headers: options.headers,
-        fetch: createDyadFetch({
+        fetch: createNextBillionFetch({
           providerId: chatParams.providerId,
-          dyadProviderOptions,
+          nextBillionProviderOptions,
         }),
-        name: "dyad-engine",
+        name: "nextbillion-engine",
       });
 
       return provider(modelId);
     };
     const model = createModel();
-    const getDyadProviderOptions = (callOptions: {
+    const getNextBillionProviderOptions = (callOptions: {
       providerOptions?: Record<string, unknown>;
     }) =>
-      callOptions.providerOptions?.["dyad-engine"] as
-        | DyadEngineProviderOptions
+      callOptions.providerOptions?.["nextbillion-engine"] as
+        | NextBillionEngineProviderOptions
         | undefined;
 
     const wrappedModel = {
@@ -359,11 +375,13 @@ export function createDyadEngine(
       modelId: model.modelId,
       supportedUrls: model.supportedUrls,
       doGenerate: (callOptions) =>
-        createModel(getDyadProviderOptions(callOptions)).doGenerate(
+        createModel(getNextBillionProviderOptions(callOptions)).doGenerate(
           callOptions,
         ),
       doStream: (callOptions) =>
-        createModel(getDyadProviderOptions(callOptions)).doStream(callOptions),
+        createModel(getNextBillionProviderOptions(callOptions)).doStream(
+          callOptions,
+        ),
     } satisfies LanguageModel;
 
     const defaultObjectGenerationMode = (
@@ -387,15 +405,15 @@ export function createDyadEngine(
   return provider;
 }
 
-export async function transcribeWithDyadEngine(
+export async function transcribeWithNextBillionEngine(
   audioBuffer: Buffer,
   filename: string,
   requestId: string,
   options: ExampleProviderSettings,
 ): Promise<string> {
   const baseURL = withoutTrailingSlash(options.baseURL);
-  const apiKey = getDyadEngineApiKey(options.apiKey);
-  logger.info("transcribing with dyad engine with baseURL", baseURL);
+  const apiKey = getNextBillionEngineApiKey(options.apiKey);
+  logger.info("transcribing with nextbillion engine with baseURL", baseURL);
 
   const formData = new FormData();
   const mimeType = filename.endsWith(".webm")
@@ -429,27 +447,27 @@ export async function transcribeWithDyadEngine(
 
   if (!response.ok) {
     const errorText = await response.text();
-    throw new DyadError(
-      `Dyad Engine transcription failed: ${response.status} ${response.statusText} - ${errorText}`,
-      DyadErrorKind.External,
+    throw new NextBillionError(
+      `NextBillion Engine transcription failed: ${response.status} ${response.statusText} - ${errorText}`,
+      NextBillionErrorKind.External,
     );
   }
   const data = (await response.json()) as { text: string };
   return data.text;
 }
 
-function getDyadEngineApiKey(apiKey: string | undefined): string {
+function getNextBillionEngineApiKey(apiKey: string | undefined): string {
   const loadedApiKey = loadApiKey({
     apiKey,
-    environmentVariableName: "DYAD_PRO_API_KEY",
-    description: "Dyad Pro API key",
+    environmentVariableName: "NEXTBILLION_PRO_API_KEY",
+    description: "NextBillion Pro API key",
   });
   const normalizedApiKey = normalizeProviderApiKeyInput(loadedApiKey);
   const invalidCharacter = findInvalidProviderApiKeyCharacter(normalizedApiKey);
   if (invalidCharacter) {
-    throw new DyadError(
-      formatInvalidProviderApiKeyMessage("Dyad", invalidCharacter),
-      DyadErrorKind.Validation,
+    throw new NextBillionError(
+      formatInvalidProviderApiKeyMessage("NextBillion", invalidCharacter),
+      NextBillionErrorKind.Validation,
     );
   }
   return normalizedApiKey;

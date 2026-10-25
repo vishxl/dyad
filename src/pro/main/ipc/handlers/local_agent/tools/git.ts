@@ -67,11 +67,11 @@ function gitXml(
       );
     }
   }
-  const openingTag = `<dyad-git ${attributes.join(" ")}>`;
+  const openingTag = `<nextbillion-git ${attributes.join(" ")}>`;
   if (options.complete === false) {
     return openingTag;
   }
-  return `${openingTag}${options.content ? escapeXmlContent(options.content) : ""}</dyad-git>`;
+  return `${openingTag}${options.content ? escapeXmlContent(options.content) : ""}</nextbillion-git>`;
 }
 
 function buildGitPreview(
@@ -184,7 +184,7 @@ const gitDiffSchema = z.object({
 export const gitDiffTool: ToolDefinition<z.infer<typeof gitDiffSchema>> = {
   name: "git_diff",
   description:
-    "Show a bounded unified diff for tracked files in the current app. Untracked files are reported by git_status. Sensitive dotenv and Dyad-managed patches are omitted.",
+    "Show a bounded unified diff for tracked files in the current app. Untracked files are reported by git_status. Sensitive dotenv and NextBillion-managed patches are omitted.",
   inputSchema: gitDiffSchema,
   defaultConsent: "always",
   getConsentPreview: (args) => {
@@ -307,7 +307,7 @@ export const gitShowCommitTool: ToolDefinition<
 > = {
   name: "git_show_commit",
   description:
-    "Show metadata and a bounded first-parent patch for one commit in the current app. Optionally limit the patch to one path. Sensitive dotenv and Dyad-managed patches are omitted.",
+    "Show metadata and a bounded first-parent patch for one commit in the current app. Optionally limit the patch to one path. Sensitive dotenv and NextBillion-managed patches are omitted.",
   inputSchema: gitShowCommitSchema,
   defaultConsent: "always",
   getConsentPreview: (args) => {

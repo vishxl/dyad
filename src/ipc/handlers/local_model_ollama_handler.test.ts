@@ -1,4 +1,7 @@
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   fetchOllamaModels,
   parseOllamaHost,
@@ -165,7 +168,7 @@ describe("fetchOllamaModels", () => {
     await expect(fetchOllamaModels()).rejects.toMatchObject({
       message:
         "Could not connect to Ollama. Make sure it's running at http://localhost:11434",
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
     });
   });
 
@@ -179,9 +182,9 @@ describe("fetchOllamaModels", () => {
     );
 
     await expect(fetchOllamaModels()).rejects.toEqual(
-      new DyadError(
+      new NextBillionError(
         "Failed to fetch model: Service Unavailable",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       ),
     );
   });

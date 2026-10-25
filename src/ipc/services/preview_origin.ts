@@ -1,4 +1,7 @@
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { getAppPreviewHostname } from "../../../shared/preview_hostname";
 
 /** Provider allowlists accept only the exact origin owned by this app. */
@@ -11,6 +14,9 @@ export function assertAppPreviewOrigin(appId: number, origin: string): void {
     !url.port ||
     url.origin !== origin
   ) {
-    throw new DyadError("Invalid app preview origin", DyadErrorKind.Validation);
+    throw new NextBillionError(
+      "Invalid app preview origin",
+      NextBillionErrorKind.Validation,
+    );
   }
 }

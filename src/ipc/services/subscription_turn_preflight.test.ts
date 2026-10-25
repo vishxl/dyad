@@ -3,7 +3,7 @@ vi.mock("../shared/language_model_helpers", () => ({
 }));
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ModelSelection, UserSettings } from "@/lib/schemas";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 const mocks = vi.hoisted(() => ({
   account: vi.fn(),
   credentials: vi.fn(),
@@ -40,7 +40,7 @@ const model = {
   connection: "api-key",
 } as ModelSelection;
 const settings = {
-  enableDyadPro: true,
+  enableNextBillionPro: true,
   providerSettings: { auto: { apiKey: { value: "test-key" } } },
 } as unknown as UserSettings;
 const signal = new AbortController().signal;
@@ -56,19 +56,20 @@ it.each(["build", "ask", "plan", "local-agent"] as const)(
   "matches Codex billing eligibility in %s mode, with Pro on or off",
   async (selectedChatMode) => {
     for (const provider of ["openai", "claude-code"]) {
-      for (const enableDyadPro of [true, false]) {
+      for (const enableNextBillionPro of [true, false]) {
         mocks.credits.mockClear();
         const result = await preflightWithAdmission(
           { ...model, provider },
           {
             ...settings,
             selectedChatMode,
-            enableDyadPro,
+            enableNextBillionPro,
             enableClaudeCodeSubscription: true,
           },
           signal,
         );
-        const billed = enableDyadPro && selectedChatMode === "local-agent";
+        const billed =
+          enableNextBillionPro && selectedChatMode === "local-agent";
         expect(mocks.credits).toHaveBeenCalledTimes(billed ? 1 : 0);
         expect(Boolean(result.externalModelAdmission)).toBe(billed);
       }
@@ -89,7 +90,7 @@ it("blocks disabled Claude experiments before authentication or billing", async 
 });
 describe("global subscription turn routing", () => {
   it.each(["build", "ask", "plan"] as const)(
-    "allows %s subscription turns with no Dyad credits",
+    "allows %s subscription turns with no NextBillion credits",
     async (selectedChatMode) => {
       mocks.credits.mockRejectedValue(new Error("Out of credits"));
       const result = await preflightWithAdmission(
@@ -182,7 +183,7 @@ describe("global subscription turn routing", () => {
           signal,
         ),
       ).rejects.toMatchObject({
-        kind: DyadErrorKind.Auth,
+        kind: NextBillionErrorKind.Auth,
         message: expect.stringContaining(
           "Reconnect your ChatGPT subscription or select Pro credits",
         ),
@@ -257,11 +258,11 @@ describe("global subscription turn routing", () => {
     await expect(
       preflightSubscriptionTurn(
         model,
-        { ...settings, enableDyadPro: false },
+        { ...settings, enableNextBillionPro: false },
         signal,
       ),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.Auth,
+      kind: NextBillionErrorKind.Auth,
       message: expect.stringContaining(
         "Reconnect ChatGPT, or disconnect it in the model picker to use your OpenAI API key",
       ),
@@ -283,7 +284,7 @@ describe("global subscription turn routing", () => {
       });
       const result = await preflightSubscriptionTurn(
         { provider: "auto", name: "auto", effortLevel: "medium" },
-        { ...settings, enableDyadPro: false, selectedModel: model },
+        { ...settings, enableNextBillionPro: false, selectedModel: model },
         signal,
       );
       expect(result).toMatchObject({
@@ -299,7 +300,7 @@ describe("global subscription turn routing", () => {
   it("falls back to the first subscription model for Auto when Luna is unavailable", async () => {
     const result = await preflightSubscriptionTurn(
       { provider: "auto", name: "auto", effortLevel: "medium" },
-      { ...settings, enableDyadPro: false },
+      { ...settings, enableNextBillionPro: false },
       signal,
     );
     expect(result).toMatchObject({
@@ -314,7 +315,7 @@ describe("global subscription turn routing", () => {
     expect(
       await preflightSubscriptionTurn(
         { provider: "auto", name: "auto", effortLevel: "medium" },
-        { ...settings, enableDyadPro: false },
+        { ...settings, enableNextBillionPro: false },
         signal,
       ),
     ).toEqual({ provider: "auto", name: "auto", effortLevel: "medium" });
@@ -326,7 +327,7 @@ describe("global subscription turn routing", () => {
     expect(
       await preflightSubscriptionTurn(
         model,
-        { ...settings, enableDyadPro: false },
+        { ...settings, enableNextBillionPro: false },
         signal,
       ),
     ).not.toHaveProperty("connection");
@@ -334,11 +335,11 @@ describe("global subscription turn routing", () => {
     expect(mocks.credits).not.toHaveBeenCalled();
   });
   it.each([{}, settings.providerSettings])(
-    "allows free subscription turns without Dyad credit checks (%j)",
+    "allows free subscription turns without NextBillion credit checks (%j)",
     async (providerSettings) => {
       const freeSettings = {
         ...settings,
-        enableDyadPro: false,
+        enableNextBillionPro: false,
         providerSettings,
       };
       const result = await preflightWithAdmission(model, freeSettings, signal);
@@ -499,7 +500,11 @@ it.each([true, false])(
   async (pro) => {
     const result = await preflightWithAdmission(
       { provider: "claude-code", name: "sonnet", effortLevel: "medium" },
-      { ...settings, enableDyadPro: pro, enableClaudeCodeSubscription: true },
+      {
+        ...settings,
+        enableNextBillionPro: pro,
+        enableClaudeCodeSubscription: true,
+      },
       signal,
     );
     expect(result.model).toMatchObject({

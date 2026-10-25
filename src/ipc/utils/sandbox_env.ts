@@ -6,10 +6,10 @@
  * answers first:
  *
  * - the workspace's `.env.local`, which provider isolation rewrites; and
- * - the environment Dyad itself was launched with, which every child inherits.
+ * - the environment NextBillion itself was launched with, which every child inherits.
  *
  * The second is the one that bites: `dotenv` does not overwrite a variable that
- * is already set, so a `DATABASE_URL` exported in the shell that started Dyad
+ * is already set, so a `DATABASE_URL` exported in the shell that started NextBillion
  * silently wins over the isolated value written into the sandbox. Stripping the
  * inherited copy is what makes the sandbox's own file authoritative — it is not
  * only a Supabase concern, and a Neon branch run needs it just as much.

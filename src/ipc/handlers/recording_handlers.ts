@@ -38,7 +38,10 @@ import {
 } from "../services/recorded_test_drafts";
 import { isTestRunActive } from "./tests_handlers";
 import { readSettings } from "@/main/settings";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   isTestBranchCleanupOnly,
   restoreAppFromTestBranch,
@@ -67,9 +70,9 @@ function deferred<T>() {
 async function getApp(appId: number) {
   const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
   if (!app) {
-    throw new DyadError(
+    throw new NextBillionError(
       `App with id ${appId} not found`,
-      DyadErrorKind.NotFound,
+      NextBillionErrorKind.NotFound,
     );
   }
   return app;
@@ -105,7 +108,7 @@ export function registerRecordingHandlers() {
         return infraResult(
           appId,
           blockedBy
-            ? `Wait for Dyad to ${blockedBy} before starting a recording.`
+            ? `Wait for NextBillion to ${blockedBy} before starting a recording.`
             : "A recording session is already in progress for this app.",
         );
       }
@@ -164,7 +167,7 @@ export function registerRecordingHandlers() {
           if (!restored) {
             return infraResult(
               appId,
-              "Dyad couldn't restore this app's real database settings from the previous session. Retry after checking the Neon connection.",
+              "NextBillion couldn't restore this app's real database settings from the previous session. Retry after checking the Neon connection.",
             );
           }
           // Recovery may clear the marker or leave a cleanup-only marker. Give
@@ -314,7 +317,7 @@ export function registerRecordingHandlers() {
                   ready.resolve(
                     infraResult(
                       appId,
-                      "Dyad couldn't restore this app's real database settings from the previous operation. Retry after checking the Neon connection.",
+                      "NextBillion couldn't restore this app's real database settings from the previous operation. Retry after checking the Neon connection.",
                     ),
                   );
                   return;
@@ -460,7 +463,7 @@ export function registerRecordingHandlers() {
                   // this reaches the user as an error toast.
                   endReason = "error";
                   endMessage =
-                    "Dyad couldn't restore your app's real database settings after recording. Restore .env.local before running the app again.";
+                    "NextBillion couldn't restore your app's real database settings after recording. Restore .env.local before running the app again.";
                 } else if (!remoteCleanupCompleted) {
                   // The env came back, so the app is usable — but something the
                   // recording created is still in the user's account: a
@@ -473,7 +476,7 @@ export function registerRecordingHandlers() {
                     prepared?.cleanupProvider === "supabase-test-user"
                       ? "temporary Supabase test user"
                       : "temporary database";
-                  endMessage = `Dyad couldn't finish cleaning up the ${resource} it created for this recording. Your app settings were restored; Dyad will retry the cleanup on next startup.`;
+                  endMessage = `NextBillion couldn't finish cleaning up the ${resource} it created for this recording. Your app settings were restored; NextBillion will retry the cleanup on next startup.`;
                 }
                 clearRegistration();
                 // A setup failure normally has no live recorder to notify. The

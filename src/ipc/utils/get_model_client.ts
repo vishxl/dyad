@@ -1,7 +1,7 @@
 import { withAnthropicPreservedThinking } from "./anthropic_preserved_thinking";
 import type { ExternalModelAdmission } from "../services/external_model_admission";
 import {
-  AUTO_DYAD_PRO_MODEL_ALIASES,
+  AUTO_NEXTBILLION_PRO_MODEL_ALIASES,
   AUTO_BALANCED_ALIAS,
   resolveAutoModelCandidate,
   type AutoModelCandidates,
@@ -33,18 +33,21 @@ import { getLanguageModelProviders } from "../shared/language_model_helpers";
 import { resolveBuiltinModelAlias } from "../shared/remote_language_model_catalog";
 import { LanguageModelProvider } from "@/ipc/types";
 import {
-  createDyadEngine,
-  isDyadEngineFreeModel,
-  type DyadEngineProvider,
+  createNextBillionEngine,
+  isNextBillionEngineFreeModel,
+  type NextBillionEngineProvider,
 } from "./llm_engine_provider";
 
 import { getLmStudioBaseUrl } from "./lm_studio_utils";
 import { createOllamaProvider } from "./ollama_provider";
 import { getOllamaApiUrl } from "../handlers/local_model_ollama_handler";
 import { createFallback } from "./fallback_ai_model";
-import { getDyadEngineBaseUrl } from "./dyad_engine_url";
+import { getNextBillionEngineBaseUrl } from "./nextbillion_engine_url";
 import { getTestFetchOption } from "./test_fetch_override";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   findInvalidProviderApiKeyCharacter,
   formatInvalidProviderApiKeyMessage,
@@ -71,7 +74,7 @@ function getModelClientFetchOption(): { fetch?: FetchFunction } {
 }
 
 const AUTO_MODEL_ALIASES = [
-  ...AUTO_DYAD_PRO_MODEL_ALIASES,
+  ...AUTO_NEXTBILLION_PRO_MODEL_ALIASES,
   "dyad/auto/openrouter",
 ] as const;
 
@@ -94,7 +97,7 @@ const PDF_UNSUPPORTED_PROVIDERS = new Set(["xai", "ollama", "lmstudio"]);
  * assumed to support them; their API errors surface like any other.
  */
 export function modelClientSupportsPdfInput(modelClient: ModelClient) {
-  if (isDyadEngineFreeModel(modelClient.model)) {
+  if (isNextBillionEngineFreeModel(modelClient.model)) {
     return false;
   }
   return !PDF_UNSUPPORTED_PROVIDERS.has(modelClient.builtinProviderId ?? "");
@@ -108,7 +111,7 @@ async function createResolvedAliasClient({
   settings,
   context,
 }: {
-  provider: DyadEngineProvider;
+  provider: NextBillionEngineProvider;
   resolvedModel: ResolvedAliasModel;
   modelId: string;
   selection: ModelSelection;
@@ -125,7 +128,11 @@ async function createResolvedAliasClient({
             context,
             settings.chatgptFastMode,
           )
-        : createDyadEngineAliasModel({ provider, resolvedModel, modelId }),
+        : createNextBillionEngineAliasModel({
+            provider,
+            resolvedModel,
+            modelId,
+          }),
   };
 }
 
@@ -136,12 +143,12 @@ export interface ModelClientResult {
   isSmartContextEnabled?: boolean;
 }
 
-function createDyadEngineAliasModel({
+function createNextBillionEngineAliasModel({
   provider,
   resolvedModel,
   modelId,
 }: {
-  provider: DyadEngineProvider;
+  provider: NextBillionEngineProvider;
   resolvedModel: ResolvedAliasModel;
   modelId: string;
 }): LanguageModel {
@@ -193,10 +200,13 @@ export async function getModelClient(
         settings.modelEffortPreferences?.[getModelPreferenceKey(selectedModel)],
     }));
   const model = getAutoSidekickRuntimeModel(selectedModel);
-  if (selectedModelSelection.connection === "pro" && !settings.enableDyadPro)
-    throw new DyadError(
-      "Enable Dyad Pro before using Pro credits.",
-      DyadErrorKind.Auth,
+  if (
+    selectedModelSelection.connection === "pro" &&
+    !settings.enableNextBillionPro
+  )
+    throw new NextBillionError(
+      "Enable NextBillion Pro before using Pro credits.",
+      NextBillionErrorKind.Auth,
     );
   // A supplied connection is the source already accepted for this turn.
   // Auxiliary callers without one resolve their own concrete model here.
@@ -222,9 +232,9 @@ export async function getModelClient(
       };
     }
     if (modelSelection.provider !== "openai")
-      throw new DyadError(
+      throw new NextBillionError(
         "Subscription supports OpenAI models only. Choose a ChatGPT model.",
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     return {
       modelClient: {
@@ -243,30 +253,30 @@ export async function getModelClient(
   }
   const allProviders = await getLanguageModelProviders();
 
-  const dyadApiKey = settings.enableDyadPro
+  const nextBillionApiKey = settings.enableNextBillionPro
     ? getProviderApiKeyForRequest(
         settings.providerSettings?.auto?.apiKey?.value,
-        "Dyad",
+        "NextBillion",
       )
     : undefined;
   const isLocalProvider = ["ollama", "lmstudio"].includes(model.provider);
-  const isDyadProEnabledForRequest = Boolean(
-    dyadApiKey && settings.enableDyadPro,
+  const isNextBillionProEnabledForRequest = Boolean(
+    nextBillionApiKey && settings.enableNextBillionPro,
   );
-  if (connection === "pro" && !isDyadProEnabledForRequest)
-    throw new DyadError(
-      "Enable Dyad Pro before using Pro credits.",
-      DyadErrorKind.Auth,
+  if (connection === "pro" && !isNextBillionProEnabledForRequest)
+    throw new NextBillionError(
+      "Enable NextBillion Pro before using Pro credits.",
+      NextBillionErrorKind.Auth,
     );
 
   if (
     model.provider === "auto" &&
     model.name === AUTO_BALANCED_MODEL_NAME &&
-    !isDyadProEnabledForRequest
+    !isNextBillionProEnabledForRequest
   ) {
-    throw new DyadError(
-      "Auto (balanced) requires Dyad Pro. Switch to another model or enable Dyad Pro.",
-      DyadErrorKind.Auth,
+    throw new NextBillionError(
+      "Auto (balanced) requires NextBillion Pro. Switch to another model or enable NextBillion Pro.",
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -274,22 +284,25 @@ export async function getModelClient(
   const providerConfig = allProviders.find((p) => p.id === model.provider);
 
   if (!providerConfig) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Configuration not found for provider: ${model.provider}`,
-      DyadErrorKind.NotFound,
+      NextBillionErrorKind.NotFound,
     );
   }
 
-  if (isFreeProModel(model) && (!settings.enableDyadPro || !dyadApiKey)) {
-    throw new DyadError(
-      "Dyad Free requires an active Dyad Pro API key. Switch to another model or enable Dyad Pro.",
-      DyadErrorKind.Auth,
+  if (
+    isFreeProModel(model) &&
+    (!settings.enableNextBillionPro || !nextBillionApiKey)
+  ) {
+    throw new NextBillionError(
+      "NextBillion Free requires an active NextBillion Pro API key. Switch to another model or enable NextBillion Pro.",
+      NextBillionErrorKind.Auth,
     );
   }
 
   // Direct providers retain their transport while Engine bills reported usage.
   if (
-    isDyadProEnabledForRequest &&
+    isNextBillionProEnabledForRequest &&
     (isLocalProvider || providerConfig.type === "custom")
   ) {
     const regular = getRegularModelClient(
@@ -308,7 +321,7 @@ export async function getModelClient(
             connection: isLocalProvider ? "local" : "byok",
             modelProvider: model.provider,
           },
-          dyadApiKey!,
+          nextBillionApiKey!,
           context?.externalModelAdmission,
         ),
       },
@@ -317,23 +330,23 @@ export async function getModelClient(
     };
   }
 
-  // Handle Dyad Pro override
-  if (isDyadProEnabledForRequest && !isLocalProvider) {
-    const dyadEngineUrl = process.env.DYAD_ENGINE_URL;
-    // Check if the selected provider supports Dyad Pro (has a gateway prefix) OR
+  // Handle NextBillion Pro override
+  if (isNextBillionProEnabledForRequest && !isLocalProvider) {
+    const nextBillionEngineUrl = process.env.NEXTBILLION_ENGINE_URL;
+    // Check if the selected provider supports NextBillion Pro (has a gateway prefix) OR
     // we're using local engine.
     // IMPORTANT: some providers like OpenAI have an empty string gateway prefix,
     // so we do a nullish and not a truthy check here.
-    if (providerConfig.gatewayPrefix != null || dyadEngineUrl) {
+    if (providerConfig.gatewayPrefix != null || nextBillionEngineUrl) {
       // Native tool-backed modes select and edit files themselves. Retired
       // engine-side Build options remain in stored settings only for backwards
       // compatibility and must not affect requests.
       const enableSmartFilesContext = false;
-      const provider = createDyadEngine({
-        apiKey: dyadApiKey,
-        baseURL: getDyadEngineBaseUrl(),
+      const provider = createNextBillionEngine({
+        apiKey: nextBillionApiKey,
+        baseURL: getNextBillionEngineBaseUrl(),
         ...getModelClientFetchOption(),
-        dyadOptions: {
+        nextBillionOptions: {
           enableLazyEdits: false,
           enableSmartFilesContext,
           enableWebSearch: false,
@@ -343,11 +356,11 @@ export async function getModelClient(
       });
 
       logger.debug(
-        `\x1b[1;97;44m Using Dyad Pro API key for model: ${model.name} \x1b[0m`,
+        `\x1b[1;97;44m Using NextBillion Pro API key for model: ${model.name} \x1b[0m`,
       );
 
       logger.debug(
-        `\x1b[1;30;42m Using Dyad Pro engine: ${dyadEngineUrl ?? "<prod>"} \x1b[0m`,
+        `\x1b[1;30;42m Using NextBillion Pro engine: ${nextBillionEngineUrl ?? "<prod>"} \x1b[0m`,
       );
 
       // Do not use free variant (for openrouter).
@@ -369,9 +382,9 @@ export async function getModelClient(
         isSmartContextEnabled: enableSmartFilesContext,
       };
     } else {
-      throw new DyadError(
-        "This provider is not available through Pro credits. Turn off Dyad Pro to use your own API key.",
-        DyadErrorKind.Validation,
+      throw new NextBillionError(
+        "This provider is not available through Pro credits. Turn off NextBillion Pro to use your own API key.",
+        NextBillionErrorKind.Validation,
       );
     }
   }
@@ -382,9 +395,9 @@ export async function getModelClient(
         (p) => p.id === "openrouter",
       );
       if (!openRouterProvider) {
-        throw new DyadError(
+        throw new NextBillionError(
           "OpenRouter provider not found",
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
       return {
@@ -428,7 +441,7 @@ export async function getModelClient(
         );
         if (
           resolvedModel.providerId === "openrouter" &&
-          !isDyadProEnabledForRequest &&
+          !isNextBillionProEnabledForRequest &&
           providerInfo
         ) {
           return {
@@ -505,7 +518,7 @@ async function getProModelClient({
 }: {
   model: LargeLanguageModel;
   settings: UserSettings;
-  provider: DyadEngineProvider;
+  provider: NextBillionEngineProvider;
   modelId: string;
   context?: { chatId: number; externalModelAdmission?: ExternalModelAdmission };
   autoModelCandidates?: AutoModelCandidates;
@@ -526,9 +539,9 @@ async function getProModelClient({
       autoModelCandidates,
     );
     if (!candidate) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Auto (balanced) could not be resolved from the model catalog",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
     const { resolvedModel, selection } = candidate;
@@ -538,16 +551,16 @@ async function getProModelClient({
       (providerInfo) => providerInfo.id === resolvedModel.providerId,
     );
     if (!resolvedProvider) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Configuration not found for provider: ${resolvedModel.providerId}`,
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
 
     if (resolvedModel.apiProtocol !== "responses") {
-      throw new DyadError(
+      throw new NextBillionError(
         "Auto (balanced) must use the Responses API according to the model catalog",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
@@ -571,7 +584,7 @@ async function getProModelClient({
   if (model.provider === "auto" && model.name === "auto") {
     const providers = await getLanguageModelProviders();
     const fallbackEntries = await Promise.all(
-      AUTO_DYAD_PRO_MODEL_ALIASES.map(async (aliasId) => {
+      AUTO_NEXTBILLION_PRO_MODEL_ALIASES.map(async (aliasId) => {
         const candidate = await resolveAutoModelCandidate(
           aliasId,
           settings,
@@ -601,10 +614,10 @@ async function getProModelClient({
         // The stream's call options are computed for the PRIMARY selection, so
         // give each chain entry the options it would have received had IT been
         // selected: its own temperature and output cap from the catalog.
-        // Provider-family thinking options are already injected by the Dyad
+        // Provider-family thinking options are already injected by the NextBillion
         // Engine fetch wrapper from this entry's providerId; adding e.g.
         // providerOptions.google here would be ignored because these AI SDK
-        // model instances read the dyad-engine provider-options key.
+        // model instances read the nextbillion-engine provider-options key.
         const chainModelSelection = {
           provider: resolvedModel.providerId,
           name: resolvedModel.apiName,
@@ -626,9 +639,9 @@ async function getProModelClient({
 
     const validEntries = fallbackEntries.filter((entry) => entry !== null);
     if (validEntries.length === 0) {
-      throw new DyadError(
+      throw new NextBillionError(
         "No auto-mode models could be resolved from the catalog",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
@@ -969,9 +982,9 @@ function getRegularModelClient(
         };
       }
       // If it's not a known ID and not type 'custom', it's unsupported
-      throw new DyadError(
+      throw new NextBillionError(
         `Unsupported model provider: ${model.provider}`,
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
   }
@@ -987,9 +1000,9 @@ function getProviderApiKeyForRequest(
   }
   const invalidCharacter = findInvalidProviderApiKeyCharacter(normalizedValue);
   if (invalidCharacter) {
-    throw new DyadError(
+    throw new NextBillionError(
       formatInvalidProviderApiKeyMessage(providerDisplayName, invalidCharacter),
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   return normalizedValue;

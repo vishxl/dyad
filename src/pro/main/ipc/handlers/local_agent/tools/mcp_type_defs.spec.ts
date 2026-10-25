@@ -11,7 +11,10 @@ import {
 } from "./mcp_type_defs";
 import { mcpManager } from "@/ipc/utils/mcp_manager";
 import { requireMcpToolConsent } from "@/ipc/utils/mcp_consent";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import type { AgentContext } from "./types";
 import { MCP_RESULT_MAX_BYTES } from "@/ipc/utils/mcp_result_sanitizer";
 import {
@@ -242,7 +245,7 @@ describe("estimateMcpInlineTokens", () => {
 });
 
 describe("getMcpInlineTokenThreshold", () => {
-  const KEY = "DYAD_MCP_INLINE_TOKEN_THRESHOLD";
+  const KEY = "NEXTBILLION_MCP_INLINE_TOKEN_THRESHOLD";
   const original = process.env[KEY];
   afterEach(() => {
     if (original === undefined) delete process.env[KEY];
@@ -285,9 +288,9 @@ function createCtx(): AgentContext {
     isSharedModulesChanged: false,
     sharedServerModulePaths: [],
     pendingFunctionDeploys: [],
-    isDyadPro: false,
+    isNextBillionPro: false,
     todos: [],
-    dyadRequestId: "spec",
+    nextBillionRequestId: "spec",
     fileEditTracker: {},
     testingEnabled: true,
     testRunAttempts: new Map(),
@@ -341,8 +344,12 @@ describe("buildMcpCapabilityMap", () => {
       expect.objectContaining({ toolCallId: "mcp-sandbox-srv__hello" }),
     );
     const xmls = vi.mocked(ctx.onXmlComplete).mock.calls.map((c) => c[0]);
-    expect(xmls.some((x) => x.startsWith("<dyad-mcp-tool-call"))).toBe(true);
-    expect(xmls.some((x) => x.startsWith("<dyad-mcp-tool-result"))).toBe(true);
+    expect(xmls.some((x) => x.startsWith("<nextbillion-mcp-tool-call"))).toBe(
+      true,
+    );
+    expect(xmls.some((x) => x.startsWith("<nextbillion-mcp-tool-result"))).toBe(
+      true,
+    );
   });
 
   it("tracks direct MCP execution until the host call settles", async () => {
@@ -400,7 +407,7 @@ describe("buildMcpCapabilityMap", () => {
     const resultXml = vi
       .mocked(ctx.onXmlComplete)
       .mock.calls.map((c) => c[0])
-      .find((x) => x.startsWith("<dyad-mcp-tool-result"));
+      .find((x) => x.startsWith("<nextbillion-mcp-tool-result"));
     expect(resultXml).toContain("hello world");
   });
 
@@ -432,18 +439,18 @@ describe("buildMcpCapabilityMap", () => {
     );
     expect(serializedResult).not.toContain(hugeText);
     expect(serializedResult).not.toContain(hugeImage);
-    expect(serializedResult).toContain("_dyadMcpTruncation");
+    expect(serializedResult).toContain("_nextBillionMcpTruncation");
 
     const resultXml = vi
       .mocked(ctx.onXmlComplete)
       .mock.calls.map((call) => call[0])
-      .find((xml) => xml.startsWith("<dyad-mcp-tool-result"));
-    expect(resultXml).toContain("_dyadMcpTruncation");
+      .find((xml) => xml.startsWith("<nextbillion-mcp-tool-result"));
+    expect(resultXml).toContain("_nextBillionMcpTruncation");
     expect(resultXml).not.toContain(hugeText);
     expect(resultXml).not.toContain(hugeImage);
   });
 
-  it("throws a DyadError(UserCancelled) and skips execution when consent is denied", async () => {
+  it("throws a NextBillionError(UserCancelled) and skips execution when consent is denied", async () => {
     vi.mocked(requireMcpToolConsent).mockResolvedValue({ approved: false });
     const execute = vi.fn();
     vi.mocked(mcpManager.getClient).mockResolvedValue({
@@ -463,9 +470,11 @@ describe("buildMcpCapabilityMap", () => {
     } catch (e) {
       rejection = e;
     }
-    expect(rejection).toBeInstanceOf(DyadError);
-    expect((rejection as DyadError).kind).toBe(DyadErrorKind.UserCancelled);
-    expect((rejection as DyadError).message).toBe(
+    expect(rejection).toBeInstanceOf(NextBillionError);
+    expect((rejection as NextBillionError).kind).toBe(
+      NextBillionErrorKind.UserCancelled,
+    );
+    expect((rejection as NextBillionError).message).toBe(
       "User declined running tool srv__hello",
     );
     expect(execute).not.toHaveBeenCalled();
@@ -488,11 +497,11 @@ describe("buildMcpCapabilityMap", () => {
     expect(execute).toHaveBeenCalledOnce();
   });
 
-  it("does not pass an auto-approve callback during Dyad Free turns", async () => {
+  it("does not pass an auto-approve callback during NextBillion Free turns", async () => {
     vi.mocked(requireMcpToolConsent).mockResolvedValue({ approved: false });
 
     const ctx = createCtx();
-    ctx.isDyadPro = true;
+    ctx.isNextBillionPro = true;
     ctx.freeModelMode = true;
     const map = buildMcpCapabilityMap({
       event: {} as any,
@@ -501,7 +510,7 @@ describe("buildMcpCapabilityMap", () => {
     });
 
     await expect(map.srv__hello({})).rejects.toMatchObject({
-      kind: DyadErrorKind.UserCancelled,
+      kind: NextBillionErrorKind.UserCancelled,
     });
     expect(requireMcpToolConsent).toHaveBeenCalledWith(
       expect.anything(),
@@ -509,7 +518,7 @@ describe("buildMcpCapabilityMap", () => {
     );
   });
 
-  it("throws a DyadError(NotFound) when the live client no longer exposes the tool", async () => {
+  it("throws a NextBillionError(NotFound) when the live client no longer exposes the tool", async () => {
     vi.mocked(requireMcpToolConsent).mockResolvedValue({ approved: true });
     vi.mocked(mcpManager.getClient).mockResolvedValue({
       tools: async () => ({}),
@@ -528,14 +537,16 @@ describe("buildMcpCapabilityMap", () => {
     } catch (e) {
       rejection = e;
     }
-    expect(rejection).toBeInstanceOf(DyadError);
-    expect((rejection as DyadError).kind).toBe(DyadErrorKind.NotFound);
-    expect((rejection as DyadError).message).toBe(
+    expect(rejection).toBeInstanceOf(NextBillionError);
+    expect((rejection as NextBillionError).kind).toBe(
+      NextBillionErrorKind.NotFound,
+    );
+    expect((rejection as NextBillionError).message).toBe(
       "MCP tool srv__hello not found at runtime",
     );
   });
 
-  it("emits a failed tool-result and error <dyad-output> and re-throws when the MCP tool execute() fails", async () => {
+  it("emits a failed tool-result and error <nextbillion-output> and re-throws when the MCP tool execute() fails", async () => {
     vi.mocked(requireMcpToolConsent).mockResolvedValue({ approved: true });
     const execute = vi.fn().mockRejectedValue(new Error("upstream boom"));
     vi.mocked(mcpManager.getClient).mockResolvedValue({
@@ -552,18 +563,20 @@ describe("buildMcpCapabilityMap", () => {
     await expect(map.srv__hello({})).rejects.toThrow("upstream boom");
     expect(ctx.mcpToolRan).toBe(true);
     const xmls = vi.mocked(ctx.onXmlComplete).mock.calls.map((c) => c[0]);
-    expect(xmls.some((x) => x.startsWith("<dyad-mcp-tool-call"))).toBe(true);
+    expect(xmls.some((x) => x.startsWith("<nextbillion-mcp-tool-call"))).toBe(
+      true,
+    );
     expect(
       xmls.some(
         (x) =>
-          x.startsWith("<dyad-output") &&
+          x.startsWith("<nextbillion-output") &&
           x.includes("MCP tool 'srv__hello' failed"),
       ),
     ).toBe(true);
     expect(
       xmls.some(
         (x) =>
-          x.startsWith("<dyad-mcp-tool-result") &&
+          x.startsWith("<nextbillion-mcp-tool-result") &&
           x.includes('is-error="true"'),
       ),
     ).toBe(true);

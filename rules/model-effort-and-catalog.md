@@ -1,6 +1,6 @@
 # Model effort and catalog limits on the engine path
 
-Learned while running the app-builder benchmark (`dyad:run-benchmark`) across
+Learned while running the app-builder benchmark (`nextbillion:run-benchmark`) across
 15 models. Each item was a silent wrong result before it was understood.
 
 - **The remote catalog's `maxOutputTokens` is sent verbatim as the request's
@@ -40,7 +40,7 @@ requested about 1055390 tokens`. Keep catalog output limits well under the
   it (HTTP 400). For the same account, `0.154.0` omitted GPT-6 Sol while
   `0.155.1` included it; compare versions with one account before changing the
   remote catalog's `codexClientVersion`.
-- **Keep a last known good Codex client version across Dyad catalog outages.**
+- **Keep a last known good Codex client version across NextBillion catalog outages.**
   Falling back to a pinned version after a failed catalog refresh can invalidate
   a healthy ChatGPT model list and hide subscription models until recovery.
 - **Do not serialize two ChatGPT model requests on a subscription send.** If

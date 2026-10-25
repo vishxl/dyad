@@ -11,7 +11,7 @@ vi.mock("@/db", () => ({
 vi.mock("../utils/read_env", () => ({ getEnvVar: () => undefined }));
 
 const settings = {
-  enableDyadPro: true,
+  enableNextBillionPro: true,
   providerSettings: { auto: { apiKey: { value: "accepted-key" } } },
   selectedModel: { provider: "openai", name: "gpt-5" },
 } as unknown as UserSettings;

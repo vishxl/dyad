@@ -4,9 +4,9 @@ import os from "node:os";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { apps } from "@/db/schema";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { activeRecordings } from "@/ipc/services/recording_registry";
-import { DYAD_MEDIA_DIR_NAME } from "@/ipc/utils/media_path_utils";
+import { NEXTBILLION_MEDIA_DIR_NAME } from "@/ipc/utils/media_path_utils";
 import {
   type HandlerTestHarness,
   setupHandlerTestHarness,
@@ -15,7 +15,7 @@ import {
 vi.mock("electron", () => ({
   ipcMain: { handle: vi.fn(), on: vi.fn() },
   app: {
-    getPath: vi.fn(() => path.join(os.tmpdir(), "dyad-media-user-data")),
+    getPath: vi.fn(() => path.join(os.tmpdir(), "nextbillion-media-user-data")),
     getAppPath: vi.fn(() => process.cwd()),
   },
   shell: { openPath: vi.fn() },
@@ -29,7 +29,9 @@ describe("media move recording admission", () => {
 
   beforeEach(() => {
     activeRecordings.clear();
-    tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-media-handler-"));
+    tempRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-media-handler-"),
+    );
     harness = setupHandlerTestHarness();
     registerMediaHandlers();
   });
@@ -53,13 +55,13 @@ describe("media move recording admission", () => {
         targetAppId: 8,
         fileName: "image.png",
       }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
   });
 
   it("allows a move out of a recording source when the target is free", async () => {
     const sourcePath = path.join(tempRoot, "source");
     const targetPath = path.join(tempRoot, "target");
-    const sourceMediaPath = path.join(sourcePath, DYAD_MEDIA_DIR_NAME);
+    const sourceMediaPath = path.join(sourcePath, NEXTBILLION_MEDIA_DIR_NAME);
     fs.mkdirSync(sourceMediaPath, { recursive: true });
     fs.mkdirSync(targetPath, { recursive: true });
     fs.writeFileSync(path.join(sourceMediaPath, "image.png"), "image");
@@ -87,7 +89,9 @@ describe("media move recording admission", () => {
 
     expect(fs.existsSync(path.join(sourceMediaPath, "image.png"))).toBe(false);
     expect(
-      fs.existsSync(path.join(targetPath, DYAD_MEDIA_DIR_NAME, "image.png")),
+      fs.existsSync(
+        path.join(targetPath, NEXTBILLION_MEDIA_DIR_NAME, "image.png"),
+      ),
     ).toBe(true);
   });
 });

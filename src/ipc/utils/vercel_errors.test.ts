@@ -2,7 +2,10 @@ import { describe, expect, it } from "vitest";
 import { ResponseValidationError } from "@vercel/sdk/models/responsevalidationerror.js";
 import { SDKError } from "@vercel/sdk/models/sdkerror.js";
 import { z } from "zod/v3";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { getVercelProjectCreationError } from "./vercel_errors";
 
 describe("getVercelProjectCreationError", () => {
@@ -21,7 +24,7 @@ describe("getVercelProjectCreationError", () => {
 
       const result = getVercelProjectCreationError(error);
 
-      expect(result).toBeInstanceOf(DyadError);
+      expect(result).toBeInstanceOf(NextBillionError);
       expect(result.message).toContain("couldn't read Vercel's response");
       expect(result.message).toContain(`HTTP ${status}`);
       if (status === 200) {
@@ -110,17 +113,17 @@ describe("getVercelProjectCreationError", () => {
   });
 
   it.each([
-    [400, DyadErrorKind.Validation],
-    [401, DyadErrorKind.Auth],
-    [402, DyadErrorKind.Precondition],
-    [403, DyadErrorKind.Auth],
-    [404, DyadErrorKind.NotFound],
-    [409, DyadErrorKind.Conflict],
-    [410, DyadErrorKind.NotFound],
-    [422, DyadErrorKind.Validation],
-    [428, DyadErrorKind.Precondition],
-    [429, DyadErrorKind.RateLimited],
-    [500, DyadErrorKind.External],
+    [400, NextBillionErrorKind.Validation],
+    [401, NextBillionErrorKind.Auth],
+    [402, NextBillionErrorKind.Precondition],
+    [403, NextBillionErrorKind.Auth],
+    [404, NextBillionErrorKind.NotFound],
+    [409, NextBillionErrorKind.Conflict],
+    [410, NextBillionErrorKind.NotFound],
+    [422, NextBillionErrorKind.Validation],
+    [428, NextBillionErrorKind.Precondition],
+    [429, NextBillionErrorKind.RateLimited],
+    [500, NextBillionErrorKind.External],
   ] as const)("classifies HTTP %s as %s", (status, kind) => {
     const error = new SDKError("API error occurred", {
       response: new Response(null, { status }),
@@ -152,13 +155,16 @@ describe("getVercelProjectCreationError", () => {
     expect(result.message).toContain('"basic"');
     expect(result.message).toContain("buildMachineType");
     expect(result.message).toContain('"Connect to existing project"');
-    expect(result).toHaveProperty("kind", DyadErrorKind.External);
+    expect(result).toHaveProperty("kind", NextBillionErrorKind.External);
   });
 
   it("preserves other errors and their classifications", () => {
     for (const error of [
       new Error("Project name is already in use."),
-      new DyadError("Not authenticated with Vercel.", DyadErrorKind.Auth),
+      new NextBillionError(
+        "Not authenticated with Vercel.",
+        NextBillionErrorKind.Auth,
+      ),
     ]) {
       expect(getVercelProjectCreationError(error)).toBe(error);
     }

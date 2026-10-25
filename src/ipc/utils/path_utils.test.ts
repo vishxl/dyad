@@ -249,9 +249,11 @@ describe("safeJoin", () => {
 
 describe("assertMutationPathAllowed", () => {
   it("canonicalizes contained aliases and rejects escaping symlinks", async () => {
-    const appPath = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-app-"));
+    const appPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-app-"),
+    );
     const outsidePath = await fs.mkdtemp(
-      path.join(os.tmpdir(), "dyad-outside-"),
+      path.join(os.tmpdir(), "nextbillion-outside-"),
     );
     try {
       await fs.writeFile(path.join(appPath, "file.txt"), "in-app");
@@ -313,10 +315,12 @@ describe("assertMutationPathAllowed", () => {
   it.runIf(process.platform !== "win32")(
     "rejects slash-terminated app-root and dangling symlink aliases",
     async () => {
-      const appPath = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-app-"));
+      const appPath = await fs.mkdtemp(
+        path.join(os.tmpdir(), "nextbillion-app-"),
+      );
       const missingOutsidePath = path.join(
         os.tmpdir(),
-        `dyad-missing-${Date.now()}`,
+        `nextbillion-missing-${Date.now()}`,
       );
       try {
         await fs.symlink(".", path.join(appPath, "self"), "dir");
@@ -348,7 +352,9 @@ describe("assertMutationPathAllowed", () => {
 
 describe.runIf(process.platform !== "win32")("prepareDeletePath", () => {
   it("preserves final symlinks but canonicalizes their ancestors", async () => {
-    const appPath = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-delete-"));
+    const appPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-delete-"),
+    );
     try {
       const functionPath = path.join(
         appPath,
@@ -381,9 +387,11 @@ describe.runIf(process.platform !== "win32")("prepareDeletePath", () => {
   });
 
   it("allows final symlinks but rejects symlinked ancestors that escape", async () => {
-    const appPath = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-delete-"));
+    const appPath = await fs.mkdtemp(
+      path.join(os.tmpdir(), "nextbillion-delete-"),
+    );
     const outsidePath = await fs.mkdtemp(
-      path.join(os.tmpdir(), "dyad-outside-"),
+      path.join(os.tmpdir(), "nextbillion-outside-"),
     );
     try {
       await fs.symlink(".", path.join(appPath, "self"), "dir");

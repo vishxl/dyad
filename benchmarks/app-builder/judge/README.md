@@ -19,7 +19,7 @@ The judge sees the automated test summary: when it changes, refresh the verdict
 with `../rejudge.mjs`. New outputs record the checkpoint SHA and test-evidence
 hash so publication can reject stale judgments.
 
-Requires `DYAD_PRO_KEY` in the environment, the cell's archived checkout at
+Requires `NEXTBILLION_PRO_KEY` in the environment, the cell's archived checkout at
 `results/s-cell/checkouts/<cellId>` (with `checkpoint-m<k>` tags), and — when
 available — CUJ results at `results/s-score/<cellId>-ckpt<m>-a1.json` (judged
 "from code alone" otherwise). Output: `results/judge/<cellId>-m<m>.json` with

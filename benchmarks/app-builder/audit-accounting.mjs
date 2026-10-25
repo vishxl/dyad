@@ -43,8 +43,8 @@ for (const file of fs
     }
     const r = { ...row, source: { file, line: i + 1 } };
     rows.push(r);
-    if (r.dyadRequestId) {
-      const id = r.dyadRequestId.split(":")[0];
+    if (r.nextBillionRequestId) {
+      const id = r.nextBillionRequestId.split(":")[0];
       if (!byId.has(id)) byId.set(id, []);
       byId.get(id).push(r);
     }
@@ -127,7 +127,7 @@ for (const file of fs
     // this milestone; unlabelled auxiliary calls must be inside its time window.
     const side = rows.filter(
       (r) =>
-        !r.dyadRequestId &&
+        !r.nextBillionRequestId &&
         files.has(r.source.file) &&
         Date.parse(r.ts) >= start &&
         Date.parse(r.ts) <= end,
@@ -135,9 +135,13 @@ for (const file of fs
     const unique = [
       ...new Map(
         [...direct, ...side].map((r) => [
-          [r.ts, r.dyadRequestId, r.model, r.requestBytes, r.durationMs].join(
-            "|",
-          ),
+          [
+            r.ts,
+            r.nextBillionRequestId,
+            r.model,
+            r.requestBytes,
+            r.durationMs,
+          ].join("|"),
           r,
         ]),
       ).entries(),
@@ -185,7 +189,7 @@ for (const file of fs
       corrected += cost;
       evidence.push({
         ...r.source,
-        requestId: r.dyadRequestId,
+        requestId: r.nextBillionRequestId,
         model: r.model,
         usage: normalized,
         estimatedUsd: cost,

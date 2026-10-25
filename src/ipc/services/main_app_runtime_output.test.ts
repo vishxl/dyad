@@ -14,7 +14,7 @@ describe("MainAppRuntimeOutput", () => {
       type: "stdout",
       appId: 7,
       message:
-        "[dyad-proxy-server]started=[http://app-7.localhost:42107] original=[http://localhost:5173] mode=[host]",
+        "[nextbillion-proxy-server]started=[http://app-7.localhost:42107] original=[http://localhost:5173] mode=[host]",
     });
     output.enqueue({
       type: "stdout",
@@ -83,7 +83,7 @@ it.each(["neon", "supabase"] as const)(
       type: "stdout" as const,
       appId: 7,
       message:
-        "[dyad-proxy-server]started=[http://app-7.localhost:42107] original=[http://localhost:32107] mode=[host]",
+        "[nextbillion-proxy-server]started=[http://app-7.localhost:42107] original=[http://localhost:32107] mode=[host]",
     };
     output.send({ ...event, previewAuth: { provider, state: "pending" } });
     expect(send.mock.calls[0][0].url.previewAuth).toEqual({

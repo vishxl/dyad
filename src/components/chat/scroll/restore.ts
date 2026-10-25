@@ -1,4 +1,4 @@
-export const CHAT_SCROLL_RESTORE_EVENT = "dyad:restore-chat-scroll";
+export const CHAT_SCROLL_RESTORE_EVENT = "nextbillion:restore-chat-scroll";
 
 /** The mounted controller mirrors its follow state onto its scroller so tab
  * presentation captures intent rather than re-deriving it from geometry, which

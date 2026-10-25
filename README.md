@@ -1,6 +1,6 @@
-# Dyad
+# NextBillion
 
-Dyad is an AI app builder. It's fast, private, and fully under your control — like Lovable, v0, or Bolt.
+NextBillion is an AI app builder. It's fast, private, and fully under your control — like Lovable, v0, or Bolt.
 
 ## 🚀 Features
 

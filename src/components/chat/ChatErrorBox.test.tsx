@@ -44,7 +44,7 @@ describe("ChatErrorBox Basic Agent quota error", () => {
     render(
       <ChatErrorBox
         error='{"type":"FREE_AGENT_QUOTA_EXCEEDED","resetTime":1787295600000}'
-        isDyadProEnabled={false}
+        isNextBillionProEnabled={false}
         onDismiss={onDismiss}
         onSwitchToBuildMode={onSwitchToBuildMode}
       />,
@@ -55,24 +55,24 @@ describe("ChatErrorBox Basic Agent quota error", () => {
     ).toBeTruthy();
     expect(screen.getByText(/Your quota resets at/)).toBeTruthy();
 
-    expect(screen.queryByText("Upgrade to Dyad Pro")).toBeNull();
+    expect(screen.queryByText("Upgrade to NextBillion Pro")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Switch to Build" }));
     expect(onSwitchToBuildMode).toHaveBeenCalledOnce();
     expect(onDismiss).not.toHaveBeenCalled();
   });
 
-  it("explains that Dyad Free must be changed before using Build", () => {
+  it("explains that NextBillion Free must be changed before using Build", () => {
     render(
       <ChatErrorBox
         error='{"type":"FREE_AGENT_QUOTA_EXCEEDED","resetTime":1787295600000}'
-        isDyadProEnabled={false}
+        isNextBillionProEnabled={false}
         onDismiss={vi.fn()}
       />,
     );
 
     expect(
-      screen.getByText(/first choose a model other than Dyad Free/),
+      screen.getByText(/first choose a model other than NextBillion Free/),
     ).toBeTruthy();
     expect(
       screen.queryByRole("button", { name: "Switch to Build" }),
@@ -85,7 +85,7 @@ describe("ChatErrorBox error presentation", () => {
     render(
       <ChatErrorBox
         error={`Implementer failures:\n${"Detailed failure line\n".repeat(200)}`}
-        isDyadProEnabled
+        isNextBillionProEnabled
         onDismiss={vi.fn()}
       />,
     );
@@ -109,7 +109,7 @@ describe("ChatErrorBox subscription billing errors", () => {
       render(
         <ChatErrorBox
           error={new SubscriptionBillingError(code).serialize()}
-          isDyadProEnabled
+          isNextBillionProEnabled
           onDismiss={vi.fn()}
           onStartNewChat={vi.fn()}
         />,
@@ -132,7 +132,7 @@ describe("ChatErrorBox exhausted credit notice", () => {
       render(
         <ChatErrorBox
           error="ExceededBudget: exhausted"
-          isDyadProEnabled
+          isNextBillionProEnabled
           onDismiss={onDismiss}
           onStartNewChat={vi.fn()}
         />,
@@ -165,20 +165,22 @@ describe("ChatErrorBox exhausted credit notice", () => {
 describe("ChatErrorBox legacy rejected Pro key", () => {
   it.each([false, true])(
     "shows the rejected-key notice (Pro enabled: %s)",
-    (isDyadProEnabled) => {
+    (isNextBillionProEnabled) => {
       mocks.openExternalUrl.mockReset();
       const onDismiss = vi.fn();
       render(
         <ChatErrorBox
           error="Provider returned error: LiteLLM Virtual Key expected"
-          isDyadProEnabled={isDyadProEnabled}
+          isNextBillionProEnabled={isNextBillionProEnabled}
           onDismiss={onDismiss}
           onStartNewChat={vi.fn()}
         />,
       );
-      expect(screen.getByText("Your Dyad Pro key was rejected")).toBeTruthy();
+      expect(
+        screen.getByText("Your NextBillion Pro key was rejected"),
+      ).toBeTruthy();
       expect(screen.getByText("Check your Pro key in settings.")).toBeTruthy();
-      expect(screen.queryByText("Upgrade to Dyad Pro")).toBeNull();
+      expect(screen.queryByText("Upgrade to NextBillion Pro")).toBeNull();
       expect(screen.queryByText("Start new chat")).toBeNull();
       expect(screen.queryByText("Read docs")).toBeNull();
       expect(
@@ -198,9 +200,11 @@ it("recognizes a legacy rejected key inside fallback details", () => {
       error={
         'All models failed. Fallbacks=[{"error":"LiteLLM Virtual Key expected"}]'
       }
-      isDyadProEnabled
+      isNextBillionProEnabled
       onDismiss={vi.fn()}
     />,
   );
-  expect(screen.getByText("Your Dyad Pro key was rejected")).toBeTruthy();
+  expect(
+    screen.getByText("Your NextBillion Pro key was rejected"),
+  ).toBeTruthy();
 });

@@ -74,7 +74,7 @@ export function normalizeGitContextHashes(dump: any): void {
         /(<system-reminder>Previous assistant message created (?:commit: |no commit\. Repository commit before that message: ))[0-9a-f]{40,64}(\.<\/system-reminder>)/gi,
         "$1[[GIT_COMMIT]]$2",
       )
-      .replace(/<dyad-git-context\b[^>]*>/g, (tag) =>
+      .replace(/<nextbillion-git-context\b[^>]*>/g, (tag) =>
         tag.replace(
           /\b(commit|source_commit)="[0-9a-f]{40,64}"/gi,
           '$1="[[GIT_COMMIT]]"',

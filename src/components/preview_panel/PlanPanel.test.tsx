@@ -74,7 +74,7 @@ vi.mock("@/plan_handoff/usePlanHandoff", () => ({
   usePlanHandoff: () => ({ acceptPlan: mocks.acceptPlan }),
   usePlanHandoffState: () => mocks.handoffState,
 }));
-vi.mock("@/components/chat/DyadMarkdownParser", () => ({
+vi.mock("@/components/chat/NextBillionMarkdownParser", () => ({
   VanillaMarkdownParser: ({ content }: { content: string }) => (
     <div>{content}</div>
   ),

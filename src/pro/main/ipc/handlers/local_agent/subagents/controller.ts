@@ -71,7 +71,7 @@ function lifecyclePatch(
         ...base,
         remediationSource: null,
         autoFixAt: null,
-        error: "Dyad restarted while this sub-agent was active.",
+        error: "NextBillion restarted while this sub-agent was active.",
         completedAt: now,
       };
     case "BEGIN_AUTO_FIX_COUNTDOWN":

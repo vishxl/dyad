@@ -1,4 +1,7 @@
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const admissionBlockCounts = new Map<number, number>();
 
@@ -21,8 +24,8 @@ export const beginChatActorDeletion = beginChatActorMutation;
 
 export function assertChatActorAdmissionOpen(
   chatId: number,
-  errorKind: DyadErrorKind = DyadErrorKind.Precondition,
+  errorKind: NextBillionErrorKind = NextBillionErrorKind.Precondition,
 ): void {
   if (!admissionBlockCounts.has(chatId)) return;
-  throw new DyadError("Chat is temporarily unavailable", errorKind);
+  throw new NextBillionError("Chat is temporarily unavailable", errorKind);
 }

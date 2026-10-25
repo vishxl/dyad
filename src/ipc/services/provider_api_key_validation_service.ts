@@ -3,7 +3,11 @@ import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
 import { streamText, type LanguageModel } from "ai";
 import log from "electron-log";
 
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import type { ProviderApiKeyValidationProvider } from "@/ipc/types";
 import { readEffectiveSettings } from "@/main/settings";
 import {
@@ -12,10 +16,10 @@ import {
   normalizeProviderApiKeyInput,
 } from "@/lib/providerApiKey";
 import type { ModelSelection, UserSettings } from "@/lib/schemas";
-import { createDyadEngine } from "@/ipc/utils/llm_engine_provider";
+import { createNextBillionEngine } from "@/ipc/utils/llm_engine_provider";
 import { fastTextOutput } from "@/ipc/utils/stream_text_utils";
 import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
-import { getDyadEngineBaseUrl } from "@/ipc/utils/dyad_engine_url";
+import { getNextBillionEngineBaseUrl } from "@/ipc/utils/nextbillion_engine_url";
 import { getTestFetchOption } from "@/ipc/utils/test_fetch_override";
 import { getOpenRouterAppAttributionHeaders } from "@/ipc/utils/openrouter_attribution";
 import { GPT_5_6_LUNA_MODEL_NAME } from "@/ipc/shared/language_model_constants";
@@ -25,7 +29,7 @@ const logger = log.scope("provider_api_key_validation");
 const VALIDATION_PROMPT =
   "What number is after four? Reply with only the number.";
 const VALIDATION_TIMEOUT_MS = 20_000;
-const DYAD_VALIDATION_MODEL = {
+const NEXTBILLION_VALIDATION_MODEL = {
   provider: "openai",
   name: GPT_5_6_LUNA_MODEL_NAME,
   effortLevel: "low",
@@ -35,7 +39,7 @@ const PROVIDER_DISPLAY_NAMES: Record<ProviderApiKeyValidationProvider, string> =
   {
     google: "Google",
     openrouter: "OpenRouter",
-    auto: "Dyad",
+    auto: "NextBillion",
   };
 
 export async function validateProviderApiKey({
@@ -49,14 +53,17 @@ export async function validateProviderApiKey({
   const providerDisplayName = PROVIDER_DISPLAY_NAMES[provider];
 
   if (!normalizedApiKey) {
-    throw new DyadError("API Key cannot be empty.", DyadErrorKind.Validation);
+    throw new NextBillionError(
+      "API Key cannot be empty.",
+      NextBillionErrorKind.Validation,
+    );
   }
 
   const invalidCharacter = findInvalidProviderApiKeyCharacter(normalizedApiKey);
   if (invalidCharacter) {
-    throw new DyadError(
+    throw new NextBillionError(
       formatInvalidProviderApiKeyMessage(providerDisplayName, invalidCharacter),
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
@@ -66,15 +73,15 @@ export async function validateProviderApiKey({
     timer = setTimeout(() => {
       controller.abort();
       reject(
-        new DyadError(
+        new NextBillionError(
           `${providerDisplayName} did not respond while checking this API key. Please try again.`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         ),
       );
     }, VALIDATION_TIMEOUT_MS);
   });
 
-  // Some providers (e.g. the Dyad engine) report auth failures as an error
+  // Some providers (e.g. the NextBillion engine) report auth failures as an error
   // event inside an HTTP 200 stream. streamText surfaces those through
   // onError while its text promise resolves with empty text, so capture
   // and re-throw them to fail validation. For HTTP-level failures the text
@@ -105,7 +112,9 @@ export async function validateProviderApiKey({
     }
     return { ok: true };
   } catch (error) {
-    const rootError = isDyadError(error) ? error : (streamError ?? error);
+    const rootError = isNextBillionError(error)
+      ? error
+      : (streamError ?? error);
     throw classifyValidationError(rootError, providerDisplayName);
   } finally {
     if (timer) {
@@ -139,19 +148,19 @@ async function createValidationModel(
     }
     case "auto": {
       const settings = await readEffectiveSettings();
-      const dyad = createDyadEngine({
+      const nextbillion = createNextBillionEngine({
         apiKey,
-        modelSelection: DYAD_VALIDATION_MODEL,
-        baseURL: getDyadEngineBaseUrl(),
+        modelSelection: NEXTBILLION_VALIDATION_MODEL,
+        baseURL: getNextBillionEngineBaseUrl(),
         ...getTestFetchOption(),
-        dyadOptions: {
+        nextBillionOptions: {
           enableLazyEdits: false,
           enableSmartFilesContext: false,
           enableWebSearch: false,
         },
         settings: {
           ...settings,
-          enableDyadPro: true,
+          enableNextBillionPro: true,
           providerSettings: {
             ...settings.providerSettings,
             auto: {
@@ -161,8 +170,8 @@ async function createValidationModel(
           },
         } satisfies UserSettings,
       });
-      return dyad.responses(DYAD_VALIDATION_MODEL.name, {
-        providerId: DYAD_VALIDATION_MODEL.provider,
+      return nextbillion.responses(NEXTBILLION_VALIDATION_MODEL.name, {
+        providerId: NEXTBILLION_VALIDATION_MODEL.provider,
       });
     }
   }
@@ -185,8 +194,8 @@ function getOpenRouterBaseUrl() {
 function classifyValidationError(
   error: unknown,
   providerDisplayName: string,
-): DyadError {
-  if (isDyadError(error)) {
+): NextBillionError {
+  if (isNextBillionError(error)) {
     return error;
   }
 
@@ -199,9 +208,9 @@ function classifyValidationError(
   );
 
   if (statusCode === 401 || statusCode === 403 || isAuthError(errorMessage)) {
-    return new DyadError(
+    return new NextBillionError(
       `${providerDisplayName} rejected this API key. Try another API key or keep this one anyway.`,
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -209,15 +218,15 @@ function classifyValidationError(
     statusCode === 429 ||
     /rate.?limit|too many requests/i.test(errorMessage)
   ) {
-    return new DyadError(
+    return new NextBillionError(
       `${providerDisplayName} rate limited the API key check. You can try again later or keep this key anyway.`,
-      DyadErrorKind.RateLimited,
+      NextBillionErrorKind.RateLimited,
     );
   }
 
-  return new DyadError(
-    `Dyad could not verify this ${providerDisplayName} API key: ${errorMessage || "Unknown error"}`,
-    DyadErrorKind.External,
+  return new NextBillionError(
+    `NextBillion could not verify this ${providerDisplayName} API key: ${errorMessage || "Unknown error"}`,
+    NextBillionErrorKind.External,
   );
 }
 
@@ -259,7 +268,7 @@ function extractStatusCode(error: unknown, depth = 0): number | undefined {
   return extractStatusCode(candidate.cause, depth + 1);
 }
 
-// Stream error events (e.g. from the Dyad engine's LiteLLM proxy) are plain
+// Stream error events (e.g. from the NextBillion engine's LiteLLM proxy) are plain
 // strings that lead with the upstream status code, like
 // "401 LiteLLM Virtual Key expected. ...".
 function extractStatusCodeFromMessage(message: string): number | undefined {

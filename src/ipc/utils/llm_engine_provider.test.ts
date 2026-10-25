@@ -7,21 +7,21 @@ import type {
 
 import type { UserSettings } from "../../lib/schemas";
 import {
-  createDyadEngine,
-  transcribeWithDyadEngine,
+  createNextBillionEngine,
+  transcribeWithNextBillionEngine,
 } from "./llm_engine_provider";
 
-describe("createDyadEngine", () => {
+describe("createNextBillionEngine", () => {
   test("uses Anthropic messages API for Anthropic engine models", async () => {
     const requests: Array<{
       input: RequestInfo | URL;
       init?: RequestInit;
     }> = [];
 
-    const provider = createDyadEngine({
-      apiKey: "dyad-pro-key",
+    const provider = createNextBillionEngine({
+      apiKey: "nextbillion-pro-key",
       baseURL: "https://engine.example.test/v1",
-      dyadOptions: {
+      nextBillionOptions: {
         enableLazyEdits: true,
         enableSmartFilesContext: true,
         enableWebSearch: false,
@@ -65,10 +65,10 @@ describe("createDyadEngine", () => {
         { role: "user", content: [{ type: "text", text: "Hello" }] },
       ],
       providerOptions: {
-        "dyad-engine": {
-          dyadAppId: 42,
-          dyadRequestId: "request-1",
-          dyadFiles: [{ path: "src/App.tsx", content: "export {}" }],
+        "nextbillion-engine": {
+          nextBillionAppId: 42,
+          nextBillionRequestId: "request-1",
+          nextBillionFiles: [{ path: "src/App.tsx", content: "export {}" }],
         },
       },
     } satisfies LanguageModelV3CallOptions);
@@ -79,7 +79,7 @@ describe("createDyadEngine", () => {
       "https://engine.example.test/v1/messages",
     );
     expect(new Headers(request.init?.headers).get("authorization")).toBe(
-      "Bearer dyad-pro-key",
+      "Bearer nextbillion-pro-key",
     );
     expect(new Headers(request.init?.headers).get("X-Dyad-Request-Id")).toBe(
       "request-1:attempt-1",
@@ -107,9 +107,9 @@ describe("createDyadEngine", () => {
         files: [{ path: "src/App.tsx", content: "export {}" }],
       },
     });
-    expect(body).not.toHaveProperty("dyadAppId");
-    expect(body).not.toHaveProperty("dyadRequestId");
-    expect(body).not.toHaveProperty("dyadFiles");
+    expect(body).not.toHaveProperty("nextBillionAppId");
+    expect(body).not.toHaveProperty("nextBillionRequestId");
+    expect(body).not.toHaveProperty("nextBillionFiles");
     expect(body).not.toHaveProperty("reasoning_effort");
   });
 
@@ -119,14 +119,14 @@ describe("createDyadEngine", () => {
       init?: RequestInit;
     }> = [];
 
-    const provider = createDyadEngine({
-      apiKey: "dyad-pro-key",
+    const provider = createNextBillionEngine({
+      apiKey: "nextbillion-pro-key",
       baseURL: "https://engine.example.test/v1",
       queryParams: {
         feature: "anthropic-direct",
         source: "test",
       },
-      dyadOptions: {},
+      nextBillionOptions: {},
       settings: {} as UserSettings,
       fetch: async (input, init) => {
         requests.push({ input, init });
@@ -173,10 +173,10 @@ describe("createDyadEngine", () => {
       init?: RequestInit;
     }> = [];
 
-    const provider = createDyadEngine({
-      apiKey: "dyad-pro-key",
+    const provider = createNextBillionEngine({
+      apiKey: "nextbillion-pro-key",
       baseURL: "https://engine.example.test/v1",
-      dyadOptions: {},
+      nextBillionOptions: {},
       settings: {} as UserSettings,
       fetch: async (input, init) => {
         requests.push({ input, init });
@@ -214,8 +214,8 @@ describe("createDyadEngine", () => {
     await model.doGenerate({
       prompt: [{ role: "user", content: [{ type: "text", text: "Hello" }] }],
       providerOptions: {
-        "dyad-engine": {
-          dyadRequestId: "visible-turn-1",
+        "nextbillion-engine": {
+          nextBillionRequestId: "visible-turn-1",
         },
       },
     } satisfies LanguageModelV3CallOptions);
@@ -231,18 +231,18 @@ describe("createDyadEngine", () => {
   });
 });
 
-describe("transcribeWithDyadEngine", () => {
-  test("uses the Dyad transcription model alias", async () => {
+describe("transcribeWithNextBillionEngine", () => {
+  test("uses the NextBillion transcription model alias", async () => {
     let request: { input: RequestInfo | URL; init?: RequestInit } | undefined;
 
-    const text = await transcribeWithDyadEngine(
+    const text = await transcribeWithNextBillionEngine(
       Buffer.from("audio"),
       "recording.webm",
       "request-1",
       {
-        apiKey: "dyad-pro-key",
+        apiKey: "nextbillion-pro-key",
         baseURL: "https://engine.example.test/v1",
-        dyadOptions: {},
+        nextBillionOptions: {},
         settings: {} as UserSettings,
         fetch: async (input, init) => {
           request = { input, init };

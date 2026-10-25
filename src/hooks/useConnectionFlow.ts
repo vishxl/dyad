@@ -19,7 +19,10 @@ import {
   type ConnectionFlowProvider,
   type ConnectionFlowState,
 } from "@/connection_flow/state";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 type FlowSnapshot = Record<ConnectionFlowProvider, ConnectionFlowState>;
 
@@ -80,7 +83,10 @@ function mergeSnapshot(states: FlowSnapshot): void {
 }
 
 function isRevisionConflict(error: unknown): boolean {
-  return error instanceof DyadError && error.kind === DyadErrorKind.Conflict;
+  return (
+    error instanceof NextBillionError &&
+    error.kind === NextBillionErrorKind.Conflict
+  );
 }
 
 async function refreshSnapshot(): Promise<void> {

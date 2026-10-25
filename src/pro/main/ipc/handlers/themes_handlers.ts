@@ -37,8 +37,11 @@ import {
   getThemeGenerationModelOptions,
   resolveBuiltinModelAlias,
 } from "@/ipc/shared/remote_language_model_catalog";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
-import { getDyadEngineBaseUrl } from "@/ipc/utils/dyad_engine_url";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
+import { getNextBillionEngineBaseUrl } from "@/ipc/utils/nextbillion_engine_url";
 
 const logger = log.scope("themes_handlers");
 const handle = createLoggedHandler(logger);
@@ -70,7 +73,10 @@ function sanitizeKeywords(keywords: string): string {
 }
 
 // Directory for storing temporary theme images
-const THEME_IMAGES_TEMP_DIR = path.join(os.tmpdir(), "dyad-theme-images");
+const THEME_IMAGES_TEMP_DIR = path.join(
+  os.tmpdir(),
+  "nextbillion-theme-images",
+);
 
 // Ensure temp directory exists
 if (!fs.existsSync(THEME_IMAGES_TEMP_DIR)) {
@@ -343,34 +349,37 @@ export function registerThemesHandlers() {
 
       // Validate name
       if (!trimmedName) {
-        throw new DyadError("Theme name is required", DyadErrorKind.Validation);
+        throw new NextBillionError(
+          "Theme name is required",
+          NextBillionErrorKind.Validation,
+        );
       }
       if (trimmedName.length > 100) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Theme name must be less than 100 characters",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
       // Validate description
       if (trimmedDescription && trimmedDescription.length > 500) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Theme description must be less than 500 characters",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
       // Validate prompt
       if (!trimmedPrompt) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Theme prompt is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (trimmedPrompt.length > 50000) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Theme prompt must be less than 50,000 characters",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -425,22 +434,25 @@ export function registerThemesHandlers() {
       });
 
       if (!currentTheme) {
-        throw new DyadError("Theme not found", DyadErrorKind.NotFound);
+        throw new NextBillionError(
+          "Theme not found",
+          NextBillionErrorKind.NotFound,
+        );
       }
 
       // Validate and sanitize name if provided
       if (params.name !== undefined) {
         const trimmedName = params.name.trim();
         if (!trimmedName) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Theme name is required",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
         if (trimmedName.length > 100) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Theme name must be less than 100 characters",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
 
@@ -462,9 +474,9 @@ export function registerThemesHandlers() {
       if (params.description !== undefined) {
         const trimmedDescription = params.description.trim();
         if (trimmedDescription.length > 500) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Theme description must be less than 500 characters",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
         updateData.description = trimmedDescription || null;
@@ -474,15 +486,15 @@ export function registerThemesHandlers() {
       if (params.prompt !== undefined) {
         const trimmedPrompt = params.prompt.trim();
         if (!trimmedPrompt) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Theme prompt is required",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
         if (trimmedPrompt.length > 50000) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Theme prompt must be less than 50,000 characters",
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
         }
         updateData.prompt = trimmedPrompt;
@@ -496,7 +508,10 @@ export function registerThemesHandlers() {
 
       const theme = result[0];
       if (!theme) {
-        throw new DyadError("Theme not found", DyadErrorKind.NotFound);
+        throw new NextBillionError(
+          "Theme not found",
+          NextBillionErrorKind.NotFound,
+        );
       }
 
       return {
@@ -526,7 +541,10 @@ export function registerThemesHandlers() {
 
       // Validate base64 data
       if (!data || typeof data !== "string") {
-        throw new DyadError("Invalid image data", DyadErrorKind.Validation);
+        throw new NextBillionError(
+          "Invalid image data",
+          NextBillionErrorKind.Validation,
+        );
       }
 
       // Validate and extract extension
@@ -545,9 +563,9 @@ export function registerThemesHandlers() {
       // Validate size (base64 to bytes approximation)
       const sizeInBytes = (data.length * 3) / 4;
       if (sizeInBytes > 10 * 1024 * 1024) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Image size exceeds 10MB limit",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -586,9 +604,9 @@ export function registerThemesHandlers() {
           // File might already be deleted (ENOENT), that's okay
           // But other errors (permissions, etc.) should be reported
           if ((error as NodeJS.ErrnoException).code !== "ENOENT") {
-            throw new DyadError(
+            throw new NextBillionError(
               "Failed to cleanup temporary image file",
-              DyadErrorKind.External,
+              NextBillionErrorKind.External,
             );
           }
         }
@@ -617,37 +635,40 @@ Modern dark theme with purple accents for testing.
         };
       }
 
-      if (!settings.enableDyadPro) {
+      if (!settings.enableNextBillionPro) {
         throw new Error(
-          "Dyad Pro is required for AI theme generation. Please enable Dyad Pro in Settings.",
+          "NextBillion Pro is required for AI theme generation. Please enable NextBillion Pro in Settings.",
         );
       }
 
       // Validate inputs - image paths are required
       if (params.imagePaths.length === 0) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Please upload at least one image to generate a theme",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
 
       if (params.imagePaths.length > 5) {
-        throw new DyadError("Maximum 5 images allowed", DyadErrorKind.External);
+        throw new NextBillionError(
+          "Maximum 5 images allowed",
+          NextBillionErrorKind.External,
+        );
       }
 
       // Validate keywords length
       if (params.keywords.length > 500) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Keywords must be less than 500 characters",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
       // Validate generation mode
       if (!["inspired", "high-fidelity"].includes(params.generationMode)) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Invalid generation mode",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -771,9 +792,9 @@ Modern theme extracted from website for testing.
         };
       }
 
-      if (!settings.enableDyadPro) {
+      if (!settings.enableNextBillionPro) {
         throw new Error(
-          "Dyad Pro is required for AI theme generation. Please enable Dyad Pro in Settings.",
+          "NextBillion Pro is required for AI theme generation. Please enable NextBillion Pro in Settings.",
         );
       }
 
@@ -782,9 +803,9 @@ Modern theme extracted from website for testing.
       try {
         parsedUrl = new URL(params.url);
       } catch {
-        throw new DyadError(
+        throw new NextBillionError(
           "Invalid URL format. Please enter a valid URL.",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -808,25 +829,25 @@ Modern theme extracted from website for testing.
         /\.local$/i,
       ];
       if (blockedPatterns.some((p) => p.test(hostname))) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Cannot crawl internal network addresses.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
 
       // Validate keywords length
       if (params.keywords.length > 500) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Keywords must be less than 500 characters",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
       // Validate generation mode
       if (!["inspired", "high-fidelity"].includes(params.generationMode)) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Invalid generation mode",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -838,10 +859,13 @@ Modern theme extracted from website for testing.
         );
       }
 
-      // Get API key for Dyad Engine
+      // Get API key for NextBillion Engine
       const apiKey = settings.providerSettings?.auto?.apiKey?.value;
       if (!apiKey) {
-        throw new DyadError("Dyad Pro API key is required", DyadErrorKind.Auth);
+        throw new NextBillionError(
+          "NextBillion Pro API key is required",
+          NextBillionErrorKind.Auth,
+        );
       }
 
       // Crawl the website
@@ -857,7 +881,7 @@ Modern theme extracted from website for testing.
       let crawlResponse: Response;
       try {
         crawlResponse = await fetch(
-          `${getDyadEngineBaseUrl()}/tools/web-crawl`,
+          `${getNextBillionEngineBaseUrl()}/tools/web-crawl`,
           {
             method: "POST",
             headers: {

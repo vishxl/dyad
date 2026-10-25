@@ -173,7 +173,7 @@ type HybridRouter = {
   navigate: (opts: unknown) => unknown;
 };
 type HybridBridgeDiagnosticGlobal = typeof globalThis & {
-  __DYAD_HYBRID_BRIDGE__?: RendererIpcBridge;
+  __NEXTBILLION_HYBRID_BRIDGE__?: RendererIpcBridge;
 };
 
 const LazyAppDetailsPage = lazy(() => import("@/pages/app-details"));
@@ -499,8 +499,8 @@ function eventPayload(e: { args: unknown[] }): unknown {
 }
 
 const HYBRID_EXTRA_ENV_KEYS = [
-  "DYAD_SKIP_MANAGED_PNPM_INSTALL",
-  "DYAD_DEV_NODEJS_STATUS",
+  "NEXTBILLION_SKIP_MANAGED_PNPM_INSTALL",
+  "NEXTBILLION_DEV_NODEJS_STATUS",
   "E2E_TEST_BUILD",
   "FAKE_LLM_PORT",
 ] as const;
@@ -617,10 +617,10 @@ export async function setupHybridChatHarness(
   activeHybridChatHarness = true;
 
   const envSnapshot = snapshotHybridEnv();
-  process.env.DYAD_SKIP_MANAGED_PNPM_INSTALL = "true";
+  process.env.NEXTBILLION_SKIP_MANAGED_PNPM_INSTALL = "true";
   // The mounted UI queries Node status. Use the existing development override
   // so host Node/pnpm subprocesses cannot delay bridge settling on busy CI.
-  process.env.DYAD_DEV_NODEJS_STATUS = "installed";
+  process.env.NEXTBILLION_DEV_NODEJS_STATUS = "installed";
   if (options.testBuild) {
     if (!IS_TEST_BUILD) {
       // eslint-disable-next-line no-console
@@ -680,7 +680,7 @@ export async function setupHybridChatHarness(
           }
         : undefined,
     });
-    (globalThis as HybridBridgeDiagnosticGlobal).__DYAD_HYBRID_BRIDGE__ =
+    (globalThis as HybridBridgeDiagnosticGlobal).__NEXTBILLION_HYBRID_BRIDGE__ =
       bridge;
 
     let activeStore: JotaiStore | undefined;
@@ -1648,8 +1648,8 @@ export async function setupHybridChatHarness(
         teardownError = error;
       } finally {
         const diagnosticGlobal = globalThis as HybridBridgeDiagnosticGlobal;
-        if (diagnosticGlobal.__DYAD_HYBRID_BRIDGE__ === bridge) {
-          delete diagnosticGlobal.__DYAD_HYBRID_BRIDGE__;
+        if (diagnosticGlobal.__NEXTBILLION_HYBRID_BRIDGE__ === bridge) {
+          delete diagnosticGlobal.__NEXTBILLION_HYBRID_BRIDGE__;
         }
         activeHybridChatHarness = false;
         setModelClientFetchForTesting(undefined);

@@ -50,7 +50,7 @@ import {
 describe("subscription OAuth", () => {
   beforeEach(() => {
     mocks.directory = fs.mkdtempSync(
-      path.join(os.tmpdir(), "dyad-oauth-test-"),
+      path.join(os.tmpdir(), "nextbillion-oauth-test-"),
     );
     mocks.encryption = true;
     mocks.decrypt.mockReset().mockImplementation((b: Buffer) => b.toString());
@@ -222,7 +222,7 @@ describe("successful browser return", () => {
       );
       vi.mocked(writeSettings).mockClear();
       mocks.directory = fs.mkdtempSync(
-        path.join(os.tmpdir(), "dyad-oauth-success-"),
+        path.join(os.tmpdir(), "nextbillion-oauth-success-"),
       );
       mocks.encryption = true;
       mocks.decrypt.mockImplementation((b: Buffer) => b.toString());
@@ -256,9 +256,9 @@ describe("successful browser return", () => {
         callback.searchParams.set("code", "test-code");
         const response = await fetch(callback);
         const html = await response.text();
-        expect(html).toContain('href="dyad://chatgpt-connected"');
+        expect(html).toContain('href="nextbillion://chatgpt-connected"');
         expect(html).toContain(
-          'window.location.href="dyad://chatgpt-connected"',
+          'window.location.href="nextbillion://chatgpt-connected"',
         );
         expect(html).not.toContain(access);
         expect(html).not.toContain("test-code");

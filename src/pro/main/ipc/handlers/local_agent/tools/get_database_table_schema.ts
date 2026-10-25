@@ -11,7 +11,10 @@ import {
 } from "./types";
 import { getSupabaseTableSchema } from "../../../../../../supabase_admin/supabase_context";
 import { getNeonTableSchema } from "../../../../../../neon_admin/neon_context";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { resolveLinkedDatabaseProvider } from "@/shared/database_provider";
 
 const getDatabaseTableSchemaSchema = z.object({
@@ -50,7 +53,7 @@ export const getDatabaseTableSchemaTool: ToolDefinition<
 
     if (provider === "supabase" && canUseSupabaseTools(ctx)) {
       ctx.onXmlStream(
-        `<dyad-db-table-schema provider="Supabase"${tableAttr}></dyad-db-table-schema>`,
+        `<nextbillion-db-table-schema provider="Supabase"${tableAttr}></nextbillion-db-table-schema>`,
       );
 
       const schema = await getSupabaseTableSchema({
@@ -60,7 +63,7 @@ export const getDatabaseTableSchemaTool: ToolDefinition<
       });
 
       ctx.onXmlComplete(
-        `<dyad-db-table-schema provider="Supabase"${tableAttr}>\n${escapeXmlContent(schema)}\n</dyad-db-table-schema>`,
+        `<nextbillion-db-table-schema provider="Supabase"${tableAttr}>\n${escapeXmlContent(schema)}\n</nextbillion-db-table-schema>`,
       );
 
       return schema;
@@ -68,7 +71,7 @@ export const getDatabaseTableSchemaTool: ToolDefinition<
 
     if (provider === "neon" && canUseNeonTools(ctx)) {
       ctx.onXmlStream(
-        `<dyad-db-table-schema provider="Neon"${tableAttr}></dyad-db-table-schema>`,
+        `<nextbillion-db-table-schema provider="Neon"${tableAttr}></nextbillion-db-table-schema>`,
       );
 
       const schema = await getNeonTableSchema({
@@ -78,15 +81,15 @@ export const getDatabaseTableSchemaTool: ToolDefinition<
       });
 
       ctx.onXmlComplete(
-        `<dyad-db-table-schema provider="Neon"${tableAttr}>\n${escapeXmlContent(schema)}\n</dyad-db-table-schema>`,
+        `<nextbillion-db-table-schema provider="Neon"${tableAttr}>\n${escapeXmlContent(schema)}\n</nextbillion-db-table-schema>`,
       );
 
       return schema;
     }
 
-    throw new DyadError(
+    throw new NextBillionError(
       getUnavailableDatabaseProviderMessage(ctx, "schema inspection"),
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   },
 };

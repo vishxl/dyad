@@ -7,7 +7,7 @@ import {
   chatQueueStates,
   chatTurnIntents,
 } from "@/db/schema";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { createInMemoryTestDb, type TestDb } from "@/testing/test_db";
 import {
   assertQueueSnapshotWithinLimit,
@@ -217,7 +217,7 @@ describe("chat stream persistence", () => {
         64,
       ),
     ).toThrowError(
-      expect.objectContaining({ kind: DyadErrorKind.RateLimited }),
+      expect.objectContaining({ kind: NextBillionErrorKind.RateLimited }),
     );
   });
 
@@ -268,7 +268,9 @@ describe("chat stream persistence", () => {
     });
     expect(() =>
       persistQueuedIntent(database, intent("large-turn", "different")),
-    ).toThrowError(expect.objectContaining({ kind: DyadErrorKind.Conflict }));
+    ).toThrowError(
+      expect.objectContaining({ kind: NextBillionErrorKind.Conflict }),
+    );
   });
 
   it("rejects reuse of an intent id with a different payload", () => {
@@ -276,7 +278,9 @@ describe("chat stream persistence", () => {
 
     expect(() =>
       persistQueuedIntent(database, intent("turn-1", "Different")),
-    ).toThrowError(expect.objectContaining({ kind: DyadErrorKind.Conflict }));
+    ).toThrowError(
+      expect.objectContaining({ kind: NextBillionErrorKind.Conflict }),
+    );
   });
 
   it("rejects replay under a different invocation identity", () => {
@@ -296,7 +300,9 @@ describe("chat stream persistence", () => {
         ...replacement,
         payloadHash: computeChatTurnPayloadHash(replacement),
       }),
-    ).toThrowError(expect.objectContaining({ kind: DyadErrorKind.Conflict }));
+    ).toThrowError(
+      expect.objectContaining({ kind: NextBillionErrorKind.Conflict }),
+    );
   });
 
   it("updates both the queue projection and the intent dispatched later", async () => {
@@ -345,7 +351,7 @@ describe("chat stream persistence", () => {
         expectedQueueRevision: 2,
         mutationId: "edit-claimed",
       }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.NotFound });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.NotFound });
   });
 
   it("restores a claimed head if the actor becomes busy before dispatch", async () => {
@@ -376,7 +382,7 @@ describe("chat stream persistence", () => {
         expectedQueueRevision: 1,
         mutationId: "remove-plan",
       }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
     expect(loadChatQueue(database, chatId).queue).toMatchObject([
       { intentId: "plan-turn" },
     ]);

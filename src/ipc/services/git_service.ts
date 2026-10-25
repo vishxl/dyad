@@ -1,5 +1,8 @@
 import log from "electron-log";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 import {
   ensureGitLineEndingPolicy,
@@ -77,9 +80,9 @@ async function runMessageHookPhase({
     result = await run({ path, message, signal });
   } catch (error) {
     const details = error instanceof Error ? error.message : String(error);
-    throw new DyadError(
+    throw new NextBillionError(
       `${label} could not start. ${details}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
       { cause: error },
     );
   }
@@ -137,7 +140,7 @@ export class GitService {
    */
   async initRepoWithInitialCommit({
     path,
-    message = "Init Dyad app",
+    message = "Init NextBillion app",
     ref = "main",
   }: {
     path: string;
@@ -200,9 +203,9 @@ export class GitService {
         result = await runPreCommitHook({ path, signal });
       } catch (error) {
         const details = error instanceof Error ? error.message : String(error);
-        throw new DyadError(
+        throw new NextBillionError(
           `Pre-commit checks could not start. ${details}`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
           { cause: error },
         );
       }

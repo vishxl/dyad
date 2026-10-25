@@ -7,16 +7,24 @@ describe("reading a failure off an error", () => {
     // means the name is a contract between two files that do not import one
     // another. Renaming it there would quietly stop every check here.
     const { SshError } = await import("@/ipc/utils/ssh_client");
-    const { DyadErrorKind } = await import("@/errors/dyad_error");
+    const { NextBillionErrorKind } = await import("@/errors/nextbillion_error");
 
     expect(
       sshFailureOf(
-        new SshError("unreachable", "nothing answered", DyadErrorKind.External),
+        new SshError(
+          "unreachable",
+          "nothing answered",
+          NextBillionErrorKind.External,
+        ),
       ),
     ).toBe("unreachable");
     expect(
       sshFailureOf(
-        new SshError("command-timeout", "too slow", DyadErrorKind.External),
+        new SshError(
+          "command-timeout",
+          "too slow",
+          NextBillionErrorKind.External,
+        ),
       ),
     ).toBe("command-timeout");
   });

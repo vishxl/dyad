@@ -19,13 +19,13 @@ import { Button } from "@/components/ui/button";
 export function ChatErrorBox({
   onDismiss,
   error,
-  isDyadProEnabled,
+  isNextBillionProEnabled,
   onStartNewChat,
   onSwitchToBuildMode,
 }: {
   onDismiss: () => void;
   error: string;
-  isDyadProEnabled: boolean;
+  isNextBillionProEnabled: boolean;
   onStartNewChat?: () => void;
   onSwitchToBuildMode?: () => void;
 }) {
@@ -35,10 +35,10 @@ export function ChatErrorBox({
     : error;
   const freeAgentQuotaError = parseFreeAgentQuotaError(normalizedError);
   const isFreeModelQuotaError =
-    normalizedError.includes("dyad_free_model_quota_exceeded") ||
+    normalizedError.includes("nextbillion_free_model_quota_exceeded") ||
     normalizedError.includes("FREE_MODEL_QUOTA_EXCEEDED") ||
-    normalizedError.includes("Dyad Free has reached its daily limit.") ||
-    normalizedError.includes("Dyad Free limit");
+    normalizedError.includes("NextBillion Free has reached its daily limit.") ||
+    normalizedError.includes("NextBillion Free limit");
   const { messagesLimit, resetTime } = useFreeAgentQuota();
   const {
     messagesLimit: freeModelMessagesLimit,
@@ -72,7 +72,7 @@ export function ChatErrorBox({
     );
   }
 
-  if (isDyadProEnabled && error.includes("ExceededBudget:")) {
+  if (isNextBillionProEnabled && error.includes("ExceededBudget:")) {
     return (
       <BillingNotice
         onDismiss={onDismiss}
@@ -109,7 +109,7 @@ export function ChatErrorBox({
         {resetText} This message was not sent.
         {onSwitchToBuildMode
           ? " Switch this chat to Build mode and send it again."
-          : " To use Build mode, first choose a model other than Dyad Free, then send it again."}
+          : " To use Build mode, first choose a model other than NextBillion Free, then send it again."}
         {onSwitchToBuildMode && (
           <div className="mt-2 flex flex-wrap gap-2">
             <Button
@@ -140,8 +140,8 @@ export function ChatErrorBox({
     return (
       <ChatErrorContainer onDismiss={onDismiss}>
         <span>
-          You have reached the {freeModelMessagesLimit}-message Dyad Free model
-          limit.
+          You have reached the {freeModelMessagesLimit}-message NextBillion Free
+          model limit.
           {resetText} Switch to paid models.
         </span>
       </ChatErrorContainer>
@@ -154,7 +154,7 @@ export function ChatErrorBox({
         <ErrorMarkdown>{error}</ErrorMarkdown>
       </div>
       <div className="mt-2 space-y-2 space-x-2">
-        {isDyadProEnabled && onStartNewChat && (
+        {isNextBillionProEnabled && onStartNewChat && (
           <Tooltip>
             <TooltipTrigger
               onClick={onStartNewChat}

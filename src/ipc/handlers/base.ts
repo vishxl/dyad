@@ -1,6 +1,9 @@
 import type { IpcMainInvokeEvent } from "electron";
 import { z } from "zod";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   createIpcErrorEnvelope,
   createIpcSuccessEnvelope,
@@ -80,9 +83,9 @@ export function createTypedHandler<
           .map((e) => `${e.path.join(".")}: ${e.message}`)
           .join("; ");
         return createIpcErrorEnvelope(
-          new DyadError(
+          new NextBillionError(
             `[${contract.channel}] Invalid input: ${errorMessage}`,
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           ),
         );
       }
@@ -163,9 +166,9 @@ export function createLoggedTypedHandler(logger: {
           const errorMessage = parsed.error.issues
             .map((e) => `${e.path.join(".")}: ${e.message}`)
             .join("; ");
-          const error = new DyadError(
+          const error = new NextBillionError(
             `[${contract.channel}] Invalid input: ${errorMessage}`,
-            DyadErrorKind.Validation,
+            NextBillionErrorKind.Validation,
           );
           logger.error(`[${contract.channel}] Invalid input`, error);
           return createIpcErrorEnvelope(error);

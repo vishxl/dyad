@@ -12,7 +12,10 @@ import { readSettings } from "@/main/settings";
 import { localTemplatesData } from "@/shared/templates";
 import { themesData } from "@/shared/themes";
 import type { UserSettings } from "@/lib/schemas";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 // Only accept template/theme IDs the model could plausibly know about — the
 // built-in catalogs. Unknown IDs (hallucinated names, API-only template IDs,
@@ -193,7 +196,7 @@ export const writeAppBlueprintTool: ToolDefinition<
       ? escapeXmlAttr(args.primary_color)
       : "";
 
-    return `<dyad-app-blueprint app-name="${appName}" template="${template}" theme="${theme}" design-direction="${designDirection}" primary-color="${primaryColor}" complete="${isComplete}"></dyad-app-blueprint>`;
+    return `<nextbillion-app-blueprint app-name="${appName}" template="${template}" theme="${theme}" design-direction="${designDirection}" primary-color="${primaryColor}" complete="${isComplete}"></nextbillion-app-blueprint>`;
   },
 
   execute: async (args, ctx: AgentContext) => {
@@ -204,9 +207,9 @@ export const writeAppBlueprintTool: ToolDefinition<
       !ctx.appBlueprintQuestionnaireCompleted &&
       ctx.planningQuestionnaireAvailable === false
     ) {
-      throw new DyadError(
+      throw new NextBillionError(
         "The initial app blueprint requires planning_questionnaire, but that tool is disabled in Settings → Build and Agent Permissions. Set planning_questionnaire to Ask or Always allow, then retry this request.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     if (
@@ -214,9 +217,9 @@ export const writeAppBlueprintTool: ToolDefinition<
       !existingBlueprint &&
       !ctx.appBlueprintQuestionnaireCompleted
     ) {
-      throw new DyadError(
+      throw new NextBillionError(
         "The initial app blueprint requires a successfully completed planning_questionnaire. Call planning_questionnaire, wait for the user's answers, then retry write_app_blueprint.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 

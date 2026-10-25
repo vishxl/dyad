@@ -60,37 +60,41 @@ describe("exploreChatHistoryTool contract", () => {
     expect(exploreChatHistoryTool.modifiesState).toBeUndefined();
   });
 
-  it("is enabled only for Dyad Pro contexts", () => {
+  it("is enabled only for NextBillion Pro contexts", () => {
     expect(exploreChatHistoryTool.isEnabled).toBeDefined();
     expect(
-      exploreChatHistoryTool.isEnabled!(makeAgentContext({ isDyadPro: true })),
+      exploreChatHistoryTool.isEnabled!(
+        makeAgentContext({ isNextBillionPro: true }),
+      ),
     ).toBe(true);
     expect(
-      exploreChatHistoryTool.isEnabled!(makeAgentContext({ isDyadPro: false })),
+      exploreChatHistoryTool.isEnabled!(
+        makeAgentContext({ isNextBillionPro: false }),
+      ),
     ).toBe(false);
   });
 });
 
 describe("tool exposure via shouldIncludeTool", () => {
   it("is included for a Pro context", () => {
-    const ctx = makeAgentContext({ isDyadPro: true });
+    const ctx = makeAgentContext({ isNextBillionPro: true });
     expect(shouldIncludeTool(exploreChatHistoryTool, ctx)).toBe(true);
   });
 
   it("is excluded for a non-Pro context", () => {
-    const ctx = makeAgentContext({ isDyadPro: false });
+    const ctx = makeAgentContext({ isNextBillionPro: false });
     expect(shouldIncludeTool(exploreChatHistoryTool, ctx)).toBe(false);
   });
 
   it("is excluded in free-model mode even for Pro (engine-backed)", () => {
-    const ctx = makeAgentContext({ isDyadPro: true });
+    const ctx = makeAgentContext({ isNextBillionPro: true });
     expect(
       shouldIncludeTool(exploreChatHistoryTool, ctx, { freeModelMode: true }),
     ).toBe(false);
   });
 
   it("supersedes search_chats for Pro while keeping read_chat", () => {
-    const ctx = makeAgentContext({ isDyadPro: true });
+    const ctx = makeAgentContext({ isNextBillionPro: true });
     expect(shouldIncludeTool(exploreChatHistoryTool, ctx)).toBe(true);
     expect(shouldIncludeTool(searchChatsTool, ctx)).toBe(false);
     expect(shouldIncludeTool(readChatTool, ctx)).toBe(true);
@@ -98,16 +102,16 @@ describe("tool exposure via shouldIncludeTool", () => {
 
   it("keeps search_chats for non-Pro, and for Pro when the explorer is filtered out", () => {
     // Non-Pro: no explorer, direct search remains.
-    const nonPro = makeAgentContext({ isDyadPro: false });
+    const nonPro = makeAgentContext({ isNextBillionPro: false });
     expect(shouldIncludeTool(searchChatsTool, nonPro)).toBe(true);
     // Pro in free-model mode: the engine-backed explorer is filtered, so
     // hiding search_chats too would leave no history discovery at all.
-    const pro = makeAgentContext({ isDyadPro: true });
+    const pro = makeAgentContext({ isNextBillionPro: true });
     expect(
       shouldIncludeTool(searchChatsTool, pro, { freeModelMode: true }),
     ).toBe(true);
     const child = makeAgentContext({
-      isDyadPro: true,
+      isNextBillionPro: true,
       subagentThreadId: "child-1",
     });
     expect(shouldIncludeTool(exploreChatHistoryTool, child)).toBe(false);
@@ -117,7 +121,7 @@ describe("tool exposure via shouldIncludeTool", () => {
 
 describe("exploreChatHistoryTool.execute", () => {
   it("returns the sub-agent report text", async () => {
-    const ctx = makeAgentContext({ isDyadPro: true });
+    const ctx = makeAgentContext({ isNextBillionPro: true });
     const result = await exploreChatHistoryTool.execute(
       { query: "what did we decide about auth?" },
       ctx,
@@ -133,23 +137,23 @@ describe("exploreChatHistoryTool.execute", () => {
   });
 
   it("streams a pending card with the escaped query and no closing tag", async () => {
-    const ctx = makeAgentContext({ isDyadPro: true });
+    const ctx = makeAgentContext({ isNextBillionPro: true });
     await exploreChatHistoryTool.execute({ query: 'auth "flow" <v2>' }, ctx);
 
     expect(ctx.onXmlStream).toHaveBeenCalled();
     const pending = vi.mocked(ctx.onXmlStream).mock.calls[0][0];
     expect(pending).toContain(
-      '<dyad-explore-chat-history query="auth &quot;flow&quot; &lt;v2&gt;"',
+      '<nextbillion-explore-chat-history query="auth &quot;flow&quot; &lt;v2&gt;"',
     );
     expect(pending).toContain("Exploring chat history…");
-    expect(pending).not.toContain("</dyad-explore-chat-history>");
+    expect(pending).not.toContain("</nextbillion-explore-chat-history>");
     // Stats attributes only appear on the completed card.
     expect(pending).not.toContain("chats=");
     expect(pending).not.toContain("outcome=");
   });
 
   it("streams sub-agent progress through onXmlStream with escaped content", async () => {
-    const ctx = makeAgentContext({ isDyadPro: true });
+    const ctx = makeAgentContext({ isNextBillionPro: true });
     mocks.runExploreChatHistorySubagent.mockImplementation(
       async ({ onProgress }: { onProgress?: (text: string) => void }) => {
         onProgress?.('1. search_chats "login" → 3 chats <partial>');
@@ -167,7 +171,7 @@ describe("exploreChatHistoryTool.execute", () => {
   });
 
   it("completes with stats attributes and escaped report content", async () => {
-    const ctx = makeAgentContext({ isDyadPro: true });
+    const ctx = makeAgentContext({ isNextBillionPro: true });
     await exploreChatHistoryTool.execute(
       { query: "what did we decide about auth?" },
       ctx,
@@ -175,7 +179,7 @@ describe("exploreChatHistoryTool.execute", () => {
 
     expect(ctx.onXmlComplete).toHaveBeenCalledTimes(1);
     const xml = vi.mocked(ctx.onXmlComplete).mock.calls[0][0];
-    expect(xml).toContain("<dyad-explore-chat-history ");
+    expect(xml).toContain("<nextbillion-explore-chat-history ");
     expect(xml).toContain('query="what did we decide about auth?"');
     expect(xml).toContain('chats="2"');
     expect(xml).toContain('evidence="3"');
@@ -184,7 +188,7 @@ describe("exploreChatHistoryTool.execute", () => {
       "Decided on &lt;magic-link&gt; auth &amp; sessions [chat 4, message 7]",
     );
     expect(xml).not.toContain("<magic-link>");
-    expect(xml).toContain("</dyad-explore-chat-history>");
+    expect(xml).toContain("</nextbillion-explore-chat-history>");
   });
 });
 

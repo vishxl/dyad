@@ -1,13 +1,13 @@
 /**
  * setupChatFlowHarness — a fast, parallel-safe vitest integration harness that
- * exercises the REAL dyad chat flow without launching Electron.
+ * exercises the REAL nextbillion chat flow without launching Electron.
  *
  * What is real: the `chat:stream` IPC handler, a real sqlite db built by the
  * app's own `initializeDatabase()`, real settings via `writeSettings`, a real
  * git checkout of an e2e fixture app, the real AI-SDK streaming client talking
  * HTTP to the real fake-LLM server (the same one the Playwright suite uses,
  * serving `e2e-tests/fixtures/*.md` via the `tc=<name>` protocol), and the real
- * response processor (dyad-tag parsing, file writes, git commits, db messages).
+ * response processor (nextbillion-tag parsing, file writes, git commits, db messages).
  *
  * What is mocked: only the `electron` module (see ./electron_mock).
  *
@@ -87,16 +87,16 @@ let activeChatFlowHarness = false;
 
 /** Every env var the harness may write; snapshotted at setup, restored at dispose. */
 const HARNESS_ENV_KEYS = [
-  "DYAD_DEV_USER_DATA_DIR",
+  "NEXTBILLION_DEV_USER_DATA_DIR",
   "FAKE_LLM_DUMP_DIR",
   "FAKE_LLM_FIXTURES_DIR",
   "FAKE_LLM_QUIET",
-  "DYAD_LANGUAGE_MODEL_CATALOG_URL",
-  "DYAD_MCP_CATALOG_URL",
-  "DYAD_ENGINE_URL",
-  "DYAD_GATEWAY_URL",
-  "DYAD_USER_INFO_URL",
-  "DYAD_SUBSCRIPTION_STATUS_URL",
+  "NEXTBILLION_LANGUAGE_MODEL_CATALOG_URL",
+  "NEXTBILLION_MCP_CATALOG_URL",
+  "NEXTBILLION_ENGINE_URL",
+  "NEXTBILLION_GATEWAY_URL",
+  "NEXTBILLION_USER_INFO_URL",
+  "NEXTBILLION_SUBSCRIPTION_STATUS_URL",
 ] as const;
 
 function snapshotHarnessEnv(): Map<string, string | undefined> {
@@ -172,7 +172,7 @@ export interface ChatFlowHarnessOptions {
    */
   useFakeCatalog?: boolean;
   /**
-   * Point Dyad Engine and Gateway calls at this harness's fake LLM server.
+   * Point NextBillion Engine and Gateway calls at this harness's fake LLM server.
    * Useful for Pro/local-agent fixtures without import-time env relay setup.
    */
   engine?: boolean;
@@ -317,7 +317,7 @@ export async function setupChatFlowHarness(
     // Unique, collision-proof temp root (pid + randomness), parallel-safe.
     tmpRoot = path.join(
       os.tmpdir(),
-      `dyad-chat-flow-${process.pid}-${Math.random().toString(36).slice(2, 10)}`,
+      `nextbillion-chat-flow-${process.pid}-${Math.random().toString(36).slice(2, 10)}`,
     );
     const userDataDir = path.join(tmpRoot, "userData");
     const dumpDir = path.join(tmpRoot, "fake-llm-dumps");
@@ -325,7 +325,7 @@ export async function setupChatFlowHarness(
     fs.mkdirSync(userDataDir, { recursive: true });
     fs.mkdirSync(dumpDir, { recursive: true });
 
-    process.env.DYAD_DEV_USER_DATA_DIR = userDataDir;
+    process.env.NEXTBILLION_DEV_USER_DATA_DIR = userDataDir;
     process.env.FAKE_LLM_DUMP_DIR = dumpDir;
     process.env.FAKE_LLM_FIXTURES_DIR = FIXTURES_ROOT;
     if (!options.verboseFakeLlm) {
@@ -339,7 +339,7 @@ export async function setupChatFlowHarness(
     const tmpRootPath = tmpRoot;
 
     if (options.useFakeCatalog !== false) {
-      process.env.DYAD_LANGUAGE_MODEL_CATALOG_URL = `${fakeLlmUrl}/api/language-model-catalog`;
+      process.env.NEXTBILLION_LANGUAGE_MODEL_CATALOG_URL = `${fakeLlmUrl}/api/language-model-catalog`;
     }
     // Local-agent turns read the MCP catalog to decide whether
     // suggest_plugin is available. Always keep that off the real network,
@@ -347,15 +347,15 @@ export async function setupChatFlowHarness(
     // real plugins to a headless run, and a suggestion parks the turn until
     // someone answers. A test that serves its own catalog keeps its URL.
     // The clear drops anything a previous harness in this process cached.
-    process.env.DYAD_MCP_CATALOG_URL ??= `${fakeLlmUrl}/api/mcp-catalog`;
+    process.env.NEXTBILLION_MCP_CATALOG_URL ??= `${fakeLlmUrl}/api/mcp-catalog`;
     clearMcpCatalogCacheForTests();
-    // Always fake the Dyad Pro user-info endpoint: any test that configures an
+    // Always fake the NextBillion Pro user-info endpoint: any test that configures an
     // auto API key would otherwise send get-user-budget requests to the real
-    // api.dyad.sh.
-    process.env.DYAD_USER_INFO_URL = `${fakeLlmUrl}/api/user/info`;
+    // the real API host.
+    process.env.NEXTBILLION_USER_INFO_URL = `${fakeLlmUrl}/api/user/info`;
     if (options.engine) {
-      process.env.DYAD_ENGINE_URL = `${fakeLlmUrl}/engine/v1`;
-      process.env.DYAD_GATEWAY_URL = `${fakeLlmUrl}/gateway/v1`;
+      process.env.NEXTBILLION_ENGINE_URL = `${fakeLlmUrl}/engine/v1`;
+      process.env.NEXTBILLION_GATEWAY_URL = `${fakeLlmUrl}/gateway/v1`;
     }
 
     // 2. Real sqlite db (drizzle migrations) in the temp userData dir.

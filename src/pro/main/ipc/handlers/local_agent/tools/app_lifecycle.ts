@@ -1,6 +1,9 @@
 import { z } from "zod";
 
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { appRunActorService } from "@/ipc/services/app_run_actor_service";
 import type { AgentContext, ToolDefinition } from "./types";
 
@@ -9,14 +12,14 @@ const REBUILD_READY_TIMEOUT_MS = 10 * 60 * 1_000;
 
 function buildLifecycleXml(title: string, state?: "finished"): string {
   const stateAttr = state ? ` state="${state}"` : "";
-  return `<dyad-status title="${title}"${stateAttr}></dyad-status>`;
+  return `<nextbillion-status title="${title}"${stateAttr}></nextbillion-status>`;
 }
 
 function assertLifecycleCanStart(ctx: AgentContext): void {
   if (ctx.abortSignal?.aborted) {
-    throw new DyadError(
+    throw new NextBillionError(
       "The app lifecycle operation was cancelled before it started",
-      DyadErrorKind.UserCancelled,
+      NextBillionErrorKind.UserCancelled,
     );
   }
 }

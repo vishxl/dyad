@@ -27,9 +27,9 @@ describe("chat mode preconditions", () => {
       selectedModel: { provider: "auto", name: "free-pro" },
       settings: {
         defaultChatMode: "build",
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: {
-          auto: { apiKey: { value: "dyad-pro-key" } },
+          auto: { apiKey: { value: "nextbillion-pro-key" } },
         },
       },
     });

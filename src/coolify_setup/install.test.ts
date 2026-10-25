@@ -7,10 +7,10 @@ import {
 } from "./install";
 import { SshError } from "@/ipc/utils/ssh_client";
 import type { SshSession } from "@/ipc/utils/ssh_client";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 
 /**
- * What Dyad concludes when a server does not answer properly.
+ * What NextBillion concludes when a server does not answer properly.
  *
  * The interesting cases here are not the ones where a server says something
  * unexpected — they are the ones where it says nothing at all, because every
@@ -26,16 +26,16 @@ const HEALTHY = "mem=1967\ncontainer=\nbusy=no";
 /** What a tinker script's output looks like coming back off the wire. */
 function transcript(output: string): string {
   return [
-    '> echo "__DYAD_OUT_START__" . PHP_EOL;',
-    "> __DYAD_OUT_START__",
+    '> echo "__NEXTBILLION_OUT_START__" . PHP_EOL;',
+    "> __NEXTBILLION_OUT_START__",
     output,
-    "__DYAD_OUT_END__",
+    "__NEXTBILLION_OUT_END__",
   ].join("\n");
 }
 
 describe("what the installer is sent", () => {
   const CREDENTIALS = {
-    username: "dyad",
+    username: "nextbillion",
     email: "me@gmail.com",
     password: "Abc123@xyz",
   };
@@ -90,7 +90,7 @@ describe("what the installer is sent", () => {
 
 describe("rendering an install failure", () => {
   const CREDENTIALS = {
-    username: "dyad",
+    username: "nextbillion",
     email: "me@gmail.com",
     password: "Abc123@xyz",
   };
@@ -250,7 +250,7 @@ describe("a server that answers the connection but not the question", () => {
     );
 
     await installCoolify(session, {
-      username: "dyad-admin",
+      username: "nextbillion-admin",
       email: "me@gmail.com",
       password: "Abc123@xyz",
     });
@@ -285,7 +285,7 @@ describe("waiting for the admin account", () => {
 
   it("hands back a server to sign in to when the seeder itself dies", async () => {
     // Coolify is on the machine either way. Ending the run here would report
-    // an install that did not happen and take the password Dyad invented down
+    // an install that did not happen and take the password NextBillion invented down
     // with it, when the honest answer is to go and sign in by hand.
     const session = sessionAnswering(
       vi.fn(async (command: string) => {
@@ -324,7 +324,7 @@ describe("waiting for the admin account", () => {
         attemptTimeoutMs: 20,
         signal: controller.signal,
       }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.UserCancelled });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.UserCancelled });
   });
 
   it("sees the account past a notice printed beside the answer", async () => {
@@ -385,7 +385,7 @@ describe("waiting for the admin account", () => {
           throw new SshError(
             "command-timeout",
             "The server did not answer in time.",
-            DyadErrorKind.External,
+            NextBillionErrorKind.External,
           );
         }
         return { code: 0, stdout: transcript("yes"), stderr: "" };
@@ -420,7 +420,7 @@ describe("waiting for the admin account", () => {
         throw new SshError(
           "command-timeout",
           "The server did not answer in time.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }) as never,
     );
@@ -447,7 +447,7 @@ describe("waiting for the admin account", () => {
         throw new SshError(
           "timeout",
           "The server stopped answering.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }) as never,
     );

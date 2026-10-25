@@ -20,7 +20,10 @@ import {
   escapeXmlContent,
   type AgentContext,
 } from "../tools/types";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   deleteSupabaseFunction,
   withSupabaseFunctionDeployment,
@@ -98,7 +101,7 @@ function renderSupabaseDeployStatus(progress: SupabaseDeployProgress): string {
     content.push(`Latest: ${progress.functionName}`);
   }
 
-  return `<dyad-status title="${escapeXmlAttr(title)}" state="${state}">\n${escapeXmlContent(content.join("\n"))}${isComplete ? "\n</dyad-status>" : ""}`;
+  return `<nextbillion-status title="${escapeXmlAttr(title)}" state="${state}">\n${escapeXmlContent(content.join("\n"))}${isComplete ? "\n</nextbillion-status>" : ""}`;
 }
 
 /**
@@ -333,9 +336,9 @@ export async function commitAllChanges(
         };
       } catch (error) {
         logger.error(`Failed to commit changes: ${error}`);
-        throw new DyadError(
+        throw new NextBillionError(
           `Failed to commit changes: ${error}`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
     },

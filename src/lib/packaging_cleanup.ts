@@ -229,7 +229,7 @@ export async function removeUnusedAppPackageFiles(
     ),
     pruneBetterSqlite3(path.join(appPath, "node_modules", "better-sqlite3")),
     pruneKeychainReader(
-      path.join(appPath, "node_modules", "dyad-keychain-reader"),
+      path.join(appPath, "node_modules", "nextbillion-keychain-reader"),
     ),
   ]);
 }
@@ -284,7 +284,7 @@ async function pruneElectronLocalePaks(resourcesPath: string): Promise<void> {
 }
 
 // dugite-native's git distribution bundles Git Credential Manager (GCM), a
-// self-contained .NET application. Dyad never invokes it: git auth is handled
+// self-contained .NET application. NextBillion never invokes it: git auth is handled
 // with access tokens and credential helpers are explicitly disabled. GCM and
 // its runtime account for ~105MB on macOS, ~83MB on Linux, and ~26MB on
 // Windows, so it is pruned from the packaged app.
@@ -431,7 +431,7 @@ async function pruneGitDistribution(
   const gitPath = path.join(resourcesPath, "git");
   if (platform === "win32") {
     await pruneGitCredentialManagerWindows(gitPath);
-    // git-lfs (unused by Dyad; removed on Unix below)
+    // git-lfs (unused by NextBillion; removed on Unix below)
     await Promise.all(
       WINDOWS_MINGW_SUBFOLDERS.map((subfolder) =>
         rmIfExists(
@@ -456,14 +456,14 @@ function getResourcePaths(
     return {
       appResourcesPath: path.join(
         buildPath,
-        "dyad.app",
+        "nextbillion.app",
         "Contents",
         "Resources",
       ),
       electronLocaleResourcePaths: [
         path.join(
           buildPath,
-          "dyad.app",
+          "nextbillion.app",
           "Contents",
           "Frameworks",
           "Electron Framework.framework",

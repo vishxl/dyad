@@ -22,7 +22,7 @@ const SERVER_TIME_TIMEOUT_MS = 5000;
 
 /**
  * Fetches the current time from a trusted server to prevent clock manipulation.
- * Uses the HTTP Date header from api.dyad.sh.
+ * Uses the HTTP Date header from the external API host.
  * Falls back to local time if the server is unreachable (but logs a warning).
  */
 async function getServerTime(): Promise<number> {

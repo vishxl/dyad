@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import { renameLegacySettingKeys } from "../lib/legacy_settings";
 import path from "node:path";
 import { getUserDataPath } from "../paths/paths";
 import {
@@ -27,7 +28,10 @@ import {
   getRemoteDesktopConfig,
   type RemoteDesktopConfig,
 } from "@/ipc/shared/remote_desktop_config";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { ZodError } from "zod";
 import {
   getRecoveryStats,
@@ -520,16 +524,16 @@ export function tryWriteSettings(
   }
 }
 
-function toSettingsWriteError(error: unknown): DyadError {
-  if (error instanceof DyadError) {
+function toSettingsWriteError(error: unknown): NextBillionError {
+  if (error instanceof NextBillionError) {
     return error;
   }
   const message = error instanceof Error ? error.message : String(error);
   const kind =
     error instanceof ZodError
-      ? DyadErrorKind.Validation
-      : DyadErrorKind.External;
-  return new DyadError(`Failed to write settings: ${message}`, kind, {
+      ? NextBillionErrorKind.Validation
+      : NextBillionErrorKind.External;
+  return new NextBillionError(`Failed to write settings: ${message}`, kind, {
     cause: error,
   });
 }
@@ -715,7 +719,7 @@ function readExistingSettingsFile(
       };
     } else {
       // The address is not a secret and survives a token that will not
-      // decrypt, so the user is not asked to retype what Dyad still knows.
+      // decrypt, so the user is not asked to retype what NextBillion still knows.
       const { accessToken: _dropped, ...rest } = combinedSettings.coolify;
       combinedSettings.coolify = rest;
     }
@@ -777,7 +781,9 @@ function readExistingSettingsFile(
   }
 
   // Validate stored settings (allows deprecated values like "agent" chat mode)
-  const storedSettings = StoredUserSettingsSchema.parse(combinedSettings);
+  const storedSettings = StoredUserSettingsSchema.parse(
+    renameLegacySettingKeys(combinedSettings),
+  );
   // "conservative" is deprecated, use undefined to use the default value
   if (storedSettings.proSmartContextOption === "conservative") {
     storedSettings.proSmartContextOption = undefined;
@@ -1052,7 +1058,7 @@ function readSettingsForWrite(filePath: string): {
     logger.error("Existing settings file is unreadable:", error);
     notifyRendererError({
       message:
-        "Dyad could not read your existing settings file, so it fell back to default settings.",
+        "NextBillion could not read your existing settings file, so it fell back to default settings.",
     });
     return { settings: DEFAULT_SETTINGS, wasUnreadable: true, preserved: [] };
   }

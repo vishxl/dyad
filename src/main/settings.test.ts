@@ -22,7 +22,10 @@ import {
 } from "@/main/settings";
 import { getUserDataPath } from "@/paths/paths";
 import { forgottenCoolify, UserSettings } from "@/lib/schemas";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { getRemoteDesktopConfig } from "@/ipc/shared/remote_desktop_config";
 import {
   getRecoveryStats,
@@ -554,7 +557,10 @@ describe("readSettings", () => {
     it("should return default settings when file read fails", () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.readFileSync.mockImplementation(() => {
-        throw new DyadError("File read error", DyadErrorKind.External);
+        throw new NextBillionError(
+          "File read error",
+          NextBillionErrorKind.External,
+        );
       });
 
       const result = readSettings();
@@ -670,7 +676,10 @@ describe("readSettings", () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockFileContent));
       mockSafeStorage.decryptString.mockImplementation(() => {
-        throw new DyadError("Decryption failed", DyadErrorKind.External);
+        throw new NextBillionError(
+          "Decryption failed",
+          NextBillionErrorKind.External,
+        );
       });
 
       const result = readSettings();
@@ -740,7 +749,10 @@ describe("readSettings", () => {
       mockFs.existsSync.mockReturnValue(true);
       mockFs.readFileSync.mockReturnValue(JSON.stringify(mockFileContent));
       mockSafeStorage.decryptString.mockImplementationOnce(() => {
-        throw new DyadError("Decryption failed", DyadErrorKind.External);
+        throw new NextBillionError(
+          "Decryption failed",
+          NextBillionErrorKind.External,
+        );
       });
 
       const result = readSettings();
@@ -924,9 +936,11 @@ describe("writeSettings", () => {
       thrown = error;
     }
 
-    expect(thrown).toBeInstanceOf(DyadError);
-    expect((thrown as DyadError).kind).toBe(DyadErrorKind.External);
-    expect((thrown as DyadError).cause).toBeInstanceOf(Error);
+    expect(thrown).toBeInstanceOf(NextBillionError);
+    expect((thrown as NextBillionError).kind).toBe(
+      NextBillionErrorKind.External,
+    );
+    expect((thrown as NextBillionError).cause).toBeInstanceOf(Error);
     expect((thrown as Error).message).toContain(
       "Failed to write settings: disk full",
     );
@@ -945,9 +959,11 @@ describe("writeSettings", () => {
       thrown = error;
     }
 
-    expect(thrown).toBeInstanceOf(DyadError);
-    expect((thrown as DyadError).kind).toBe(DyadErrorKind.Validation);
-    expect((thrown as DyadError).cause).toBeInstanceOf(ZodError);
+    expect(thrown).toBeInstanceOf(NextBillionError);
+    expect((thrown as NextBillionError).kind).toBe(
+      NextBillionErrorKind.Validation,
+    );
+    expect((thrown as NextBillionError).cause).toBeInstanceOf(ZodError);
   });
 
   it("returns false instead of throwing for best-effort settings writes", () => {
@@ -1154,7 +1170,7 @@ describe("preserving undecryptable secrets", () => {
   });
 
   it("puts the Coolify admin password through encryption", () => {
-    // Dyad made this one up and is the only thing holding it, which is a
+    // NextBillion made this one up and is the only thing holding it, which is a
     // reason to keep it readable and not a reason to keep it in the clear.
     writeSettings({
       coolify: {

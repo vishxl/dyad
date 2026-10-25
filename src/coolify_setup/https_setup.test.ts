@@ -8,14 +8,17 @@ import {
   tryEnableHttps,
 } from "./https_setup";
 import type { SshSession } from "@/ipc/utils/ssh_client";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 function transcript(output: string): string {
   return [
-    '> echo "__DYAD_OUT_START__" . PHP_EOL;',
-    "> __DYAD_OUT_START__",
+    '> echo "__NEXTBILLION_OUT_START__" . PHP_EOL;',
+    "> __NEXTBILLION_OUT_START__",
     output,
-    "__DYAD_OUT_END__",
+    "__NEXTBILLION_OUT_END__",
   ].join("\n");
 }
 
@@ -142,7 +145,7 @@ describe("applyInstanceDomain", () => {
 
     expect(scripts[0]).not.toContain("coolify.example.com");
     expect(commands[0]).toContain(
-      "-e DYAD_INSTANCE_DOMAIN='coolify.example.com'",
+      "-e NEXTBILLION_INSTANCE_DOMAIN='coolify.example.com'",
     );
   });
 
@@ -541,7 +544,7 @@ describe("tryEnableHttps", () => {
 
   it("still accepts a custom domain whose name simply has no records yet", async () => {
     // The resolver answered. A name minutes old has nothing to say and the
-    // certificate wait is the real test, which is not the same as Dyad never
+    // certificate wait is the real test, which is not the same as NextBillion never
     // having got an answer at all.
     const { session } = fakeSession();
     const result = await tryEnableHttps(session, "203.0.113.5", {
@@ -802,7 +805,10 @@ describe("tryEnableHttps", () => {
         applies += 1;
         if (applies === 1) {
           controller.abort();
-          throw new DyadError("Cancelled.", DyadErrorKind.UserCancelled);
+          throw new NextBillionError(
+            "Cancelled.",
+            NextBillionErrorKind.UserCancelled,
+          );
         }
         return { code: 0, stdout: transcript("applied"), stderr: "" };
       }) as unknown as SshSession["run"],

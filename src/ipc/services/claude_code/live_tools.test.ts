@@ -4,13 +4,15 @@ import { mkdtemp, rm, writeFile, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
-import { createDyadToolBridge } from "./tool_bridge";
+import { createNextBillionToolBridge } from "./tool_bridge";
 import { runClaudeTurn } from "./runtime";
 
-it.skipIf(process.env.DYAD_REAL_CLAUDE_SMOKE !== "1")(
+it.skipIf(process.env.NEXTBILLION_REAL_CLAUDE_SMOKE !== "1")(
   "live CLI has no native operations and invokes only the host tool",
   async () => {
-    const directory = await mkdtemp(path.join(tmpdir(), "dyad-cli-tools-"));
+    const directory = await mkdtemp(
+      path.join(tmpdir(), "nextbillion-cli-tools-"),
+    );
     const abort = new AbortController();
     const invocations: unknown[] = [];
     const tools = {
@@ -19,7 +21,7 @@ it.skipIf(process.env.DYAD_REAL_CLAUDE_SMOKE !== "1")(
         inputSchema: z.object({ text: z.string() }),
       },
     };
-    const bridge = await createDyadToolBridge({
+    const bridge = await createNextBillionToolBridge({
       tools,
       signal: abort.signal,
       invoke: async (_name, args) => {
@@ -34,14 +36,14 @@ it.skipIf(process.env.DYAD_REAL_CLAUDE_SMOKE !== "1")(
       await runClaudeTurn({
         cwd: directory,
         prompt:
-          'Use mcp__dyad__write_fixture to write exactly "fixture-ready", then reply done.',
+          'Use mcp__nextbillion__write_fixture to write exactly "fixture-ready", then reply done.',
         model: "sonnet",
         sessionId: randomUUID(),
         resume: false,
 
         signal: abort.signal,
         mcpConfigPath: bridge.configPath,
-        dyadTools: bridge.names,
+        nextBillionTools: bridge.names,
         onEvent: async (event) => {
           events.push(event);
         },
@@ -55,7 +57,7 @@ it.skipIf(process.env.DYAD_REAL_CLAUDE_SMOKE !== "1")(
           .sort(),
       ).toEqual([...bridge.names].sort());
       expect(startup?.mcp_servers).toMatchObject([
-        { name: "dyad", status: "connected" },
+        { name: "nextbillion", status: "connected" },
       ]);
       expect(invocations).toEqual([{ text: "fixture-ready" }]);
       expect(await readFile(path.join(directory, "fixture.txt"), "utf8")).toBe(
@@ -73,13 +75,15 @@ it.skipIf(process.env.DYAD_REAL_CLAUDE_SMOKE !== "1")(
   180_000,
 );
 
-it.skipIf(process.env.DYAD_REAL_CLAUDE_SMOKE !== "1")(
+it.skipIf(process.env.NEXTBILLION_REAL_CLAUDE_SMOKE !== "1")(
   "live CLI keeps a human-decision MCP call pending beyond its default request timeout",
   async () => {
-    const directory = await mkdtemp(path.join(tmpdir(), "dyad-cli-wait-"));
+    const directory = await mkdtemp(
+      path.join(tmpdir(), "nextbillion-cli-wait-"),
+    );
     const abort = new AbortController();
     let invocations = 0;
-    const bridge = await createDyadToolBridge({
+    const bridge = await createNextBillionToolBridge({
       tools: {
         wait_for_answer: {
           description: "Wait for the user's answer",
@@ -112,7 +116,7 @@ it.skipIf(process.env.DYAD_REAL_CLAUDE_SMOKE !== "1")(
 
         signal: abort.signal,
         mcpConfigPath: bridge.configPath,
-        dyadTools: bridge.names,
+        nextBillionTools: bridge.names,
         onEvent: async (event) => {
           if (event.type === "result") result = event;
         },
@@ -129,14 +133,16 @@ it.skipIf(process.env.DYAD_REAL_CLAUDE_SMOKE !== "1")(
   180_000,
 );
 
-it.skipIf(process.env.DYAD_REAL_CLAUDE_SMOKE !== "1")(
+it.skipIf(process.env.NEXTBILLION_REAL_CLAUDE_SMOKE !== "1")(
   "workflow interruption flushes authoritative usage without another tool invocation",
   async () => {
-    const directory = await mkdtemp(path.join(tmpdir(), "dyad-cli-interrupt-"));
+    const directory = await mkdtemp(
+      path.join(tmpdir(), "nextbillion-cli-interrupt-"),
+    );
     const abort = new AbortController();
     const watchdog = setTimeout(() => abort.abort(), 90_000);
     let calls = 0;
-    const bridge = await createDyadToolBridge({
+    const bridge = await createNextBillionToolBridge({
       tools: {
         write_plan: {
           description: "Save a plan and stop for human review",
@@ -165,7 +171,7 @@ it.skipIf(process.env.DYAD_REAL_CLAUDE_SMOKE !== "1")(
 
         signal: abort.signal,
         mcpConfigPath: bridge.configPath,
-        dyadTools: bridge.names,
+        nextBillionTools: bridge.names,
         onEvent: async (event) => {
           if (event.type === "result") result = event;
           if (event.type === "user" && calls) return "interrupt";

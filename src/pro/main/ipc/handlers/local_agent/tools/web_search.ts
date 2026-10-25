@@ -7,7 +7,10 @@ import {
   escapeXmlContent,
 } from "./types";
 import { engineFetch } from "./engine_fetch";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const logger = log.scope("web_search");
 
@@ -72,9 +75,9 @@ function parseSSEEvents(
       if (json.error) {
         const errorMessage =
           json.error.message || json.error.type || "Unknown SSE error";
-        throw new DyadError(
+        throw new NextBillionError(
           `Web search SSE error: ${errorMessage}`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
 
@@ -103,7 +106,7 @@ async function callWebSearchSSE(
   query: string,
   ctx: AgentContext,
 ): Promise<string> {
-  ctx.onXmlStream(`<dyad-web-search query="${escapeXmlAttr(query)}">`);
+  ctx.onXmlStream(`<nextbillion-web-search query="${escapeXmlAttr(query)}">`);
 
   const response = await engineFetch(ctx, "/tools/web-search", {
     method: "POST",
@@ -121,9 +124,9 @@ async function callWebSearchSSE(
   }
 
   if (!response.body) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Web search response has no body",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 
@@ -146,9 +149,9 @@ async function callWebSearchSSE(
       // Parse SSE events and accumulate content
       buffer = parseSSEEvents(buffer, (content) => {
         accumulated += content;
-        // Stream intermediate results to UI with dyad-web-search prefix
+        // Stream intermediate results to UI with nextbillion-web-search prefix
         ctx.onXmlStream(
-          `<dyad-web-search query="${escapeXmlAttr(query)}">${escapeXmlContent(accumulated)}`,
+          `<nextbillion-web-search query="${escapeXmlAttr(query)}">${escapeXmlContent(accumulated)}`,
         );
       });
     }
@@ -178,8 +181,8 @@ export const webSearchTool: ToolDefinition<z.infer<typeof webSearchSchema>> = {
   defaultConsent: "ask",
   usesEngineEndpoint: true,
 
-  // Requires Dyad Pro engine API
-  isEnabled: (ctx) => ctx.isDyadPro,
+  // Requires NextBillion Pro engine API
+  isEnabled: (ctx) => ctx.isNextBillionPro,
 
   getConsentPreview: (args) => `Search the web: "${args.query}"`,
 
@@ -189,15 +192,15 @@ export const webSearchTool: ToolDefinition<z.infer<typeof webSearchSchema>> = {
     const result = await callWebSearchSSE(args.query, ctx);
 
     if (!result) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Web search returned no results",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
-    // Write final result to UI and DB with dyad-web-search wrapper
+    // Write final result to UI and DB with nextbillion-web-search wrapper
     ctx.onXmlComplete(
-      `<dyad-web-search query="${escapeXmlAttr(args.query)}">${escapeXmlContent(result)}</dyad-web-search>`,
+      `<nextbillion-web-search query="${escapeXmlAttr(args.query)}">${escapeXmlContent(result)}</nextbillion-web-search>`,
     );
 
     logger.log(`Web search completed for query: ${args.query}`);

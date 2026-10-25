@@ -1,12 +1,12 @@
 /**
  * Rewrites preview URLs for remote (hosted) deployments.
  *
- * In a hosted deployment (see context/dyad-web-deployment.md) teammates' browsers
+ * In a hosted deployment (see context/nextbillion-web-deployment.md) teammates' browsers
  * cannot reach the server host's `localhost:<proxyPort>` preview origins. When
  * VITE_PREVIEW_URL_TEMPLATE is set (e.g. "https://1-2-3-4-5-6.sslip.io/preview/{port}"),
  * the preview origin is rewritten to the template with {port} filled from the URL.
  * The reverse proxy strips the /preview/<port> prefix and forwards to 127.0.0.1:<port>
- * (worker/proxy_server.js supports this via DYAD_PREVIEW_PUBLIC_URL_BASE).
+ * (worker/proxy_server.js supports this via NEXTBILLION_PREVIEW_PUBLIC_URL_BASE).
  *
  * Unset env → URLs pass through unchanged (local dev / desktop behavior identical).
  */

@@ -6,7 +6,11 @@ import {
   type InvocationRef,
   type InvocationClaim,
 } from "../../state_machines/invocation_ref";
-import { DyadError, DyadErrorKind, isDyadError } from "../../errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "../../errors/nextbillion_error";
 import type { QueryInvalidationScope } from "../../window_infrastructure/types";
 
 // =============================================================================
@@ -186,8 +190,8 @@ export type EventChannel<T> = T extends EventContract<infer C, any> ? C : never;
 // Client Generators
 // =============================================================================
 
-const IPC_ENVELOPE_MARKER = "dyad-ipc-envelope-v1";
-const IPC_DATE_TAG = "__dyadDate";
+const IPC_ENVELOPE_MARKER = "nextbillion-ipc-envelope-v1";
+const IPC_DATE_TAG = "__nextBillionDate";
 
 /**
  * Encode Date instances for a JSON transport (browser mode). Electron IPC uses
@@ -236,26 +240,26 @@ export function reviveIpcDates(value: unknown): unknown {
 export interface SerializedIpcError {
   name?: string;
   message: string;
-  kind?: DyadErrorKind;
+  kind?: NextBillionErrorKind;
   code?: string;
   stack?: string;
 }
 
 export type IpcInvokeEnvelope<T = unknown> =
   | {
-      __dyadIpcEnvelope: typeof IPC_ENVELOPE_MARKER;
+      __nextBillionIpcEnvelope: typeof IPC_ENVELOPE_MARKER;
       ok: true;
       value: T;
     }
   | {
-      __dyadIpcEnvelope: typeof IPC_ENVELOPE_MARKER;
+      __nextBillionIpcEnvelope: typeof IPC_ENVELOPE_MARKER;
       ok: false;
       error: SerializedIpcError;
     };
 
 export function createIpcSuccessEnvelope<T>(value: T): IpcInvokeEnvelope<T> {
   return {
-    __dyadIpcEnvelope: IPC_ENVELOPE_MARKER,
+    __nextBillionIpcEnvelope: IPC_ENVELOPE_MARKER,
     ok: true,
     value,
   };
@@ -263,7 +267,7 @@ export function createIpcSuccessEnvelope<T>(value: T): IpcInvokeEnvelope<T> {
 
 export function createIpcErrorEnvelope(error: unknown): IpcInvokeEnvelope {
   return {
-    __dyadIpcEnvelope: IPC_ENVELOPE_MARKER,
+    __nextBillionIpcEnvelope: IPC_ENVELOPE_MARKER,
     ok: false,
     error: serializeIpcError(error),
   };
@@ -275,8 +279,8 @@ export function isIpcInvokeEnvelope(
   return (
     typeof value === "object" &&
     value !== null &&
-    (value as { __dyadIpcEnvelope?: unknown }).__dyadIpcEnvelope ===
-      IPC_ENVELOPE_MARKER &&
+    (value as { __nextBillionIpcEnvelope?: unknown })
+      .__nextBillionIpcEnvelope === IPC_ENVELOPE_MARKER &&
     typeof (value as { ok?: unknown }).ok === "boolean"
   );
 }
@@ -289,7 +293,7 @@ export function serializeIpcError(error: unknown): SerializedIpcError {
       ? (error as { code: string }).code
       : undefined;
 
-  if (isDyadError(error)) {
+  if (isNextBillionError(error)) {
     return {
       name: error.name,
       message: error.message,
@@ -311,22 +315,23 @@ export function serializeIpcError(error: unknown): SerializedIpcError {
   return { message: String(error), code };
 }
 
-function isDyadErrorKind(value: unknown): value is DyadErrorKind {
+function isNextBillionErrorKind(value: unknown): value is NextBillionErrorKind {
   return (
     typeof value === "string" &&
-    Object.values(DyadErrorKind).includes(value as DyadErrorKind)
+    Object.values(NextBillionErrorKind).includes(value as NextBillionErrorKind)
   );
 }
 
 export function deserializeIpcError(error: SerializedIpcError): Error {
-  if (isDyadErrorKind(error.kind)) {
-    const dyadError = new DyadError(error.message, error.kind);
-    dyadError.name = error.name ?? dyadError.name;
+  if (isNextBillionErrorKind(error.kind)) {
+    const nextBillionError = new NextBillionError(error.message, error.kind);
+    nextBillionError.name = error.name ?? nextBillionError.name;
     if (error.code !== undefined) {
-      (dyadError as DyadError & { code: string }).code = error.code;
+      (nextBillionError as NextBillionError & { code: string }).code =
+        error.code;
     }
-    dyadError.stack = error.stack;
-    return dyadError;
+    nextBillionError.stack = error.stack;
+    return nextBillionError;
   }
 
   const genericError = new Error(error.message);
@@ -350,7 +355,7 @@ export function createBrowserIpcBridge(options?: {
   wsUrl?: string;
 }) {
   // Optional shared secret for the headless RPC surface. The launcher passes
-  // the same value to the server (DYAD_RPC_TOKEN) and to Vite
+  // the same value to the server (NEXTBILLION_RPC_TOKEN) and to Vite
   // (VITE_RPC_TOKEN); when set, every /rpc request and /ws connection must
   // present it. Defensive access to import.meta.env keeps non-Vite consumers
   // of this module working.
@@ -364,7 +369,9 @@ export function createBrowserIpcBridge(options?: {
     }
   })();
 
-  const rpcHeaders = rpcToken ? { "x-dyad-rpc-token": rpcToken } : undefined;
+  const rpcHeaders = rpcToken
+    ? { "x-nextbillion-rpc-token": rpcToken }
+    : undefined;
 
   const getOrigin = () => {
     if (typeof window === "undefined") {
@@ -420,7 +427,7 @@ export function createBrowserIpcBridge(options?: {
           listener(reviveIpcDates(payload));
         }
       } catch {
-        // Ignore malformed browser event frames; they are not valid Dyad events.
+        // Ignore malformed browser event frames; they are not valid NextBillion events.
       }
     });
 

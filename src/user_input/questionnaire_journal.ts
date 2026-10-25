@@ -12,7 +12,10 @@ import { z } from "zod";
 import { UserInputQuestionSchema } from "@/ipc/types/user_input";
 import { getUserDataPath } from "@/paths/paths";
 import type { UserInputQuestion, UserInputParkValue } from "./state";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 export interface QuestionnaireReceipt {
   requestId: string;
@@ -33,14 +36,17 @@ const receiptSchema = z.object({
 const directory = () => path.join(getUserDataPath(), "questionnaire-receipts");
 function chatDirectory(chatId: number) {
   if (!Number.isSafeInteger(chatId) || chatId <= 0)
-    throw new DyadError("Invalid questionnaire chat", DyadErrorKind.Validation);
+    throw new NextBillionError(
+      "Invalid questionnaire chat",
+      NextBillionErrorKind.Validation,
+    );
   return path.join(directory(), String(chatId));
 }
 function file(chatId: number, requestId: string) {
   if (!/^[a-zA-Z0-9_-]+$/.test(requestId))
-    throw new DyadError(
+    throw new NextBillionError(
       "Invalid questionnaire identity",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   return path.join(chatDirectory(chatId), `${requestId}.json`);
 }
@@ -102,7 +108,7 @@ export async function persistQuestionnaire(receipt: QuestionnaireReceipt) {
   receiptSchema.parse(receipt);
   await migrateLegacyReceipts();
   await writeReceipt(receipt);
-  // Bounded retention applies to regular Dyad as well as Claude. Never prune
+  // Bounded retention applies to regular NextBillion as well as Claude. Never prune
   // pending requests, and never turn a successful answer save into a failure
   // merely because retention cleanup failed.
   await pruneReceipts(receipt.chatId).catch(() => {});
@@ -139,9 +145,9 @@ export async function settleQuestionnaire(
     );
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT")
-      throw new DyadError(
+      throw new NextBillionError(
         "Questionnaire receipt is missing. Retry after restoring storage access.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     throw error;
   }

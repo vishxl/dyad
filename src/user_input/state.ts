@@ -100,7 +100,7 @@ export type UserInputResponse =
       completed: boolean;
     }
   // `specPath: null` is the discard: the user closed the plan without letting
-  // Dyad write the spec, so the agent is told the review ended empty-handed.
+  // NextBillion write the spec, so the agent is told the review ended empty-handed.
   | {
       kind: "test-assertions";
       specPath: string | null;

@@ -10,7 +10,7 @@ export const ALLOWED_LABELS = [
   "issue/incomplete",
 ];
 export const ASSESSMENTS = [
-  "likely_dyad_bug",
+  "likely_nextbillion_bug",
   "fixed_in_release",
   "external_service",
   "user_app_issue",
@@ -35,7 +35,8 @@ export const INFO_NEEDED = [
 ];
 export const NEEDS_HUMAN_LABEL = "triage/needs-human";
 export const FAILED_LABEL = "triage/failed";
-export const SIGN_OFF = "Someone from the Dyad team will follow up here.";
+export const SIGN_OFF =
+  "Someone from the NextBillion team will follow up here.";
 
 const LIMITS = {
   title: 80,
@@ -67,9 +68,9 @@ const INFO_NEEDED_TEXT = {
   screenshot_not_attached:
     "It looks like your screenshot didn't come through. Could you paste it here?",
   session_id:
-    "In Dyad, open **Help** > **Report a Bug** with **Chat session** on (or **Help** > **Upload Chat Session** on older versions) and paste the session id here so we can see the logs.",
+    "In NextBillion, open **Help** > **Report a Bug** with **Chat session** on (or **Help** > **Upload Chat Session** on older versions) and paste the session id here so we can see the logs.",
   version:
-    "Which version of Dyad are you on, and are you on Windows, Mac, or Linux?",
+    "Which version of NextBillion are you on, and are you on Windows, Mac, or Linux?",
 };
 
 const RELATED_OUTCOME_TEXT = {
@@ -325,7 +326,7 @@ function stepsWithUpdate(triage) {
     /dyad\.sh\/download/i.test(step),
   );
   if (alreadyMentionsDownload) return triage.steps;
-  const update = `Update to Dyad ${triage.fixedIn.version} or newer from https://www.dyad.sh/download, which includes the fix ([release notes](${triage.fixedIn.url})).`;
+  const update = `Update to NextBillion ${triage.fixedIn.version} or newer from https://www.dyad.sh/download, which includes the fix ([release notes](${triage.fixedIn.url})).`;
   return [update, ...triage.steps].slice(0, LIMITS.steps);
 }
 
@@ -350,7 +351,7 @@ function renderRelated(related) {
 function renderTeamNotes(triage) {
   const lines = [
     "<details>",
-    "<summary>Notes for the Dyad team</summary>",
+    "<summary>Notes for the NextBillion team</summary>",
     "",
     triage.developerNotes || "- No notes from the automatic first look.",
     `- Assessment: ${triage.assessment} · Playbook: ${triage.playbookMatch ?? "no match"}`,
@@ -386,7 +387,7 @@ export function composeComment(triage, { author } = {}) {
   }
 
   const lines = [
-    `Hi ${greeting}, thanks for ${triage.filedFromApp ? "sending this from Dyad" : "the report"}.`,
+    `Hi ${greeting}, thanks for ${triage.filedFromApp ? "sending this from NextBillion" : "the report"}.`,
   ];
   if (triage.nonEnglish) {
     lines.push(
@@ -419,5 +420,5 @@ export function composeComment(triage, { author } = {}) {
 
 export function composeFallbackComment({ author } = {}) {
   const greeting = author ? `@${author}` : "there";
-  return `Hi ${greeting}, thanks for the report. Our automatic first look didn't complete, so someone from the Dyad team will take a look directly.`;
+  return `Hi ${greeting}, thanks for the report. Our automatic first look didn't complete, so someone from the NextBillion team will take a look directly.`;
 }

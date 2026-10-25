@@ -33,7 +33,7 @@ const mocks = vi.hoisted(() => ({
   /** Null stands in for a dev server that isn't up. */
   appUrl: "http://localhost:32100" as string | null,
   previewUrl: "http://localhost:32100/" as string | null,
-  previewUrlSource: "dyad" as "none" | "dyad" | "app",
+  previewUrlSource: "nextbillion" as "none" | "nextbillion" | "app",
   updateSettings: vi.fn(),
   settings: {} as Record<string, unknown>,
   app: { id: 1, testingEnabled: true } as Record<string, unknown>,
@@ -186,7 +186,7 @@ describe("TestsPanel", () => {
     vi.clearAllMocks();
     mocks.appUrl = "http://localhost:32100";
     mocks.previewUrl = "http://localhost:32100/";
-    mocks.previewUrlSource = "dyad";
+    mocks.previewUrlSource = "nextbillion";
     mocks.app = { id: 1, testingEnabled: true };
     mocks.settings = {};
     mocks.settingsLoading = false;
@@ -683,7 +683,7 @@ describe("TestsPanel", () => {
       ).disabled,
     ).toBe(true);
     expect(screen.queryByText("Start the app to run tests.")).toBeNull();
-    expect(screen.queryByText(/Dyad won't run Neon tests/)).toBeNull();
+    expect(screen.queryByText(/NextBillion won't run Neon tests/)).toBeNull();
     expect(screen.queryByText(/couldn't load your settings/)).toBeNull();
     expect(screen.getByRole("status").textContent).toContain(
       "Loading settings",
@@ -811,7 +811,7 @@ describe("TestsPanel", () => {
       renderPanel();
 
       await screen.findByText("signup.spec.ts");
-      expect(screen.queryByText(/Dyad won't run Neon tests/)).toBeNull();
+      expect(screen.queryByText(/NextBillion won't run Neon tests/)).toBeNull();
       expect(
         (
           screen.getByRole("button", {
@@ -829,7 +829,7 @@ describe("TestsPanel", () => {
       renderPanel();
 
       await screen.findByText("signup.spec.ts");
-      expect(screen.queryByText(/Dyad won't run Neon tests/)).toBeNull();
+      expect(screen.queryByText(/NextBillion won't run Neon tests/)).toBeNull();
       expect(
         (
           screen.getByRole("button", {

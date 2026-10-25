@@ -92,9 +92,11 @@ describe("crashAnnotationEventFields", () => {
   it("keeps the leading underscore of Electron's internal keys", () => {
     // _productName and friends come from Electron's crashReporter; the
     // double underscore marks them apart from same-named plain keys.
-    expect(crashAnnotationEventFields({ _productName: "dyad" })).toEqual({
-      crash_annotation__productname: "dyad",
-    });
+    expect(crashAnnotationEventFields({ _productName: "nextbillion" })).toEqual(
+      {
+        crash_annotation__productname: "nextbillion",
+      },
+    );
   });
 
   it("drops keys outside the allowlist and reports only their count", () => {

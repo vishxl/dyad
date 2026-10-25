@@ -22,7 +22,7 @@ import {
   canResolvePlaywrightRunner,
   configSetsTimeout,
   detectSystemBrowserChannel,
-  DYAD_CONFIG_FILENAME,
+  NEXTBILLION_CONFIG_FILENAME,
   E2E_TSCONFIG_RELATIVE_PATH,
   ensurePlaywrightBootstrap,
   ensurePreviewShim,
@@ -42,7 +42,7 @@ import {
 const tempDirs: string[] = [];
 const BROWSER_MARKER = path.join(
   "node_modules",
-  ".dyad-playwright-chromium-installed",
+  ".nextbillion-playwright-chromium-installed",
 );
 
 function makeAppWithBrowserMarker({
@@ -56,7 +56,7 @@ function makeAppWithBrowserMarker({
   executableExists?: boolean;
   markerText?: string;
 }): { appPath: string; executablePath: string } {
-  const appPath = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-pw-"));
+  const appPath = fs.mkdtempSync(path.join(os.tmpdir(), "nextbillion-pw-"));
   tempDirs.push(appPath);
   fs.mkdirSync(path.join(appPath, "node_modules", "@playwright", "test"), {
     recursive: true,
@@ -99,15 +99,15 @@ describe("buildPreviewShimSource", () => {
     expect(source).not.toContain('from "playwright/test"');
   });
 
-  it("stays inert unless Dyad hands it an endpoint", () => {
+  it("stays inert unless NextBillion hands it an endpoint", () => {
     expect(source).toContain(`process.env.${PREVIEW_CDP_ENDPOINT_ENV}`);
     expect(source).toContain("!endpoint\n  ? isolatedTest");
     expect(source).toContain("!caseEndpoint ? pw.test");
   });
 
-  it("attaches a screenshot of the page under test, not of Dyad", () => {
+  it("attaches a screenshot of the page under test, not of NextBillion", () => {
     // Playwright's own recorder shoots every page the connection can reach,
-    // and over CDP that includes Dyad's windows — so a failing preview test
+    // and over CDP that includes NextBillion's windows — so a failing preview test
     // would attach a picture of the user's editor and hand it to the model.
     expect(source).toContain("testInfo.status !== testInfo.expectedStatus");
     expect(source).toContain('testInfo.attach("screenshot"');
@@ -228,7 +228,7 @@ describe("preview shim fixtures", () => {
 
     return { ...registered, env } as unknown as {
       env: Record<string, string | undefined>;
-      _dyadTestCase: [FixtureFn, { auto: true; timeout: number }];
+      _nextBillionTestCase: [FixtureFn, { auto: true; timeout: number }];
       browser: [FixtureFn, { scope: "worker" }];
       context: FixtureFn;
       page: FixtureFn;
@@ -258,24 +258,28 @@ describe("preview shim fixtures", () => {
           (scenario === "cleanup failure" && url.includes("/after/"));
         return new Response(
           JSON.stringify({
-            DYAD_TEST_USER_EMAIL: "fresh@dyad.test",
-            DYAD_TEST_USER_PASSWORD: "fresh-password",
+            NEXTBILLION_TEST_USER_EMAIL: "fresh@nextbillion.test",
+            NEXTBILLION_TEST_USER_PASSWORD: "fresh-password",
             SERVICE_ROLE_KEY: "never-expose",
           }),
           { status: failed ? 500 : 200 },
         );
       });
       const fixtures = await loadShimFixtures(undefined, fetchCase);
-      fixtures.env.DYAD_TEST_USER_EMAIL = "stale";
-      fixtures.env.DYAD_TEST_SUPABASE_ANON_KEY = "stale-key";
+      fixtures.env.NEXTBILLION_TEST_USER_EMAIL = "stale";
+      fixtures.env.NEXTBILLION_TEST_SUPABASE_ANON_KEY = "stale-key";
       const use = vi.fn(async () => {
-        expect(fixtures.env.DYAD_TEST_USER_EMAIL).toBe("fresh@dyad.test");
-        expect(fixtures.env.DYAD_TEST_USER_PASSWORD).toBe("fresh-password");
-        expect(fixtures.env.DYAD_TEST_SUPABASE_ANON_KEY).toBeUndefined();
+        expect(fixtures.env.NEXTBILLION_TEST_USER_EMAIL).toBe(
+          "fresh@nextbillion.test",
+        );
+        expect(fixtures.env.NEXTBILLION_TEST_USER_PASSWORD).toBe(
+          "fresh-password",
+        );
+        expect(fixtures.env.NEXTBILLION_TEST_SUPABASE_ANON_KEY).toBeUndefined();
         expect(fixtures.env.SERVICE_ROLE_KEY).toBeUndefined();
         if (scenario === "test failure") throw new Error("assertion failed");
       });
-      const attempt = fixtures._dyadTestCase[0]({}, use, {});
+      const attempt = fixtures._nextBillionTestCase[0]({}, use, {});
       if (scenario === "success") await attempt;
       else
         await expect(attempt).rejects.toThrow(
@@ -288,8 +292,8 @@ describe("preview shim fixtures", () => {
         "http://127.0.0.1:12345/before/test-case-id",
         "http://127.0.0.1:12345/after/test-case-id",
       ]);
-      expect(fixtures.env.DYAD_TEST_USER_EMAIL).toBeUndefined();
-      expect(fixtures.env.DYAD_TEST_USER_PASSWORD).toBeUndefined();
+      expect(fixtures.env.NEXTBILLION_TEST_USER_EMAIL).toBeUndefined();
+      expect(fixtures.env.NEXTBILLION_TEST_USER_PASSWORD).toBeUndefined();
     },
   );
 
@@ -396,7 +400,7 @@ describe("preview shim fixtures", () => {
             await target.goto("https://example.com/elsewhere");
             await api.get("/api/health");
             await api.post("/api/auth/sign-in/email", {
-              data: { email: "test@dyad.test", password: "secret" },
+              data: { email: "test@nextbillion.test", password: "secret" },
             });
             await api.fetch("https://example.com/api/health");
             result = {
@@ -462,7 +466,7 @@ describe("preview shim fixtures", () => {
     expect(browserAuthRequests).toEqual([
       {
         signInUrl: "http://localhost:32100/api/auth/sign-in/email",
-        data: { email: "test@dyad.test", password: "secret" },
+        data: { email: "test@nextbillion.test", password: "secret" },
       },
     ]);
   });
@@ -491,7 +495,9 @@ describe("preview shim fixtures", () => {
 
 describe("ensurePreviewShim", () => {
   function makeApp(): string {
-    const appPath = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-pw-shim-"));
+    const appPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-pw-shim-"),
+    );
     tempDirs.push(appPath);
     return appPath;
   }
@@ -514,7 +520,7 @@ describe("ensurePreviewShim", () => {
     const tsconfig = JSON.parse(fs.readFileSync(tsconfigAt(appPath), "utf8"));
     expect(tsconfig.compilerOptions.allowJs).toBe(true);
     expect(tsconfig.compilerOptions.paths["@playwright/test"]).toEqual([
-      "./fixtures/dyad/dyad-test.ts",
+      "./fixtures/nextbillion/nextbillion-test.ts",
     ]);
     // The mapping has to resolve to the file we actually wrote.
     expect(
@@ -550,17 +556,17 @@ describe("ensurePreviewShim", () => {
     {
       baseUrl: undefined,
       inherited: false,
-      mapping: "../fixtures/dyad/dyad-test.ts",
+      mapping: "../fixtures/nextbillion/nextbillion-test.ts",
     },
     {
       baseUrl: "../..",
       inherited: false,
-      mapping: "./e2e-tests/fixtures/dyad/dyad-test.ts",
+      mapping: "./e2e-tests/fixtures/nextbillion/nextbillion-test.ts",
     },
     {
       baseUrl: ".",
       inherited: true,
-      mapping: "./e2e-tests/fixtures/dyad/dyad-test.ts",
+      mapping: "./e2e-tests/fixtures/nextbillion/nextbillion-test.ts",
     },
   ])(
     "gives usable nested isolation routing instructions (%j)",
@@ -651,7 +657,7 @@ describe("ensurePreviewShim", () => {
     const tsconfig = JSON.parse(fs.readFileSync(tsconfigAt(appPath), "utf8"));
     expect(tsconfig.compilerOptions.paths["~test/*"]).toEqual(["../testing/*"]);
     expect(tsconfig.compilerOptions.paths["@playwright/test"]).toEqual([
-      "./fixtures/dyad/dyad-test.ts",
+      "./fixtures/nextbillion/nextbillion-test.ts",
     ]);
   });
 
@@ -689,7 +695,7 @@ describe("ensurePreviewShim", () => {
     const tsconfig = JSON.parse(fs.readFileSync(tsconfigAt(appPath), "utf8"));
     expect(tsconfig.compilerOptions.paths["@/*"]).toEqual(["../src/*"]);
     expect(tsconfig.compilerOptions.paths["@playwright/test"]).toEqual([
-      "./fixtures/dyad/dyad-test.ts",
+      "./fixtures/nextbillion/nextbillion-test.ts",
     ]);
   });
 
@@ -854,16 +860,16 @@ describe("ensurePreviewShim", () => {
     expect(fs.existsSync(shimTsconfigAt(appPath))).toBe(true);
   });
 
-  it("removes the shim an older Dyad left at the fixtures root", () => {
+  it("removes the shim an older NextBillion left at the fixtures root", () => {
     const appPath = makeApp();
     const legacyShimPath = path.join(
       appPath,
       "e2e-tests",
       "fixtures",
-      "dyad-test.ts",
+      "nextbillion-test.ts",
     );
     fs.mkdirSync(path.dirname(legacyShimPath), { recursive: true });
-    fs.writeFileSync(legacyShimPath, "// Generated by Dyad. old shim\n");
+    fs.writeFileSync(legacyShimPath, "// Generated by NextBillion. old shim\n");
     // A fixture the app owns, right beside it.
     const userFixturePath = path.join(path.dirname(legacyShimPath), "todos.ts");
     fs.writeFileSync(userFixturePath, "export const seed = 1;\n");
@@ -880,16 +886,16 @@ describe("ensurePreviewShim", () => {
       appPath,
       "e2e-tests",
       "fixtures",
-      "dyad-test.ts",
+      "nextbillion-test.ts",
     );
     fs.mkdirSync(path.dirname(legacyShimPath), { recursive: true });
-    fs.writeFileSync(legacyShimPath, "// Generated by Dyad. old shim\n");
-    // The mapping an older Dyad's warning told the user to add. Deleting the
+    fs.writeFileSync(legacyShimPath, "// Generated by NextBillion. old shim\n");
+    // The mapping an older NextBillion's warning told the user to add. Deleting the
     // file underneath it would leave "@playwright/test" resolving to nothing —
     // breaking every run in the app, not just preview ones.
     fs.writeFileSync(
       tsconfigAt(appPath),
-      '{ "compilerOptions": { "paths": { "@playwright/test": ["./fixtures/dyad-test.ts"] } } }',
+      '{ "compilerOptions": { "paths": { "@playwright/test": ["./fixtures/nextbillion-test.ts"] } } }',
     );
 
     expect(ensurePreviewShim(appPath)).toEqual({});
@@ -898,29 +904,31 @@ describe("ensurePreviewShim", () => {
     // closest one above this file, so a copy's own "@playwright/test" import
     // would resolve straight back to itself. Relative imports aren't mapped.
     const forwarder = fs.readFileSync(legacyShimPath, "utf8");
-    expect(forwarder).toContain('export * from "./dyad/dyad-test"');
+    expect(forwarder).toContain(
+      'export * from "./nextbillion/nextbillion-test"',
+    );
     expect(forwarder).not.toContain('from "@playwright/test"');
     expect(forwarder).not.toContain("connectOverCDP");
   });
 
-  it("restores an old shim a previous Dyad deleted out from under the mapping", () => {
+  it("restores an old shim a previous NextBillion deleted out from under the mapping", () => {
     const appPath = makeApp();
     fs.mkdirSync(path.join(appPath, "e2e-tests"), { recursive: true });
     // Extensionless, which tsconfig paths commonly are: reading this as "not
     // the legacy shim" is what deletes the file the mapping resolves to.
     fs.writeFileSync(
       tsconfigAt(appPath),
-      '{ "compilerOptions": { "paths": { "@playwright/test": ["fixtures/dyad-test"] } } }',
+      '{ "compilerOptions": { "paths": { "@playwright/test": ["fixtures/nextbillion-test"] } } }',
     );
 
     expect(ensurePreviewShim(appPath)).toEqual({});
 
     expect(
       fs.readFileSync(
-        path.join(appPath, "e2e-tests", "fixtures", "dyad-test.ts"),
+        path.join(appPath, "e2e-tests", "fixtures", "nextbillion-test.ts"),
         "utf8",
       ),
-    ).toContain('export * from "./dyad/dyad-test"');
+    ).toContain('export * from "./nextbillion/nextbillion-test"');
     // And the real shim is where the forwarder points.
     expect(fs.existsSync(shimAt(appPath))).toBe(true);
   });
@@ -931,7 +939,7 @@ describe("ensurePreviewShim", () => {
       appPath,
       "e2e-tests",
       "fixtures",
-      "dyad-test.ts",
+      "nextbillion-test.ts",
     );
     fs.mkdirSync(path.dirname(legacyShimPath), { recursive: true });
     fs.writeFileSync(legacyShimPath, "export const mine = true;\n");
@@ -944,7 +952,10 @@ describe("ensurePreviewShim", () => {
   it("refreshes its own files without asking", () => {
     const appPath = makeApp();
     ensurePreviewShim(appPath);
-    fs.writeFileSync(shimAt(appPath), "// Generated by Dyad. stale contents\n");
+    fs.writeFileSync(
+      shimAt(appPath),
+      "// Generated by NextBillion. stale contents\n",
+    );
 
     ensurePreviewShim(appPath);
 
@@ -975,9 +986,14 @@ describe("ensurePreviewShim", () => {
     expect(warning).toContain("separate browser");
     // The path it tells the user to map has to be the shim we actually wrote —
     // the one at the old location is deleted by this same call.
-    expect(warning).toContain("./fixtures/dyad/dyad-test.ts");
+    expect(warning).toContain("./fixtures/nextbillion/nextbillion-test.ts");
     expect(
-      fs.existsSync(path.join(appPath, "e2e-tests/fixtures/dyad/dyad-test.ts")),
+      fs.existsSync(
+        path.join(
+          appPath,
+          "e2e-tests/fixtures/nextbillion/nextbillion-test.ts",
+        ),
+      ),
     ).toBe(true);
     expect(fs.readFileSync(tsconfigAt(appPath), "utf8")).toBe(
       '{ "compilerOptions": {} }',
@@ -992,7 +1008,7 @@ describe("ensurePreviewShim", () => {
     // the user watching an empty preview while a headless browser ran.
     fs.writeFileSync(
       tsconfigAt(appPath),
-      '{ "include": ["./fixtures/dyad/dyad-test.ts"], "compilerOptions": {} }',
+      '{ "include": ["./fixtures/nextbillion/nextbillion-test.ts"], "compilerOptions": {} }',
     );
 
     expect(ensurePreviewShim(appPath).warning).toContain("separate browser");
@@ -1003,7 +1019,7 @@ describe("ensurePreviewShim", () => {
     fs.mkdirSync(path.dirname(tsconfigAt(appPath)), { recursive: true });
     fs.writeFileSync(
       tsconfigAt(appPath),
-      '{ "compilerOptions": { "paths": { "@playwright/test": ["./fixtures/dyad/dyad-test.ts"] } } }',
+      '{ "compilerOptions": { "paths": { "@playwright/test": ["./fixtures/nextbillion/nextbillion-test.ts"] } } }',
     );
 
     expect(ensurePreviewShim(appPath)).toEqual({});
@@ -1057,7 +1073,9 @@ describe("buildPlaywrightConfig", () => {
 
 describe("ensurePlaywrightBootstrap", () => {
   it("adds Playwright with npm for an npm-only member under a pnpm-signaled root", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-pw-mixed-"));
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-pw-mixed-"),
+    );
     tempDirs.push(root);
     const appPath = path.join(root, "apps", "web");
     fs.mkdirSync(appPath, { recursive: true });
@@ -1076,7 +1094,7 @@ describe("ensurePlaywrightBootstrap", () => {
     );
     fs.writeFileSync(path.join(appPath, "package.json"), '{"private":true}');
     fs.writeFileSync(
-      path.join(appPath, DYAD_CONFIG_FILENAME),
+      path.join(appPath, NEXTBILLION_CONFIG_FILENAME),
       "export default { use: { channel: 'chrome' } };",
     );
     h.spawnStreaming.mockResolvedValue({
@@ -1128,32 +1146,35 @@ describe("ensurePlaywrightBootstrap", () => {
 
     expect(
       fs.readFileSync(
-        path.join(appPath, "e2e-tests/fixtures/dyad/preview-dns.cjs"),
+        path.join(appPath, "e2e-tests/fixtures/nextbillion/preview-dns.cjs"),
         "utf8",
       ),
     ).toContain("dns.promises.lookup");
     // Ours lands under its own name, wired to the env var.
-    const dyadConfigPath = path.join(appPath, DYAD_CONFIG_FILENAME);
-    expect(fs.existsSync(dyadConfigPath)).toBe(true);
-    expect(fs.readFileSync(dyadConfigPath, "utf8")).toContain(
+    const nextBillionConfigPath = path.join(
+      appPath,
+      NEXTBILLION_CONFIG_FILENAME,
+    );
+    expect(fs.existsSync(nextBillionConfigPath)).toBe(true);
+    expect(fs.readFileSync(nextBillionConfigPath, "utf8")).toContain(
       TEST_BASE_URL_ENV,
     );
     // The user's config survives byte-for-byte, with no backup left behind —
-    // Dyad no longer takes over the canonical config name.
+    // NextBillion no longer takes over the canonical config name.
     expect(fs.readFileSync(userConfigPath, "utf8")).toBe(userConfig);
     expect(fs.existsSync(`${userConfigPath}.backup`)).toBe(false);
   });
 
-  it("migrates an older Dyad-generated config's testDir to ./e2e-tests", async () => {
+  it("migrates an older NextBillion-generated config's testDir to ./e2e-tests", async () => {
     const { appPath } = makeAppWithBrowserMarker({
       packageVersion: "1.2.3",
       executableExists: true,
     });
-    const configPath = path.join(appPath, DYAD_CONFIG_FILENAME);
+    const configPath = path.join(appPath, NEXTBILLION_CONFIG_FILENAME);
     fs.writeFileSync(
       configPath,
       'import { defineConfig } from "@playwright/test";\n' +
-        "// Generated by Dyad.\n" +
+        "// Generated by NextBillion.\n" +
         'export default defineConfig({ testDir: "./tests" });\n',
     );
 
@@ -1164,20 +1185,20 @@ describe("ensurePlaywrightBootstrap", () => {
     expect(updated).not.toContain('testDir: "./tests"');
   });
 
-  it("scopes an older Dyad-generated config's recorders away from preview runs", async () => {
+  it("scopes an older NextBillion-generated config's recorders away from preview runs", async () => {
     // `--trace=off` is passed on the CLI, but Playwright has no CLI equivalent
     // for `screenshot`. Left unmigrated, a failing test in an app bootstrapped
-    // by an older Dyad still captures every page reachable over the borrowed
-    // CDP connection — which includes Dyad's own product windows.
+    // by an older NextBillion still captures every page reachable over the borrowed
+    // CDP connection — which includes NextBillion's own product windows.
     const { appPath } = makeAppWithBrowserMarker({
       packageVersion: "1.2.3",
       executableExists: true,
     });
-    const configPath = path.join(appPath, DYAD_CONFIG_FILENAME);
+    const configPath = path.join(appPath, NEXTBILLION_CONFIG_FILENAME);
     fs.writeFileSync(
       configPath,
       'import { defineConfig } from "@playwright/test";\n' +
-        "// Generated by Dyad.\n" +
+        "// Generated by NextBillion.\n" +
         "export default defineConfig({\n" +
         '  testDir: "./e2e-tests",\n' +
         "  use: {\n" +
@@ -1208,10 +1229,10 @@ describe("ensurePlaywrightBootstrap", () => {
       packageVersion: "1.2.3",
       executableExists: true,
     });
-    const configPath = path.join(appPath, DYAD_CONFIG_FILENAME);
+    const configPath = path.join(appPath, NEXTBILLION_CONFIG_FILENAME);
     const handEdited =
       'import { defineConfig } from "@playwright/test";\n' +
-      "// Generated by Dyad.\n" +
+      "// Generated by NextBillion.\n" +
       "export default defineConfig({\n" +
       '  testDir: "./e2e-tests",\n' +
       "  use: {\n" +
@@ -1228,18 +1249,18 @@ describe("ensurePlaywrightBootstrap", () => {
     expect(fs.readFileSync(configPath, "utf8")).toContain('screenshot: "on"');
   });
 
-  it("teaches an older Dyad-generated config the slow-motion option", async () => {
+  it("teaches an older NextBillion-generated config the slow-motion option", async () => {
     const { appPath } = makeAppWithBrowserMarker({
       packageVersion: "1.2.3",
       executableExists: true,
     });
-    const configPath = path.join(appPath, DYAD_CONFIG_FILENAME);
+    const configPath = path.join(appPath, NEXTBILLION_CONFIG_FILENAME);
     // Written before the Tests panel had the toggle. Pins a channel so the
     // channel-upgrade path can't rewrite the whole file instead.
     fs.writeFileSync(
       configPath,
       'import { defineConfig } from "@playwright/test";\n' +
-        "// Generated by Dyad.\n" +
+        "// Generated by NextBillion.\n" +
         "export default defineConfig({\n" +
         '  testDir: "./e2e-tests",\n' +
         "  use: {\n" +
@@ -1253,7 +1274,7 @@ describe("ensurePlaywrightBootstrap", () => {
 
     const updated = fs.readFileSync(configPath, "utf8");
     // Without this the panel's toggle would silently do nothing for apps
-    // bootstrapped by an older Dyad.
+    // bootstrapped by an older NextBillion.
     expect(updated).toContain(
       `launchOptions: { slowMo: Number(process.env.${TEST_SLOW_MO_ENV}) || 0 }`,
     );
@@ -1306,7 +1327,7 @@ describe("ensurePlaywrightBootstrap", () => {
       executableExists: false,
     });
     fs.writeFileSync(
-      path.join(appPath, DYAD_CONFIG_FILENAME),
+      path.join(appPath, NEXTBILLION_CONFIG_FILENAME),
       'export default { testDir: "./e2e-tests" };\n',
     );
 
@@ -1322,7 +1343,7 @@ describe("ensurePlaywrightBootstrap", () => {
       executableExists: false,
     });
     fs.writeFileSync(
-      path.join(appPath, DYAD_CONFIG_FILENAME),
+      path.join(appPath, NEXTBILLION_CONFIG_FILENAME),
       'export default { testDir: "./e2e-tests" };\n',
     );
     h.spawnStreaming.mockResolvedValue({ code: 0, aborted: false });
@@ -1367,7 +1388,7 @@ describe("ensurePlaywrightBootstrap", () => {
       executableExists: false,
     });
     fs.writeFileSync(
-      path.join(appPath, DYAD_CONFIG_FILENAME),
+      path.join(appPath, NEXTBILLION_CONFIG_FILENAME),
       'export default { testDir: "./e2e-tests" };\n',
     );
     const e2eTsconfigPath = path.join(appPath, E2E_TSCONFIG_RELATIVE_PATH);
@@ -1386,13 +1407,13 @@ describe("ensurePlaywrightBootstrap", () => {
     );
   });
 
-  it("leaves a config without the Dyad sentinel untouched", async () => {
+  it("leaves a config without the NextBillion sentinel untouched", async () => {
     const { appPath } = makeAppWithBrowserMarker({
       packageVersion: "1.2.3",
       executableExists: true,
     });
-    const configPath = path.join(appPath, DYAD_CONFIG_FILENAME);
-    // No "Generated by Dyad" sentinel — the user has made this file their own.
+    const configPath = path.join(appPath, NEXTBILLION_CONFIG_FILENAME);
+    // No "Generated by NextBillion" sentinel — the user has made this file their own.
     const userOwned =
       'import { defineConfig } from "@playwright/test";\n' +
       'export default defineConfig({ testDir: "./tests" });\n';
@@ -1403,17 +1424,17 @@ describe("ensurePlaywrightBootstrap", () => {
     expect(fs.readFileSync(configPath, "utf8")).toBe(userOwned);
   });
 
-  it("is a no-op when a Dyad config already targets ./e2e-tests", async () => {
+  it("is a no-op when a NextBillion config already targets ./e2e-tests", async () => {
     const { appPath } = makeAppWithBrowserMarker({
       packageVersion: "1.2.3",
       executableExists: true,
     });
-    const configPath = path.join(appPath, DYAD_CONFIG_FILENAME);
+    const configPath = path.join(appPath, NEXTBILLION_CONFIG_FILENAME);
     // Already current, and pins a channel so the channel-upgrade path is a
     // no-op too — the file must survive byte-for-byte.
     const current =
       'import { defineConfig } from "@playwright/test";\n' +
-      "// Generated by Dyad.\n" +
+      "// Generated by NextBillion.\n" +
       'export default defineConfig({ testDir: "./e2e-tests", use: { channel: "chrome" } });\n';
     fs.writeFileSync(configPath, current);
 
@@ -1422,7 +1443,7 @@ describe("ensurePlaywrightBootstrap", () => {
     expect(fs.readFileSync(configPath, "utf8")).toBe(current);
   });
 
-  it("points the package.json test script at Dyad's config", async () => {
+  it("points the package.json test script at NextBillion's config", async () => {
     const { appPath } = makeAppWithBrowserMarker({
       packageVersion: "1.2.3",
       executableExists: true,
@@ -1440,11 +1461,11 @@ describe("ensurePlaywrightBootstrap", () => {
       fs.readFileSync(path.join(appPath, "package.json"), "utf8"),
     );
     expect(pkg.scripts.test).toBe(
-      `playwright test --config ${DYAD_CONFIG_FILENAME}`,
+      `playwright test --config ${NEXTBILLION_CONFIG_FILENAME}`,
     );
   });
 
-  it("migrates the old Dyad-generated bare test script", async () => {
+  it("migrates the old NextBillion-generated bare test script", async () => {
     const { appPath } = makeAppWithBrowserMarker({
       packageVersion: "1.2.3",
       executableExists: true,
@@ -1460,7 +1481,7 @@ describe("ensurePlaywrightBootstrap", () => {
       fs.readFileSync(path.join(appPath, "package.json"), "utf8"),
     );
     expect(pkg.scripts.test).toBe(
-      `playwright test --config ${DYAD_CONFIG_FILENAME}`,
+      `playwright test --config ${NEXTBILLION_CONFIG_FILENAME}`,
     );
   });
 
@@ -1475,7 +1496,7 @@ describe("ensurePlaywrightBootstrap", () => {
     );
     // With a config of their own, `playwright test` is the user's script
     // targeting the user's config — repointing it would bypass their projects
-    // and global setup, and break `npm test` outside Dyad.
+    // and global setup, and break `npm test` outside NextBillion.
     fs.writeFileSync(
       path.join(appPath, "playwright.config.ts"),
       'import { defineConfig } from "@playwright/test";\nexport default defineConfig({});\n',
@@ -1602,7 +1623,9 @@ describe("isPlaywrightBrowserInstalled", () => {
 
 describe("preview gitignore entries", () => {
   function makeApp(): string {
-    const appPath = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-pw-ignore-"));
+    const appPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-pw-ignore-"),
+    );
     tempDirs.push(appPath);
     return appPath;
   }
@@ -1638,14 +1661,16 @@ describe("preview gitignore entries", () => {
     expect(gitignoreOf(appPath)).not.toContain(
       `/${E2E_TSCONFIG_RELATIVE_PATH}`,
     );
-    // The shim directory is Dyad's either way.
-    expect(gitignoreOf(appPath)).toContain("/e2e-tests/fixtures/dyad/");
+    // The shim directory is NextBillion's either way.
+    expect(gitignoreOf(appPath)).toContain("/e2e-tests/fixtures/nextbillion/");
   });
 });
 
 describe("app-owned tsconfig routing", () => {
   function makeApp(): string {
-    const appPath = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-pw-extends-"));
+    const appPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-pw-extends-"),
+    );
     tempDirs.push(appPath);
     return appPath;
   }
@@ -1663,7 +1688,9 @@ describe("app-owned tsconfig routing", () => {
       path.join(e2eDir, "tsconfig.base.json"),
       JSON.stringify({
         compilerOptions: {
-          paths: { "@playwright/test": ["./fixtures/dyad/dyad-test.ts"] },
+          paths: {
+            "@playwright/test": ["./fixtures/nextbillion/nextbillion-test.ts"],
+          },
         },
       }),
     );
@@ -1694,9 +1721,11 @@ describe("app-owned tsconfig routing", () => {
 
 describe("configSetsTimeout", () => {
   function makeAppWithConfig(source: string): string {
-    const appPath = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-pw-timeout-"));
+    const appPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-pw-timeout-"),
+    );
     tempDirs.push(appPath);
-    fs.writeFileSync(path.join(appPath, DYAD_CONFIG_FILENAME), source);
+    fs.writeFileSync(path.join(appPath, NEXTBILLION_CONFIG_FILENAME), source);
     return appPath;
   }
 
@@ -1753,7 +1782,9 @@ describe("canResolvePlaywrightRunner", () => {
     // A monorepo app installs at the workspace root, which hoists
     // `@playwright/test` above the app directory. An app-directory-only check
     // would refuse a sandbox `npx playwright` resolves fine.
-    const repoRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-pw-mono-"));
+    const repoRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-pw-mono-"),
+    );
     tempDirs.push(repoRoot);
     const appPath = path.join(repoRoot, "packages", "app");
     fs.mkdirSync(appPath, { recursive: true });
@@ -1776,7 +1807,9 @@ describe("canResolvePlaywrightRunner", () => {
   });
 
   it("answers false when nothing above the app has it either", () => {
-    const appPath = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-pw-none-"));
+    const appPath = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-pw-none-"),
+    );
     tempDirs.push(appPath);
 
     expect(canResolvePlaywrightRunner(appPath)).toBe(false);
@@ -1788,7 +1821,10 @@ it("does not overwrite an app-owned preview DNS helper", () => {
     packageVersion: "1.0.0",
     executableExists: true,
   });
-  const file = path.join(appPath, "e2e-tests/fixtures/dyad/preview-dns.cjs");
+  const file = path.join(
+    appPath,
+    "e2e-tests/fixtures/nextbillion/preview-dns.cjs",
+  );
   fs.mkdirSync(path.dirname(file), { recursive: true });
   fs.writeFileSync(file, "// My helper\n");
   expect(() => ensurePreviewDnsPreload(appPath)).toThrow("app-owned");

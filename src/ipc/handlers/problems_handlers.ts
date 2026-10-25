@@ -6,11 +6,14 @@ import {
   getTypeCheckPreconditionGuidance,
   getTypeCheckPreconditionKind,
 } from "../processors/tsc";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 import log from "electron-log";
 import { createTypedHandler } from "./base";
 import { miscContracts } from "../types/misc";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const logger = log.scope("problems_handlers");
 
@@ -24,13 +27,13 @@ export function registerProblemsHandlers() {
       });
 
       if (!app) {
-        throw new DyadError(
+        throw new NextBillionError(
           `App not found: ${params.appId}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
-      appPath = getDyadAppPath(app.path);
+      appPath = getNextBillionAppPath(app.path);
 
       const problemReport = await runTypeScriptCheck({ appPath });
 
@@ -47,7 +50,7 @@ export function registerProblemsHandlers() {
           appPath,
         });
         logger.info("Type checking precondition failed:", message);
-        throw new DyadError(message, DyadErrorKind.Precondition, {
+        throw new NextBillionError(message, NextBillionErrorKind.Precondition, {
           cause: error,
         });
       }

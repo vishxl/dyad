@@ -48,7 +48,9 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/db", () => ({
   db: { query: { apps: { findFirst: mocks.findApp } } },
 }));
-vi.mock("@/paths/paths", () => ({ getDyadAppPath: (value: string) => value }));
+vi.mock("@/paths/paths", () => ({
+  getNextBillionAppPath: (value: string) => value,
+}));
 
 vi.mock("ai", async () => {
   const actual = await vi.importActual<typeof import("ai")>("ai");
@@ -108,10 +110,10 @@ describe("runExploreCodeSubagent", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.readSettings.mockReturnValue({
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       providerSettings: {
         auto: {
-          apiKey: { value: "dyad-pro-key" },
+          apiKey: { value: "nextbillion-pro-key" },
         },
       },
     });
@@ -124,7 +126,7 @@ describe("runExploreCodeSubagent", () => {
     mocks.getMaxTokens.mockResolvedValue(32_000);
     mocks.getTemperature.mockResolvedValue(0);
     mocks.getAiHeaders.mockReturnValue({ "x-test": "header" });
-    mocks.getProviderOptions.mockReturnValue({ dyad: "options" });
+    mocks.getProviderOptions.mockReturnValue({ nextbillion: "options" });
     mocks.runRawExploreCode.mockResolvedValue(buildRawExploreResult());
     mocks.streamText.mockImplementation(() => ({
       fullStream: createTextStream([]),
@@ -1119,14 +1121,14 @@ describe("runExploreCodeSubagent", () => {
     );
   });
 
-  it("fails clearly when Dyad Pro is unavailable", async () => {
-    mocks.readSettings.mockReturnValue({ enableDyadPro: false });
+  it("fails clearly when NextBillion Pro is unavailable", async () => {
+    mocks.readSettings.mockReturnValue({ enableNextBillionPro: false });
     await expect(
       runExploreCodeSubagent({
         args: { query: "widget save flow", intent: "locate" },
         ctx: createMockContext(),
       }),
-    ).rejects.toThrow(/Dyad Pro/);
+    ).rejects.toThrow(/NextBillion Pro/);
   });
 
   it("keeps benchmark-derived domain literals out of production explorer code", async () => {
@@ -1210,7 +1212,7 @@ function createMockContext(appPath = "/tmp/app"): AgentContext {
     readOnly: true,
     planModeOnly: false,
     selectedComponent: null,
-    dyadRequestId: "request-1",
+    nextBillionRequestId: "request-1",
     abortSignal: undefined,
     accumulatedAiMessages: [],
     onXmlStream: vi.fn(),

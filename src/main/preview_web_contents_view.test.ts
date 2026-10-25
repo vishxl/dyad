@@ -112,7 +112,7 @@ vi.mock("electron", () => ({
   WebContentsView: h.FakeWebContentsView,
   shell: h.shell,
   app: {
-    getPath: vi.fn(() => "/tmp/dyad-preview-view-test"),
+    getPath: vi.fn(() => "/tmp/nextbillion-preview-view-test"),
     getAppPath: vi.fn(() => process.cwd()),
   },
   ipcMain: { handle: vi.fn(), on: vi.fn() },
@@ -217,7 +217,7 @@ describe("showPreviewView", () => {
         nodeIntegration: false,
         webSecurity: true,
         partition: expect.stringMatching(
-          /^dyad-preview-test-\d+-[0-9a-f-]{36}$/,
+          /^nextbillion-preview-test-\d+-[0-9a-f-]{36}$/,
         ),
       },
     });

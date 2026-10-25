@@ -2,7 +2,7 @@ import { buildCompactionBlock } from "@/ipc/handlers/compaction/compaction_utils
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { eq } from "drizzle-orm";
 import { apps, chats, messages } from "@/db/schema";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import {
   type HandlerTestHarness,
   setupHandlerTestHarness,
@@ -112,7 +112,7 @@ describe("registerChatHandlers", () => {
       cli.models.mockClear();
       cli.usage.mockClear();
       await expect(harness.invokeHandler(channel)).rejects.toMatchObject({
-        kind: DyadErrorKind.Precondition,
+        kind: NextBillionErrorKind.Precondition,
       });
       expect(cli.status).not.toHaveBeenCalled();
       expect(cli.models).not.toHaveBeenCalled();
@@ -135,7 +135,7 @@ describe("registerChatHandlers", () => {
     expect(cli.status).toHaveBeenLastCalledWith({ force: true });
   });
 
-  it.each(["dyad", "claude-code"] as const)(
+  it.each(["nextbillion", "claude-code"] as const)(
     "switches an empty %s chat backend and rejects switching once messages exist",
     async (executionBackend) => {
       const appId = Number(
@@ -147,8 +147,8 @@ describe("registerChatHandlers", () => {
           .lastInsertRowid,
       );
       const modelSelection = {
-        provider: executionBackend === "dyad" ? "claude-code" : "auto",
-        name: executionBackend === "dyad" ? "sonnet" : "auto",
+        provider: executionBackend === "nextbillion" ? "claude-code" : "auto",
+        name: executionBackend === "nextbillion" ? "sonnet" : "auto",
         effortLevel: "medium",
       };
       await harness.invokeHandler("update-chat", { chatId, modelSelection });
@@ -158,7 +158,8 @@ describe("registerChatHandlers", () => {
         .where(eq(chats.id, chatId))
         .get();
       expect(updated).toMatchObject({
-        executionBackend: executionBackend === "dyad" ? "claude-code" : "dyad",
+        executionBackend:
+          executionBackend === "nextbillion" ? "claude-code" : "nextbillion",
         modelSelection,
       });
       harness.db
@@ -173,12 +174,13 @@ describe("registerChatHandlers", () => {
         harness.invokeHandler("update-chat", {
           chatId,
           modelSelection: {
-            provider: executionBackend === "dyad" ? "auto" : "claude-code",
+            provider:
+              executionBackend === "nextbillion" ? "auto" : "claude-code",
             name: "sonnet",
             effortLevel: "medium",
           },
         }),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       expect(
         harness.db.select().from(chats).where(eq(chats.id, chatId)).get(),
       ).toEqual(updated);
@@ -352,7 +354,7 @@ describe("registerChatHandlers", () => {
         isFavorite: true,
       }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.NotFound,
+      kind: NextBillionErrorKind.NotFound,
       message: "Chat not found",
     });
   });
@@ -580,7 +582,7 @@ describe("registerChatHandlers", () => {
         appId: 1,
       }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.NotFound,
+      kind: NextBillionErrorKind.NotFound,
       message: "Chat not found",
     });
   });

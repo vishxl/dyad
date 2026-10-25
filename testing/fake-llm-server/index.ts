@@ -62,9 +62,9 @@ export function createStreamChunk(
 }
 
 export const CANNED_MESSAGE = `
-  <dyad-write path="file1.txt">
+  <nextbillion-write path="file1.txt">
   A file (2)
-  </dyad-write>
+  </nextbillion-write>
   More
   EOM`;
 
@@ -273,9 +273,9 @@ export function createFakeLlmApp(getPort: () => number) {
       .type("text/plain")
       .send(
         [
-          "# dyad-default-allow-builds-schema=v1",
-          "# dyad-default-allow-builds-data-version=2026-05-21.2",
-          "# dyad-default-allow-builds-channel=remote",
+          "# nextbillion-default-allow-builds-schema=v1",
+          "# nextbillion-default-allow-builds-data-version=2026-05-21.2",
+          "# nextbillion-default-allow-builds-channel=remote",
           "@swc/core",
           "esbuild",
           "sharp",
@@ -284,8 +284,8 @@ export function createFakeLlmApp(getPort: () => number) {
       );
   });
 
-  // Fake api.dyad.sh user info (Dyad Pro budget). Tests point
-  // DYAD_USER_INFO_URL here so get-user-budget never hits the real API.
+  // Fake api.dyad.sh user info (NextBillion Pro budget). Tests point
+  // NEXTBILLION_USER_INFO_URL here so get-user-budget never hits the real API.
   app.get("/api/user/info", (req, res) => {
     if (!req.headers.authorization?.startsWith("Bearer ")) {
       res.status(401).json({ error: "Unauthorized" });
@@ -357,7 +357,7 @@ export function createFakeLlmApp(getPort: () => number) {
           category: "Other Tools",
           transport: "http",
           url: "http://localhost:3002/mcp",
-          headers: { "X-Test-Header": "dyad-e2e" },
+          headers: { "X-Test-Header": "nextbillion-e2e" },
         },
         // Valid stdio entry. The package is scoped under @dyad-sh so it
         // can never resolve against the real npm registry: the spec only
@@ -770,7 +770,7 @@ export function createFakeLlmApp(getPort: () => number) {
   // GitHub Git endpoints - intercept all paths with /github/git prefix
   app.all("/github/git/*", handleGitPush);
 
-  // Dyad Engine free-model quota endpoint (free_model_quota_handlers).
+  // NextBillion Engine free-model quota endpoint (free_model_quota_handlers).
   app.get("/engine/v1/free/quota", (req, res) => {
     if (!req.headers.authorization?.startsWith("Bearer ")) {
       res.status(401).json({ error: "Unauthorized" });
@@ -784,7 +784,7 @@ export function createFakeLlmApp(getPort: () => number) {
     });
   });
 
-  // Dyad Engine code-search endpoint for code_search tool
+  // NextBillion Engine code-search endpoint for code_search tool
   app.post("/engine/v1/tools/code-search", (req, res) => {
     const { query, filesContext } = req.body;
     fakeLlmLog(
@@ -805,7 +805,7 @@ export function createFakeLlmApp(getPort: () => number) {
     }
   });
 
-  // Dyad Engine image generation endpoint for generate_image tool
+  // NextBillion Engine image generation endpoint for generate_image tool
   app.post("/engine/v1/images/generations", (req, res) => {
     const { prompt, model } = req.body;
     fakeLlmLog(
@@ -838,7 +838,7 @@ export function createFakeLlmApp(getPort: () => number) {
     res.type("png").send(Buffer.from(tinyPngBase64, "base64"));
   });
 
-  // Dyad Engine web-crawl endpoint for web_fetch tool
+  // NextBillion Engine web-crawl endpoint for web_fetch tool
   app.post("/engine/v1/tools/web-crawl", (req, res) => {
     const { url, markdownOnly } = req.body;
     fakeLlmLog(`* web-crawl: url="${url}", markdownOnly=${markdownOnly}`);

@@ -12,7 +12,10 @@
  */
 import type { createStore } from "jotai";
 
-import { DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import type {
   PendingUserInputPayload,
   UserInputDescriptorPayload,
@@ -458,7 +461,10 @@ export function getUserInputReadModel({
         return true;
       } catch (error) {
         pendingResponses.delete(requestId);
-        if (isDyadError(error) && error.kind === DyadErrorKind.NotFound) {
+        if (
+          isNextBillionError(error) &&
+          error.kind === NextBillionErrorKind.NotFound
+        ) {
           // Never expose a request main has already rejected as stale, even if
           // the best-effort authoritative refresh also fails.
           markChanged(requestId);

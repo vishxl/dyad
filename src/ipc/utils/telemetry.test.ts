@@ -17,7 +17,10 @@ vi.mock("electron", () => ({
     ],
   },
 }));
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { ResponseValidationError } from "@vercel/sdk/models/responsevalidationerror.js";
 import { SDKError } from "@vercel/sdk/models/sdkerror.js";
 import { getVercelProjectCreationError } from "./vercel_errors";
@@ -48,7 +51,7 @@ describe("shouldFilterTelemetryException", () => {
         new SshError(
           "unreachable",
           "Could not reach the server (ENOTFOUND).",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         ),
       ),
     ).toBe(true);
@@ -57,7 +60,7 @@ describe("shouldFilterTelemetryException", () => {
         new SshError(
           "timeout",
           "The server did not answer in time.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         ),
       ),
     ).toBe(true);
@@ -71,7 +74,7 @@ describe("shouldFilterTelemetryException", () => {
         new SshError(
           "unknown",
           "Could not connect over SSH: something new",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         ),
       ),
     ).toBe(false);
@@ -107,32 +110,34 @@ describe("shouldFilterTelemetryException", () => {
     ).toBe(false);
   });
 
-  it("filters DyadError kinds that are non-actionable for telemetry", () => {
+  it("filters NextBillionError kinds that are non-actionable for telemetry", () => {
     expect(
       shouldFilterTelemetryException(
-        new DyadError("bad input", DyadErrorKind.Validation),
+        new NextBillionError("bad input", NextBillionErrorKind.Validation),
       ),
     ).toBe(true);
     expect(
       shouldFilterTelemetryException(
-        new DyadError("missing", DyadErrorKind.NotFound),
+        new NextBillionError("missing", NextBillionErrorKind.NotFound),
       ),
     ).toBe(true);
   });
 
-  it("does not filter DyadError Internal, External, or Unknown", () => {
+  it("does not filter NextBillionError Internal, External, or Unknown", () => {
     expect(
       shouldFilterTelemetryException(
-        new DyadError("bug", DyadErrorKind.Internal),
+        new NextBillionError("bug", NextBillionErrorKind.Internal),
       ),
     ).toBe(false);
     expect(
       shouldFilterTelemetryException(
-        new DyadError("upstream", DyadErrorKind.External),
+        new NextBillionError("upstream", NextBillionErrorKind.External),
       ),
     ).toBe(false);
     expect(
-      shouldFilterTelemetryException(new DyadError("?", DyadErrorKind.Unknown)),
+      shouldFilterTelemetryException(
+        new NextBillionError("?", NextBillionErrorKind.Unknown),
+      ),
     ).toBe(false);
   });
 });
@@ -196,7 +201,7 @@ describe("Vercel project diagnostics", () => {
 
   it("continues filtering expected failures before reporting classification", () => {
     sendTelemetryException(
-      new DyadError("private-auth-details", DyadErrorKind.Auth),
+      new NextBillionError("private-auth-details", NextBillionErrorKind.Auth),
       {
         ipc_channel: "vercel:create-project",
       },

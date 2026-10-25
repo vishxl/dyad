@@ -14,7 +14,7 @@ import { Timeout, testWithConfigSkipIfWindows } from "./helpers/test_helper";
  * The fake catalog serves nothing featured by default, which keeps the tool
  * out of every other local-agent request snapshot; this launch opts in.
  */
-const originalCatalogUrl = process.env.DYAD_MCP_CATALOG_URL;
+const originalCatalogUrl = process.env.NEXTBILLION_MCP_CATALOG_URL;
 // The catalog spec binds the default MCP port, and another worker can be
 // running it at the same time, so this file's server gets its own port
 // per worker and the catalog entry is pointed at it.
@@ -23,12 +23,12 @@ let mcpPort = MCP_PORT_BASE;
 const testWithFeaturedCatalog = testWithConfigSkipIfWindows({
   preLaunchHook: async ({ fakeLlmPort }) => {
     mcpPort = MCP_PORT_BASE + (fakeLlmPort - FAKE_LLM_BASE_PORT);
-    process.env.DYAD_MCP_CATALOG_URL = `http://localhost:${fakeLlmPort}/api/mcp-catalog?featured=e2e-open&mcpPort=${mcpPort}`;
+    process.env.NEXTBILLION_MCP_CATALOG_URL = `http://localhost:${fakeLlmPort}/api/mcp-catalog?featured=e2e-open&mcpPort=${mcpPort}`;
   },
   postLaunchHook: async () => {
     if (originalCatalogUrl === undefined)
-      delete process.env.DYAD_MCP_CATALOG_URL;
-    else process.env.DYAD_MCP_CATALOG_URL = originalCatalogUrl;
+      delete process.env.NEXTBILLION_MCP_CATALOG_URL;
+    else process.env.NEXTBILLION_MCP_CATALOG_URL = originalCatalogUrl;
   },
 });
 
@@ -39,7 +39,7 @@ testWithFeaturedCatalog(
     // so the entry's target has to be up.
     const stopMcpServer = await startFakeHttpMcpServer(mcpPort);
     try {
-      await po.setUpDyadPro({ localAgent: true, autoApprove: true });
+      await po.setUpNextBillionPro({ localAgent: true, autoApprove: true });
       await po.importApp("minimal");
       await po.chatActions.waitForChatCompletion({ timeout: Timeout.LONG });
       await po.chatActions.clickNewChat();
@@ -99,7 +99,7 @@ testWithFeaturedCatalog(
 testWithFeaturedCatalog(
   "local-agent - declining a suggested plugin continues without it",
   async ({ po }) => {
-    await po.setUpDyadPro({ localAgent: true, autoApprove: true });
+    await po.setUpNextBillionPro({ localAgent: true, autoApprove: true });
     await po.importApp("minimal");
     await po.chatActions.waitForChatCompletion({ timeout: Timeout.LONG });
     await po.chatActions.clickNewChat();
@@ -130,7 +130,7 @@ testWithFeaturedCatalog(
 testWithFeaturedCatalog(
   "local-agent - opting out of a suggested plugin continues without it",
   async ({ po }) => {
-    await po.setUpDyadPro({ localAgent: true, autoApprove: true });
+    await po.setUpNextBillionPro({ localAgent: true, autoApprove: true });
     await po.importApp("minimal");
     await po.chatActions.waitForChatCompletion({ timeout: Timeout.LONG });
     await po.chatActions.clickNewChat();

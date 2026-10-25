@@ -36,7 +36,7 @@ afterEach(async () => {
 async function setup(onSlowShutdown?: () => void) {
   const lifecycle = {
     beforeEach: vi.fn(async (_signal?: AbortSignal) => ({
-      DYAD_TEST_USER_EMAIL: "new@dyad.test",
+      NEXTBILLION_TEST_USER_EMAIL: "new@nextbillion.test",
     })),
     afterEach: vi.fn(async (_signal?: AbortSignal) => {}),
   };
@@ -115,7 +115,7 @@ describe("test case lifecycle bridge", () => {
     const warning = vi.fn();
     const { lifecycle, server, request } = await setup(warning);
     let started!: () => void;
-    let finish!: (value: { DYAD_TEST_USER_EMAIL: string }) => void;
+    let finish!: (value: { NEXTBILLION_TEST_USER_EMAIL: string }) => void;
     const ready = new Promise<void>((resolve) => {
       started = resolve;
     });
@@ -139,7 +139,7 @@ describe("test case lifecycle bridge", () => {
       expect(drained).toBe(false);
       expect(lifecycle.afterEach).not.toHaveBeenCalled();
     } finally {
-      finish({ DYAD_TEST_USER_EMAIL: "late@dyad.test" });
+      finish({ NEXTBILLION_TEST_USER_EMAIL: "late@nextbillion.test" });
       await closed;
       await pendingRequest;
     }
@@ -182,7 +182,7 @@ describe("test case lifecycle bridge", () => {
   it("cleans up an abandoned attempt and ignores its stale teardown", async () => {
     const { lifecycle, request } = await setup();
     expect(await (await request("before/one")).json()).toEqual({
-      DYAD_TEST_USER_EMAIL: "new@dyad.test",
+      NEXTBILLION_TEST_USER_EMAIL: "new@nextbillion.test",
     });
     await request("before/two");
     expect(lifecycle.afterEach).toHaveBeenCalledTimes(1);
@@ -207,7 +207,7 @@ describe("test case lifecycle bridge", () => {
 
   it("drains in-flight provisioning before cleaning up a killed worker", async () => {
     const { lifecycle, server, request } = await setup();
-    let finish!: (value: { DYAD_TEST_USER_EMAIL: string }) => void;
+    let finish!: (value: { NEXTBILLION_TEST_USER_EMAIL: string }) => void;
     let started!: () => void;
     const startedPromise = new Promise<void>((resolve) => {
       started = resolve;
@@ -222,7 +222,7 @@ describe("test case lifecycle bridge", () => {
     await startedPromise;
     const closed = server.close();
     expect(lifecycle.afterEach).not.toHaveBeenCalled();
-    finish({ DYAD_TEST_USER_EMAIL: "created@dyad.test" });
+    finish({ NEXTBILLION_TEST_USER_EMAIL: "created@nextbillion.test" });
     await closed;
     await pendingRequest;
     servers.splice(servers.indexOf(server), 1);
@@ -231,7 +231,7 @@ describe("test case lifecycle bridge", () => {
 
   it("runs the generated auto fixture around cases in different files and retries", async () => {
     const directory = fs.mkdtempSync(
-      path.join(os.tmpdir(), "dyad-case-fixture-"),
+      path.join(os.tmpdir(), "nextbillion-case-fixture-"),
     );
     directories.push(directory);
     const logFile = path.join(directory, "events.jsonl");
@@ -243,8 +243,8 @@ describe("test case lifecycle bridge", () => {
         id += 1;
         record(`create-${id}`);
         return {
-          DYAD_TEST_USER_EMAIL: String(id),
-          DYAD_TEST_USER_PASSWORD: `password-${id}`,
+          NEXTBILLION_TEST_USER_EMAIL: String(id),
+          NEXTBILLION_TEST_USER_PASSWORD: `password-${id}`,
         };
       },
       afterEach: async () => {
@@ -266,9 +266,9 @@ describe("test case lifecycle bridge", () => {
     const helpers = `
 import { test, expect } from '@playwright/test';
 import { appendFileSync } from 'node:fs';
-const record = (phase) => appendFileSync(${JSON.stringify(logFile)}, JSON.stringify(phase + '-' + process.env.DYAD_TEST_USER_EMAIL) + '\\n');
+const record = (phase) => appendFileSync(${JSON.stringify(logFile)}, JSON.stringify(phase + '-' + process.env.NEXTBILLION_TEST_USER_EMAIL) + '\\n');
 test.beforeEach(() => {
-  expect(process.env.DYAD_TEST_USER_PASSWORD).toBe('password-' + process.env.DYAD_TEST_USER_EMAIL);
+  expect(process.env.NEXTBILLION_TEST_USER_PASSWORD).toBe('password-' + process.env.NEXTBILLION_TEST_USER_EMAIL);
   record('before');
 });
 test.afterEach(() => record('after'));

@@ -2,7 +2,7 @@
 //
 // S-CELL spike runner for the app-builder benchmark (benchmarks/app-builder/DESIGN.md §6).
 // Runs ONE full (model × Relay CRM × 3 milestones) cell through the real headless
-// chat pipeline in local-agent mode against the real Dyad engine, with:
+// chat pipeline in local-agent mode against the real NextBillion engine, with:
 //   - neon-sim as the Neon control plane + data plane + Neon Auth stand-in
 //   - the engine recording proxy capturing exact per-request token usage
 //
@@ -20,24 +20,27 @@ const RUN = process.env.APPBENCH_CELL === "1";
 const h = vi.hoisted(() => {
   process.env.NODE_ENV = "development";
   if (process.env.APPBENCH_CELL === "1") {
-    // Must be set before app modules import (dyad_engine_url reads at import time).
-    process.env.DYAD_ENGINE_URL = `http://127.0.0.1:${process.env.APPBENCH_PROXY_PORT ?? "7789"}`;
-    process.env.DYAD_LANGUAGE_MODEL_CATALOG_URL = `http://127.0.0.1:${process.env.APPBENCH_PROXY_PORT ?? "7789"}/catalog`;
-    process.env.DYAD_NEON_API_BASE_URL = "http://127.0.0.1:7788/api/v2";
+    // Must be set before app modules import (nextbillion_engine_url reads at import time).
+    process.env.NEXTBILLION_ENGINE_URL = `http://127.0.0.1:${process.env.APPBENCH_PROXY_PORT ?? "7789"}`;
+    process.env.NEXTBILLION_LANGUAGE_MODEL_CATALOG_URL = `http://127.0.0.1:${process.env.APPBENCH_PROXY_PORT ?? "7789"}/catalog`;
+    process.env.NEXTBILLION_NEON_API_BASE_URL = "http://127.0.0.1:7788/api/v2";
     // The in-process Neon mock must NOT engage; neon-sim only mirrors it.
     delete process.env.E2E_TEST_BUILD;
     // node-pty is Electron-ABI; under vitest it posix_spawnp-fails (broke
     // add_dependency in early S-FORMS runs). Use the child_process fallback.
-    process.env.DYAD_DISABLE_PTY = "1";
+    process.env.NEXTBILLION_DISABLE_PTY = "1";
     // The cell runs the app's REAL dev server so restart_app/rebuild_app work
     // and read_logs returns runtime output. Pin its ports into a block clear
     // of 7788 (neon-sim), 7789 (engine proxy), 3000/3210 (scoring) and of the
     // default 32100 band: block 4 => app 40300+, proxy 41300+, fallback
     // 42300+. Read at call time, but set here so it is unambiguous.
-    process.env.DYAD_E2E_PORT_BLOCK_INDEX =
+    process.env.NEXTBILLION_E2E_PORT_BLOCK_INDEX =
       process.env.APPBENCH_PORT_BLOCK ?? "4";
-    if (!process.env.DYAD_PRO_API_KEY && process.env.DYAD_PRO_KEY) {
-      process.env.DYAD_PRO_API_KEY = process.env.DYAD_PRO_KEY;
+    if (
+      !process.env.NEXTBILLION_PRO_API_KEY &&
+      process.env.NEXTBILLION_PRO_KEY
+    ) {
+      process.env.NEXTBILLION_PRO_API_KEY = process.env.NEXTBILLION_PRO_KEY;
     }
   }
   return { ipcHandlers: new Map() };
@@ -155,7 +158,10 @@ async function json(url: string, init?: RequestInit) {
   > | null = null;
 
   beforeAll(async () => {
-    expect(process.env.DYAD_PRO_API_KEY, "DYAD_PRO_KEY required").toBeTruthy();
+    expect(
+      process.env.NEXTBILLION_PRO_API_KEY,
+      "NEXTBILLION_PRO_KEY required",
+    ).toBeTruthy();
     // Preflight: neon-sim + engine proxy must be up.
     await json(`${SIM}/__sim/state`);
     await fetch(`${PROXY}/healthz`).then((r) => {
@@ -169,10 +175,10 @@ async function json(url: string, init?: RequestInit) {
       chatMode: "local-agent",
       autoApprove: true,
       useFakeCatalog: false,
-      engine: false, // leave our DYAD_ENGINE_URL (recording proxy) untouched
+      engine: false, // leave our NEXTBILLION_ENGINE_URL (recording proxy) untouched
       selectedModel: { provider: MODEL_PROVIDER, name: MODEL_NAME },
       settings: {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         // Off by default so every other model column keeps measuring a single
         // agent. isImplementerSubagentEnabled ORs this with isAutoSidekickModel,
         // so auto-sidekick still gets its Implementer when this is false —
@@ -207,7 +213,7 @@ async function json(url: string, init?: RequestInit) {
           web_crawl: "always",
         },
         providerSettings: {
-          auto: { apiKey: { value: process.env.DYAD_PRO_API_KEY! } },
+          auto: { apiKey: { value: process.env.NEXTBILLION_PRO_API_KEY! } },
         },
         neon: {
           accessToken: { value: "sim-token" },
@@ -379,7 +385,7 @@ async function json(url: string, init?: RequestInit) {
           // Label only: the V1/V2/V3 guidance A/B flag was retired after the delegation
           // experiment; the product prompt ships one guidance text.
           implementerGuidance:
-            process.env.DYAD_IMPLEMENTER_GUIDANCE ?? "product",
+            process.env.NEXTBILLION_IMPLEMENTER_GUIDANCE ?? "product",
           // Same reasoning: whether this cell had an Implementer at all is
           // otherwise only inferable from spawn counts, which are zero both
           // when the model chose not to delegate and when it could not.

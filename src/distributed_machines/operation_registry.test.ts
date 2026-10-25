@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { TransactionalDispatcher } from "@/state_machines/dispatcher";
 import type { InvocationRef } from "@/state_machines/invocation_ref";
 import { change } from "@/state_machines/types";
@@ -170,7 +170,7 @@ describe("OperationRegistry", () => {
           return error;
         }
       })(),
-    ).toMatchObject({ kind: DyadErrorKind.Conflict });
+    ).toMatchObject({ kind: NextBillionErrorKind.Conflict });
     expect(
       (() => {
         try {
@@ -179,7 +179,7 @@ describe("OperationRegistry", () => {
           return error;
         }
       })(),
-    ).toMatchObject({ kind: DyadErrorKind.RateLimited });
+    ).toMatchObject({ kind: NextBillionErrorKind.RateLimited });
   });
 
   it("bounds settled replay independently without dropping pending work", () => {

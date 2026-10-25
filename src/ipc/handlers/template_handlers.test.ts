@@ -5,7 +5,7 @@ import path from "node:path";
 import { eq } from "drizzle-orm";
 
 import { apps } from "@/db/schema";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import {
   type HandlerTestHarness,
   setupHandlerTestHarness,
@@ -15,7 +15,7 @@ import { activeRecordings } from "@/ipc/services/recording_registry";
 
 // All app folders live under one throwaway base so the filesystem-probing
 // conflict checks (and actual folder moves) run against real directories.
-const TEMP_BASE = path.join(os.tmpdir(), "dyad-template-handler-tests");
+const TEMP_BASE = path.join(os.tmpdir(), "nextbillion-template-handler-tests");
 
 const createFromTemplateMock = vi.hoisted(() => vi.fn());
 const getGitUncommittedFilesMock = vi.hoisted(() =>
@@ -28,12 +28,14 @@ const runningAppsMock = vi.hoisted(
   () => new Map<number, { processId: number; mode: string }>(),
 );
 const stopAppByInfoMock = vi.hoisted(() => vi.fn(async () => {}));
-const ensureDyadGitignoredMock = vi.hoisted(() => vi.fn(async () => {}));
+const ensureNextBillionGitignoredMock = vi.hoisted(() => vi.fn(async () => {}));
 
 vi.mock("electron", () => ({
   ipcMain: { handle: vi.fn(), on: vi.fn() },
   app: {
-    getPath: vi.fn(() => path.join(os.tmpdir(), "dyad-template-user-data")),
+    getPath: vi.fn(() =>
+      path.join(os.tmpdir(), "nextbillion-template-user-data"),
+    ),
     getAppPath: vi.fn(() => process.cwd()),
   },
   dialog: { showOpenDialog: vi.fn() },
@@ -55,10 +57,13 @@ vi.mock("@/paths/paths", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/paths/paths")>();
   const nodePath = await import("node:path");
   const nodeOs = await import("node:os");
-  const base = nodePath.join(nodeOs.tmpdir(), "dyad-template-handler-tests");
+  const base = nodePath.join(
+    nodeOs.tmpdir(),
+    "nextbillion-template-handler-tests",
+  );
   return {
     ...actual,
-    getDyadAppPath: (appPath: string) =>
+    getNextBillionAppPath: (appPath: string) =>
       nodePath.isAbsolute(appPath) ? appPath : nodePath.join(base, appPath),
     isAppLocationAccessible: () => true,
   };
@@ -76,7 +81,7 @@ vi.mock("@/ipc/handlers/createFromTemplate", () => ({
 }));
 
 vi.mock("@/ipc/handlers/gitignoreUtils", () => ({
-  ensureDyadGitignored: ensureDyadGitignoredMock,
+  ensureNextBillionGitignored: ensureNextBillionGitignoredMock,
 }));
 
 vi.mock("@/ipc/utils/git_utils", () => ({
@@ -118,8 +123,8 @@ describe("apply-app-template", () => {
     runningAppsMock.clear();
     stopAppByInfoMock.mockClear();
     stopAppByInfoMock.mockResolvedValue(undefined);
-    ensureDyadGitignoredMock.mockClear();
-    ensureDyadGitignoredMock.mockResolvedValue(undefined);
+    ensureNextBillionGitignoredMock.mockClear();
+    ensureNextBillionGitignoredMock.mockResolvedValue(undefined);
     getGitUncommittedFilesMock.mockReset();
     getGitUncommittedFilesMock.mockResolvedValue([]);
     stageAllAndCommitIfChangedMock.mockReset();
@@ -143,7 +148,7 @@ describe("apply-app-template", () => {
   }
 
   // Configures createFromTemplate to stage a template whose top-level tree is
-  // `files` under the staged `app/` directory dyad creates in a temp dir.
+  // `files` under the staged `app/` directory nextbillion creates in a temp dir.
   function stageTemplateTree(files: Record<string, string>) {
     createFromTemplateMock.mockImplementation(
       async ({ fullAppPath }: { fullAppPath: string }) => {
@@ -225,17 +230,17 @@ describe("apply-app-template", () => {
       );
     });
 
-    it("preserves .git and .dyad directories over the template's same-named copies", async () => {
+    it("preserves .git and .nextbillion directories over the template's same-named copies", async () => {
       await writeTree(appPath, {
         ".git/HEAD": "ref: refs/heads/main\n",
-        ".dyad/meta.json": '{"user":"preserved"}',
+        ".nextbillion/meta.json": '{"user":"preserved"}',
         "package.json": '{"name":"old"}',
       });
       const appId = seedApp("Imported App", appPath);
       stageTemplateTree({
         ".git/HEAD": "ref: refs/heads/template-main\n",
         ".git/config": "[template]\n",
-        ".dyad/meta.json": '{"template":"injected"}',
+        ".nextbillion/meta.json": '{"template":"injected"}',
         "package.json": '{"name":"template"}',
       });
 
@@ -246,7 +251,9 @@ describe("apply-app-template", () => {
 
       expect(readApp(".git/HEAD", appPath)).toBe("ref: refs/heads/main\n");
       expect(fs.existsSync(path.join(appPath, ".git", "config"))).toBe(false);
-      expect(readApp(".dyad/meta.json", appPath)).toBe('{"user":"preserved"}');
+      expect(readApp(".nextbillion/meta.json", appPath)).toBe(
+        '{"user":"preserved"}',
+      );
     });
 
     it("clears non-preserved entries before copying the template", async () => {
@@ -320,7 +327,7 @@ describe("apply-app-template", () => {
           appId,
           templateId: "react",
         }),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       expect(createFromTemplateMock).not.toHaveBeenCalled();
     });
 

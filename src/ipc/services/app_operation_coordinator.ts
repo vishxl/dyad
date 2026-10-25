@@ -1,4 +1,7 @@
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { assertNoActiveRecording } from "./recording_registry";
 
 export const APP_OPERATION_RESOURCES = [
@@ -25,7 +28,7 @@ export type AppOperationAccessMode = "read" | "write";
  *
  * A named class rather than a bare `Error`, because the delete handler has to
  * recognise it to report "already being deleted" as a Precondition rather than
- * an unclassified product exception (`rules/dyad-errors.md`). Matching on the
+ * an unclassified product exception (`rules/nextbillion-errors.md`). Matching on the
  * message text coupled the two files through a string nothing checks.
  */
 export class AppDeletionInProgressError extends Error {
@@ -102,7 +105,7 @@ interface PendingOperation {
 
 interface BlockedOperation {
   request: NormalizedAppOperationRequest;
-  error: DyadError;
+  error: NextBillionError;
 }
 
 interface AppOperationState {
@@ -229,14 +232,17 @@ export class AppOperationCoordinator {
     operation: (context: AppOperationContext) => Promise<Result>,
   ): Promise<Result> {
     const cancelled = () =>
-      new DyadError("App operation cancelled", DyadErrorKind.UserCancelled);
+      new NextBillionError(
+        "App operation cancelled",
+        NextBillionErrorKind.UserCancelled,
+      );
     if (request.signal?.aborted) return Promise.reject(cancelled());
     const state = this.getOrCreateState(request.appId);
     if (state.deletion) {
       return Promise.reject(
-        new DyadError(
+        new NextBillionError(
           "App is temporarily unavailable",
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         ),
       );
     }
@@ -329,7 +335,7 @@ export class AppOperationCoordinator {
     const state = this.getOrCreateState(request.appId);
     const block: BlockedOperation = {
       request: { ...request, resources: normalizeResources(request.resources) },
-      error: new DyadError(reason, DyadErrorKind.Precondition),
+      error: new NextBillionError(reason, NextBillionErrorKind.Precondition),
     };
     state.blocks.add(block);
     state.queue = state.queue.filter((pending) => {

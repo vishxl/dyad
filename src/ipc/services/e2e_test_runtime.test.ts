@@ -25,11 +25,11 @@ import {
   startE2eTestRuntime,
 } from "./e2e_test_runtime";
 import { runningApps } from "@/ipc/utils/process_manager";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import {
   E2E_TEST_SERVER_PORT_RANGE,
   E2E_TEST_SERVER_PORT_START,
-  isReservedDyadPort,
+  isReservedNextBillionPort,
 } from "../../../shared/ports";
 
 function mockPnpmAvailable(available: boolean) {
@@ -49,13 +49,14 @@ const NO_OP_INSTALL_COMMAND = `"${process.execPath}" -e ""`;
 const INSTALL_ECHO = `echo "${INSTALL_COMPLETE_MARKER}"`;
 
 /**
- * Whether the whole reserved band is off limits on this machine. Dyad's own
+ * Whether the whole reserved band is off limits on this machine. NextBillion's own
  * E2E shards relocate the reserved port ranges over it, and the allocator then
  * legitimately hands back an OS-assigned port from outside the band.
  */
 function bandIsReserved(): boolean {
   for (let offset = 0; offset < E2E_TEST_SERVER_PORT_RANGE; offset += 1) {
-    if (!isReservedDyadPort(E2E_TEST_SERVER_PORT_START + offset)) return false;
+    if (!isReservedNextBillionPort(E2E_TEST_SERVER_PORT_START + offset))
+      return false;
   }
   return true;
 }
@@ -187,7 +188,9 @@ describe("buildE2eTestStartCommand", () => {
   });
 
   it("starts and stops a server without registering the normal app runtime", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-e2e-runtime-"));
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-e2e-runtime-"),
+    );
     fs.writeFileSync(
       path.join(root, "server.mjs"),
       `import http from "node:http";
@@ -219,7 +222,9 @@ http.createServer((_request, response) => response.end("sandbox"))
     // root's fate says nothing — and a server that outlived it is what makes
     // deleting the workspace unsafe. The port is the observable a survivor
     // would still be holding.
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-e2e-stop-"));
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-e2e-stop-"),
+    );
     fs.writeFileSync(
       path.join(root, "server.mjs"),
       `import http from "node:http";
@@ -282,7 +287,9 @@ http
       // The decoy is bound by the child, AFTER the port was allocated — which is
       // the only window this can happen in: allocation probes both loopbacks, so
       // a port something already holds is never handed out.
-      const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-e2e-owned-"));
+      const root = fs.mkdtempSync(
+        path.join(os.tmpdir(), "nextbillion-e2e-owned-"),
+      );
       fs.mkdirSync(path.join(root, "public"), { recursive: true });
       fs.writeFileSync(
         path.join(root, "server.mjs"),
@@ -327,15 +334,15 @@ http.createServer((_request, response) => response.end("not the sandbox"))
 });
 
 describe("allocateE2eTestPort", () => {
-  it("allocates out of Dyad's reserved band, never another app's port", async () => {
+  it("allocates out of NextBillion's reserved band, never another app's port", async () => {
     const port = await allocateE2eTestPort();
     try {
       // The whole point, and true of every allocation: an OS-assigned ephemeral
       // port would routinely land on the deterministic app or proxy port of
       // another, currently stopped app.
-      expect(isReservedDyadPort(port)).toBe(false);
-      // Band membership only when the band is actually available. Dyad's own
-      // E2E shards relocate the reserved ranges — `DYAD_E2E_PORT_BLOCK_INDEX=9`
+      expect(isReservedNextBillionPort(port)).toBe(false);
+      // Band membership only when the band is actually available. NextBillion's own
+      // E2E shards relocate the reserved ranges — `NEXTBILLION_E2E_PORT_BLOCK_INDEX=9`
       // covers this whole band — and the allocator then correctly falls through
       // to an OS-assigned port outside it.
       if (!bandIsReserved()) {
@@ -380,10 +387,12 @@ describe("allocateE2eTestPort", () => {
 
 describe("startE2eTestRuntime port recovery", () => {
   it("stops polling a dead port when the server announces the clash", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-e2e-port-"));
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-e2e-port-"),
+    );
     // Mimics Vite's default `strictPort: false`: it prints the clash, moves to
     // another port and keeps running, so nothing throws and nothing ever
-    // answers on the port Dyad picked. Without matching that output the poll
+    // answers on the port NextBillion picked. Without matching that output the poll
     // would sit here for the full two-minute readiness timeout.
     fs.writeFileSync(
       path.join(root, "server.mjs"),
@@ -411,19 +420,21 @@ describe("startE2eTestRuntime port recovery", () => {
   }, 60_000);
 
   it("keeps retrying the occupied port when cleanup verification fails", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-e2e-cleanup-"));
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-e2e-cleanup-"),
+    );
     const attempts = path.join(root, "attempts");
     fs.writeFileSync(
       path.join(root, "server.mjs"),
       [
         'import fs from "node:fs";',
         "const port = Number(process.argv[2]);",
-        'fs.appendFileSync(process.env.DYAD_ATTEMPTS, "x");',
+        'fs.appendFileSync(process.env.NEXTBILLION_ATTEMPTS, "x");',
         "console.error(`Port ${port} is in use, trying another one...`);",
         "setInterval(() => {}, 1000);",
       ].join("\n"),
     );
-    process.env.DYAD_ATTEMPTS = attempts;
+    process.env.NEXTBILLION_ATTEMPTS = attempts;
     const originalCreateServer = net.createServer.bind(net);
     let injectedCleanupFailure = false;
     let restoreCreateServer: (() => void) | undefined;
@@ -456,13 +467,13 @@ describe("startE2eTestRuntime port recovery", () => {
             restoreCreateServer = () => createServerSpy.mockRestore();
           },
         }),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
 
       expect(injectedCleanupFailure).toBe(true);
       expect(fs.readFileSync(attempts, "utf8")).toBe("xxx");
     } finally {
       restoreCreateServer?.();
-      delete process.env.DYAD_ATTEMPTS;
+      delete process.env.NEXTBILLION_ATTEMPTS;
       fs.rmSync(root, { recursive: true, force: true });
     }
   }, 60_000);
@@ -474,11 +485,13 @@ describe("startE2eTestRuntime port accounting", () => {
     // used to be the only place releasing the port, so a failure here burned
     // one of the 200 band ports for the life of the process — and enough of
     // them left no port to allocate at all.
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-e2e-release-"));
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-e2e-release-"),
+    );
     // Taken before the failing run, so the comparison is against whatever this
     // machine's allocator actually hands out. Pinning the band's first port
     // instead would fail whenever an unrelated process holds it, or whenever
-    // `DYAD_E2E_PORT_BLOCK_INDEX` reserves the band and the allocator correctly
+    // `NEXTBILLION_E2E_PORT_BLOCK_INDEX` reserves the band and the allocator correctly
     // falls through to an OS-assigned port.
     const before = await allocateE2eTestPort();
     releaseE2eTestPort(before);
@@ -505,19 +518,21 @@ describe("startE2eTestRuntime port accounting", () => {
     // matching a substring of the whole message turned any sidecar's
     // EADDRINUSE — Postgres, Redis, a second worker — into three more full
     // server starts before the real error reached the user.
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-e2e-sidecar-"));
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-e2e-sidecar-"),
+    );
     const attempts = path.join(root, "attempts");
     fs.writeFileSync(
       path.join(root, "server.mjs"),
       [
         'import fs from "node:fs";',
-        'fs.appendFileSync(process.env.DYAD_ATTEMPTS, "x");',
-        // Deliberately NOT the port Dyad allocated.
+        'fs.appendFileSync(process.env.NEXTBILLION_ATTEMPTS, "x");',
+        // Deliberately NOT the port NextBillion allocated.
         "console.error('listen EADDRINUSE: address already in use 127.0.0.1:5432');",
         "process.exit(1);",
       ].join("\n"),
     );
-    process.env.DYAD_ATTEMPTS = attempts;
+    process.env.NEXTBILLION_ATTEMPTS = attempts;
     try {
       await expect(
         startE2eTestRuntime({
@@ -528,25 +543,27 @@ describe("startE2eTestRuntime port accounting", () => {
       ).rejects.toThrow(/exited before becoming ready/i);
       expect(fs.readFileSync(attempts, "utf8")).toBe("x");
     } finally {
-      delete process.env.DYAD_ATTEMPTS;
+      delete process.env.NEXTBILLION_ATTEMPTS;
       fs.rmSync(root, { recursive: true, force: true });
     }
   }, 30_000);
 
   it("still retries when the clash really is on the allocated port", async () => {
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-e2e-clash-"));
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-e2e-clash-"),
+    );
     const attempts = path.join(root, "attempts");
     fs.writeFileSync(
       path.join(root, "server.mjs"),
       [
         'import fs from "node:fs";',
         "const port = Number(process.argv[2]);",
-        'fs.appendFileSync(process.env.DYAD_ATTEMPTS, "x");',
+        'fs.appendFileSync(process.env.NEXTBILLION_ATTEMPTS, "x");',
         "console.error(`listen EADDRINUSE: address already in use 127.0.0.1:${port}`);",
         "process.exit(1);",
       ].join("\n"),
     );
-    process.env.DYAD_ATTEMPTS = attempts;
+    process.env.NEXTBILLION_ATTEMPTS = attempts;
     try {
       // Precondition, not Internal: three fresh ports all taken means something
       // else on the machine holds them, which the user acts on — it must not
@@ -558,10 +575,10 @@ describe("startE2eTestRuntime port accounting", () => {
           installCommand: NO_OP_INSTALL_COMMAND,
           startCommand: `"${process.execPath}" server.mjs {port}`,
         }),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       expect(fs.readFileSync(attempts, "utf8")).toBe("xxx");
     } finally {
-      delete process.env.DYAD_ATTEMPTS;
+      delete process.env.NEXTBILLION_ATTEMPTS;
       fs.rmSync(root, { recursive: true, force: true });
     }
   }, 30_000);
@@ -573,19 +590,21 @@ describe("startE2eTestRuntime port accounting", () => {
     // the case the retry exists for — a port that probes free but the server
     // cannot take (an `::1`-only listener) — would otherwise burn all three
     // attempts on one port and report "couldn't get a free port".
-    const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-e2e-ports-"));
+    const root = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-e2e-ports-"),
+    );
     const attempts = path.join(root, "attempts");
     fs.writeFileSync(
       path.join(root, "server.mjs"),
       [
         'import fs from "node:fs";',
         "const port = Number(process.argv[2]);",
-        "fs.appendFileSync(process.env.DYAD_ATTEMPTS, `${port}\\n`);",
+        "fs.appendFileSync(process.env.NEXTBILLION_ATTEMPTS, `${port}\\n`);",
         "console.error(`listen EADDRINUSE: address already in use 127.0.0.1:${port}`);",
         "process.exit(1);",
       ].join("\n"),
     );
-    process.env.DYAD_ATTEMPTS = attempts;
+    process.env.NEXTBILLION_ATTEMPTS = attempts;
     try {
       await expect(
         startE2eTestRuntime({
@@ -593,7 +612,7 @@ describe("startE2eTestRuntime port accounting", () => {
           installCommand: NO_OP_INSTALL_COMMAND,
           startCommand: `"${process.execPath}" server.mjs {port}`,
         }),
-      ).rejects.toMatchObject({ kind: DyadErrorKind.Precondition });
+      ).rejects.toMatchObject({ kind: NextBillionErrorKind.Precondition });
       const used = fs
         .readFileSync(attempts, "utf8")
         .split("\n")
@@ -601,7 +620,7 @@ describe("startE2eTestRuntime port accounting", () => {
       expect(used).toHaveLength(3);
       expect(new Set(used).size).toBe(3);
     } finally {
-      delete process.env.DYAD_ATTEMPTS;
+      delete process.env.NEXTBILLION_ATTEMPTS;
       fs.rmSync(root, { recursive: true, force: true });
     }
   }, 30_000);
@@ -612,13 +631,13 @@ describe("e2eServerReadyTimeoutMs", () => {
     // `install && start` is one spawned command, so `pip install -r
     // requirements.txt`, `bundle install` or a cold `npm ci` spends the
     // readiness budget — and routinely passes two minutes on a first run.
-    const dyadManaged = e2eServerReadyTimeoutMs({});
+    const nextBillionManaged = e2eServerReadyTimeoutMs({});
     const custom = e2eServerReadyTimeoutMs({
       installCommand: "pip install -r requirements.txt",
       startCommand: "python server.py",
     });
-    expect(dyadManaged).toBe(120_000);
-    expect(custom).toBeGreaterThan(dyadManaged);
+    expect(nextBillionManaged).toBe(120_000);
+    expect(custom).toBeGreaterThan(nextBillionManaged);
   });
 
   it("does not extend the budget for a start command with no install command", () => {

@@ -29,7 +29,9 @@ afterEach(async () => {
 });
 
 async function tempRoot() {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), "dyad-screenshot-"));
+  const root = await fs.mkdtemp(
+    path.join(os.tmpdir(), "nextbillion-screenshot-"),
+  );
   roots.push(root);
   return root;
 }

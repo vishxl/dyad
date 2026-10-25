@@ -35,8 +35,8 @@ describe("local-agent run_tests (integration)", () => {
       chatMode: "local-agent",
       settings: {
         isTestMode: true,
-        enableDyadPro: true,
-        providerSettings: { auto: { apiKey: { value: "testdyadkey" } } },
+        enableNextBillionPro: true,
+        providerSettings: { auto: { apiKey: { value: "testnextbillionkey" } } },
         enableCodeExplorer: false,
         disableSandboxedE2eTests: true,
       },
@@ -84,7 +84,7 @@ describe("local-agent run_tests (integration)", () => {
     expect(content).toContain("Now let me run the test to verify it works.");
 
     // The run_tests tool ran and returned the dev-server warning, uncounted.
-    expect(content).toContain('<dyad-output type="warning"');
+    expect(content).toContain('<nextbillion-output type="warning"');
     expect(content).toContain("dev server isn't running");
     expect(content).toContain("did NOT count as a fix attempt");
 

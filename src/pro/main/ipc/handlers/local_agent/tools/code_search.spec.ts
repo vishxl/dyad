@@ -82,9 +82,9 @@ describe("codeSearchTool", () => {
       isSharedModulesChanged: false,
       sharedServerModulePaths: [],
       pendingFunctionDeploys: [],
-      isDyadPro: true,
+      isNextBillionPro: true,
       todos: [],
-      dyadRequestId: "test-request",
+      nextBillionRequestId: "test-request",
       fileEditTracker: {},
       testingEnabled: true,
       testRunAttempts: new Map(),
@@ -153,7 +153,7 @@ describe("codeSearchTool", () => {
       mocks.isCodeExplorerReady.mockReturnValue(false);
 
       expect(
-        codeSearchTool.isEnabled?.({ ...mockContext, isDyadPro: false }),
+        codeSearchTool.isEnabled?.({ ...mockContext, isNextBillionPro: false }),
       ).toBe(false);
     });
 

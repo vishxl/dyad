@@ -1,6 +1,6 @@
-// Neon v2 control-plane shim. Endpoint surface mirrors Dyad's in-process E2E
+// Neon v2 control-plane shim. Endpoint surface mirrors NextBillion's in-process E2E
 // mock (src/neon_admin/neon_management_client.ts:113-359) — the set of
-// @neondatabase/api-client calls Dyad actually makes — served over HTTP so the
+// @neondatabase/api-client calls NextBillion actually makes — served over HTTP so the
 // REAL api-client (axios) works against it. Any Bearer token is accepted.
 import http from "node:http";
 import fs from "node:fs";

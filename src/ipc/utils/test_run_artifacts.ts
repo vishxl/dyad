@@ -4,10 +4,10 @@ import { randomUUID } from "node:crypto";
 import log from "electron-log";
 
 const logger = log.scope("test_run_artifacts");
-const OWNER_MARKER = ".dyad-test-run";
+const OWNER_MARKER = ".nextbillion-test-run";
 const OWNER_VERSION = "1\n";
 const RUN_DIRECTORY =
-  /^dyad-run-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
+  /^nextbillion-run-[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 
 /** Allocation never prunes results that may still be displayed by a partial run. */
 export async function createTestRunArtifactsDir(
@@ -16,7 +16,7 @@ export async function createTestRunArtifactsDir(
   const directory = path.join(
     appPath,
     "test-results",
-    `dyad-run-${randomUUID()}`,
+    `nextbillion-run-${randomUUID()}`,
   );
   await fs.mkdir(directory, { recursive: true });
   await fs.writeFile(path.join(directory, OWNER_MARKER), OWNER_VERSION);

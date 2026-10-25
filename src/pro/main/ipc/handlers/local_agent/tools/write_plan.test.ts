@@ -15,7 +15,9 @@ import { readPlanFromDisk } from "@/ipc/handlers/planPersistence";
 import type { AgentContext } from "./types";
 
 it("publishes the durable plan version, including persistence whitespace normalization", async () => {
-  const appPath = await mkdtemp(path.join(tmpdir(), "dyad-plan-publish-"));
+  const appPath = await mkdtemp(
+    path.join(tmpdir(), "nextbillion-plan-publish-"),
+  );
   const sender = {};
   try {
     await writePlanTool.execute(

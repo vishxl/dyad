@@ -1,7 +1,10 @@
 import fs from "node:fs";
 import path from "node:path";
 import { Worker } from "node:worker_threads";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import type { SandboxHostCallObserver } from "./capabilities";
 import {
   executeSandboxScriptInProcess,
@@ -41,9 +44,9 @@ function resolveSandboxWorkerPath(): string | undefined {
   if (isTestRuntime()) {
     return undefined;
   }
-  throw new DyadError(
+  throw new NextBillionError(
     "Sandbox worker script is missing from the application build.",
-    DyadErrorKind.Internal,
+    NextBillionErrorKind.Internal,
   );
 }
 
@@ -74,9 +77,9 @@ function runSandboxScriptInWorker(params: {
       settle(
         () =>
           reject(
-            new DyadError(
+            new NextBillionError(
               `Sandbox host execution timed out after ${SANDBOX_WALL_CLOCK_TIMEOUT_MS}ms.`,
-              DyadErrorKind.External,
+              NextBillionErrorKind.External,
             ),
           ),
         true,
@@ -105,9 +108,9 @@ function runSandboxScriptInWorker(params: {
         settle(
           () =>
             reject(
-              new DyadError(
+              new NextBillionError(
                 `Sandbox script timed out after ${params.timeoutMs}ms of VM execution.`,
-                DyadErrorKind.External,
+                NextBillionErrorKind.External,
               ),
             ),
           true,
@@ -215,9 +218,9 @@ function runSandboxScriptInWorker(params: {
       settle(
         () =>
           reject(
-            new DyadError(
+            new NextBillionError(
               "Sandbox worker sent an unknown message.",
-              DyadErrorKind.Internal,
+              NextBillionErrorKind.Internal,
             ),
           ),
         true,
@@ -232,11 +235,11 @@ function runSandboxScriptInWorker(params: {
       settle(
         () =>
           reject(
-            new DyadError(
+            new NextBillionError(
               code === 0
                 ? "Sandbox worker exited without returning a result."
                 : `Sandbox worker exited with code ${code}.`,
-              DyadErrorKind.Internal,
+              NextBillionErrorKind.Internal,
             ),
           ),
         false,
@@ -255,9 +258,9 @@ export async function runSandboxScript(params: {
   if (
     Buffer.byteLength(params.script, "utf8") > SANDBOX_SCRIPT_SOURCE_LIMIT_BYTES
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Sandbox script is too large.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 

@@ -13,7 +13,7 @@ const mocks = vi.hoisted(() => ({
 vi.mock("@/hooks/useSettings", () => ({
   useSettings: () => ({
     settings: {
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       enableClaudeCodeSubscription: mocks.claudeEnabled,
       proModelUsage: mocks.usage,
       providerSettings: { auto: { apiKey: { value: "test-pro" } } },

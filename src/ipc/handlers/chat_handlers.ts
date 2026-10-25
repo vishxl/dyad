@@ -9,7 +9,10 @@ import { desc, eq, and, like } from "drizzle-orm";
 import type { ChatSearchResult, ChatSummary } from "../../lib/schemas";
 
 import log from "electron-log";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { createTypedHandler } from "./base";
 import { getHandlerContext } from "./handler_context";
 import { entityDisposalBus } from "@/window_infrastructure/main/entity_disposal_bus";
@@ -106,9 +109,9 @@ async function mutateChatAfterDrainingStreams({
 export function registerChatHandlers() {
   const assertClaudeExperiment = () => {
     if (!getHandlerContext().readSettings().enableClaudeCodeSubscription)
-      throw new DyadError(
+      throw new NextBillionError(
         'Turn on "Enable Claude Code subscription" in Settings → Experiments.',
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
   };
   createTypedHandler(chatContracts.claudeCodeModels, () => {
@@ -194,7 +197,10 @@ export function registerChatHandlers() {
     });
 
     if (!chat) {
-      throw new DyadError("Chat not found", DyadErrorKind.NotFound);
+      throw new NextBillionError(
+        "Chat not found",
+        NextBillionErrorKind.NotFound,
+      );
     }
 
     return {
@@ -219,7 +225,10 @@ export function registerChatHandlers() {
       });
 
       if (!chat) {
-        throw new DyadError("Chat not found", DyadErrorKind.NotFound);
+        throw new NextBillionError(
+          "Chat not found",
+          NextBillionErrorKind.NotFound,
+        );
       }
 
       // Detaching revokes read access, so it has to reach the turn that is
@@ -269,7 +278,10 @@ export function registerChatHandlers() {
     });
 
     if (!chat) {
-      throw new DyadError("Chat not found", DyadErrorKind.NotFound);
+      throw new NextBillionError(
+        "Chat not found",
+        NextBillionErrorKind.NotFound,
+      );
     }
 
     return {
@@ -369,7 +381,10 @@ export function registerChatHandlers() {
           where: eq(chats.id, chatId),
         });
         if (!current)
-          throw new DyadError("Chat not found", DyadErrorKind.NotFound);
+          throw new NextBillionError(
+            "Chat not found",
+            NextBillionErrorKind.NotFound,
+          );
         if (modelSelection) {
           const history = await db.query.messages.findMany({
             where: eq(messages.chatId, chatId),
@@ -382,9 +397,9 @@ export function registerChatHandlers() {
               modelSelection,
             )
           ) {
-            throw new DyadError(
+            throw new NextBillionError(
               BACKEND_SWITCH_MESSAGE,
-              DyadErrorKind.Precondition,
+              NextBillionErrorKind.Precondition,
             );
           }
           updates.executionBackend = executionBackendForModel(modelSelection);
@@ -408,7 +423,10 @@ export function registerChatHandlers() {
       .returning({ isFavorite: chats.isFavorite });
 
     if (updated.length === 0) {
-      throw new DyadError("Chat not found", DyadErrorKind.NotFound);
+      throw new NextBillionError(
+        "Chat not found",
+        NextBillionErrorKind.NotFound,
+      );
     }
 
     return updated[0];

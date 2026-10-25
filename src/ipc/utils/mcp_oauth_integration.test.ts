@@ -118,7 +118,7 @@ const electronImport = await import("electron");
 const flowImport = await import("@/ipc/utils/mcp_oauth_flow");
 const providerImport = await import("@/ipc/utils/mcp_oauth_provider");
 const { runOAuthFlow } = flowImport;
-const { oauthStateHasTokens, DyadOAuthClientProvider, encryptToString } =
+const { oauthStateHasTokens, NextBillionOAuthClientProvider, encryptToString } =
   providerImport;
 const { shell } = electronImport;
 
@@ -192,7 +192,7 @@ function spawnFakeServer(env: Record<string, string>): ChildProcess {
 function stubOpenExternalToAutoComplete(): void {
   vi.mocked(shell.openExternal).mockImplementation(async (urlStr: string) => {
     // Follow redirects so the fake's `/authorize` 302 lands at the
-    // Dyad loopback callback listener on localhost:port/callback,
+    // NextBillion loopback callback listener on localhost:port/callback,
     // which resolves the pending flow with the code. The fetch's
     // response body (success HTML) is irrelevant.
     await fetch(urlStr, { redirect: "follow" });
@@ -304,7 +304,7 @@ describe("OAuth integration: DCR mode against fake server", () => {
       // the provider's own invalidateCredentials path rather than
       // hand-parsing the encrypted blob -- keeps the test honest
       // about the storage format.
-      const provider = new DyadOAuthClientProvider({ serverId });
+      const provider = new NextBillionOAuthClientProvider({ serverId });
       await provider.invalidateCredentials("tokens");
 
       const second = await runOAuthFlow({
@@ -424,7 +424,7 @@ describe("OAuth integration: confidential client (client_secret) against fake se
   // a pre-registered client_id PLUS a pre-registered client_secret
   // are required at the token exchange. The fake server is launched
   // with both FAKE_CLIENT_ID and FAKE_CLIENT_SECRET; the row seeds
-  // the encrypted secret in the DB; Dyad decrypts it just-in-time
+  // the encrypted secret in the DB; NextBillion decrypts it just-in-time
   // and the SDK posts both id + secret to /token via the
   // `client_secret_post` auth method.
   const STATIC_ID = "confidential-app-001";

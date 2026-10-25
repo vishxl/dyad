@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import type { LanguageModelV3 } from "@ai-sdk/provider";
 import type { UserSettings } from "@/lib/schemas";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 
 vi.mock("../services/codex_subscription_auth", () => ({
   getCodexSubscriptionStatus: () => ({ connected: true, pending: false }),
@@ -42,7 +42,7 @@ vi.mock("../shared/remote_language_model_catalog", () => ({
 vi.mock("../shared/language_model_helpers", () => ({
   getLanguageModels: async () => [],
   getLanguageModelProviders: async () => [
-    { id: "auto", name: "Dyad", gatewayPrefix: "dyad/", type: "cloud" },
+    { id: "auto", name: "NextBillion", gatewayPrefix: "dyad/", type: "cloud" },
     { id: "openai", name: "OpenAI", gatewayPrefix: "", type: "cloud" },
     {
       id: "anthropic",
@@ -63,7 +63,7 @@ import {
 import { usesChatGPTSubscription } from "@/lib/subscriptionModels";
 
 const settings = {
-  enableDyadPro: true,
+  enableNextBillionPro: true,
   proModelUsage: "subscription",
   selectedChatMode: "ask",
   providerSettings: { auto: { apiKey: { value: "pro-test-key" } } },
@@ -134,7 +134,7 @@ it.each([
         ? model.doStream({ prompt: [] })
         : model.doGenerate({ prompt: [] }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.Validation,
+      kind: NextBillionErrorKind.Validation,
       message: expect.stringContaining("Model is not available"),
     });
     expect(

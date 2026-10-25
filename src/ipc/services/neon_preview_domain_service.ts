@@ -1,9 +1,12 @@
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { apps } from "@/db/schema";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 import type { AppRunInvocationRef } from "@/app_run/state";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { assertAppPreviewOrigin } from "./preview_origin";
 import { readEnvVarsOrEmpty } from "../utils/app_env_var_utils";
 import { ensureNeonAuthTrustedDomain } from "../utils/neon_utils";
@@ -21,14 +24,16 @@ export async function resolveNeonPreviewTarget(
 ): Promise<NeonPreviewTarget | null> {
   const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
   if (!app?.neonProjectId) return null;
-  const env = await readEnvVarsOrEmpty({ appPath: getDyadAppPath(app.path) });
+  const env = await readEnvVarsOrEmpty({
+    appPath: getNextBillionAppPath(app.path),
+  });
   if (!env.some(({ key, value }) => key === "NEON_AUTH_BASE_URL" && value))
     return null;
   const branchId = app.neonActiveBranchId ?? app.neonDevelopmentBranchId;
   if (!branchId)
-    throw new DyadError(
+    throw new NextBillionError(
       "The active Neon Auth branch is unavailable.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   return { projectId: app.neonProjectId, branchId };
 }

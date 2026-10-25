@@ -10,7 +10,7 @@ export const fixture: LocalAgentFixture = {
           name: "write_file",
           args: {
             path: "src/pages/Index.tsx",
-            content: `import { MadeWithDyad } from "@/components/made-with-dyad";
+            content: `import { MadeWithNextBillion } from "@/components/made-with-nextbillion";
 
 const Index = () => {
   return (

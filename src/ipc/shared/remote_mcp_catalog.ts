@@ -14,8 +14,8 @@ const MAX_CACHE_TTL_MS = 24 * 60 * 60 * 1000;
 const FAILURE_CACHE_TTL_MS = 30 * 1000;
 
 function getRemoteMcpCatalogUrl() {
-  if (process.env.DYAD_MCP_CATALOG_URL) {
-    return process.env.DYAD_MCP_CATALOG_URL;
+  if (process.env.NEXTBILLION_MCP_CATALOG_URL) {
+    return process.env.NEXTBILLION_MCP_CATALOG_URL;
   }
 
   if (process.env.E2E_TEST_BUILD === "true" && process.env.FAKE_LLM_PORT) {

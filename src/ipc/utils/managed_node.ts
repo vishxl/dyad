@@ -7,7 +7,10 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import log from "electron-log";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
 import {
   clearSanitizedPathCache,
@@ -22,8 +25,8 @@ const logger = log.scope("managed_node");
 
 export const MANAGED_NODE_VERSION = "v24.18.0";
 const EXPECTED_MANAGED_NODE_VERSION =
-  IS_TEST_BUILD && process.env.DYAD_TEST_MANAGED_NODE_EXPECTED_VERSION
-    ? process.env.DYAD_TEST_MANAGED_NODE_EXPECTED_VERSION
+  IS_TEST_BUILD && process.env.NEXTBILLION_TEST_MANAGED_NODE_EXPECTED_VERSION
+    ? process.env.NEXTBILLION_TEST_MANAGED_NODE_EXPECTED_VERSION
     : MANAGED_NODE_VERSION;
 export const MINIMUM_SYSTEM_NODE_VERSION = "20.0.0";
 export const MANAGED_NODE_INSTALL_CANCELLED_MESSAGE =
@@ -81,11 +84,11 @@ export type ManagedNodeInstallFailureCategory =
   | "disk"
   | "unsupported";
 
-export class ManagedNodeInstallError extends DyadError {
+export class ManagedNodeInstallError extends NextBillionError {
   category: ManagedNodeInstallFailureCategory;
 
   constructor(message: string, category: ManagedNodeInstallFailureCategory) {
-    super(message, DyadErrorKind.Precondition);
+    super(message, NextBillionErrorKind.Precondition);
     this.name = "ManagedNodeInstallError";
     this.category = category;
   }
@@ -97,16 +100,17 @@ const managedNodeInstallProgressListeners = new Set<
   (progress: ManagedNodeInstallProgress) => void
 >();
 
-function createManagedNodeInstallCancelledError(): DyadError {
-  return new DyadError(
+function createManagedNodeInstallCancelledError(): NextBillionError {
+  return new NextBillionError(
     MANAGED_NODE_INSTALL_CANCELLED_MESSAGE,
-    DyadErrorKind.UserCancelled,
+    NextBillionErrorKind.UserCancelled,
   );
 }
 
 function isManagedNodeInstallCancelledError(error: unknown): boolean {
   return (
-    error instanceof DyadError && error.kind === DyadErrorKind.UserCancelled
+    error instanceof NextBillionError &&
+    error.kind === NextBillionErrorKind.UserCancelled
   );
 }
 
@@ -238,10 +242,10 @@ export function isManagedNodeSupported(): boolean {
 
 function getManagedNodeArtifact(): ManagedNodeArtifact | null {
   const testArchiveUrl = IS_TEST_BUILD
-    ? process.env.DYAD_TEST_MANAGED_NODE_ARCHIVE_URL
+    ? process.env.NEXTBILLION_TEST_MANAGED_NODE_ARCHIVE_URL
     : undefined;
   if (testArchiveUrl) {
-    let fileName = "dyad-test-managed-node.tar.gz";
+    let fileName = "nextbillion-test-managed-node.tar.gz";
     try {
       const parsedUrl = new URL(testArchiveUrl);
       fileName = path.basename(parsedUrl.pathname) || fileName;
@@ -250,7 +254,7 @@ function getManagedNodeArtifact(): ManagedNodeArtifact | null {
     }
     return {
       fileName,
-      sha256: process.env.DYAD_TEST_MANAGED_NODE_SHA256 ?? "",
+      sha256: process.env.NEXTBILLION_TEST_MANAGED_NODE_SHA256 ?? "",
     };
   }
 
@@ -762,7 +766,7 @@ async function cleanupOldManagedNodeVersions(): Promise<void> {
 
 function getDownloadCandidates(artifact: ManagedNodeArtifact): string[] {
   const testArchiveUrl = IS_TEST_BUILD
-    ? process.env.DYAD_TEST_MANAGED_NODE_ARCHIVE_URL
+    ? process.env.NEXTBILLION_TEST_MANAGED_NODE_ARCHIVE_URL
     : undefined;
   if (testArchiveUrl) {
     return [testArchiveUrl];
@@ -774,8 +778,8 @@ function getDownloadCandidates(artifact: ManagedNodeArtifact): string[] {
 }
 
 function getExpectedSha256(artifact: ManagedNodeArtifact): string {
-  return IS_TEST_BUILD && process.env.DYAD_TEST_MANAGED_NODE_SHA256
-    ? process.env.DYAD_TEST_MANAGED_NODE_SHA256
+  return IS_TEST_BUILD && process.env.NEXTBILLION_TEST_MANAGED_NODE_SHA256
+    ? process.env.NEXTBILLION_TEST_MANAGED_NODE_SHA256
     : artifact.sha256;
 }
 
@@ -863,7 +867,7 @@ async function installManagedNodeInternal(
   const artifact = getManagedNodeArtifact();
   if (!artifact) {
     throw new ManagedNodeInstallError(
-      "Dyad-managed Node.js is currently available on Windows and macOS.",
+      "NextBillion-managed Node.js is currently available on Windows and macOS.",
       "unsupported",
     );
   }

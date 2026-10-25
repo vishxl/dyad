@@ -1,4 +1,8 @@
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import type { SandboxHostCallName } from "./capabilities";
 import type { SandboxRunResult } from "./execution";
 
@@ -17,7 +21,7 @@ export interface SandboxWorkerHostCall {
 export interface SerializedSandboxWorkerError {
   name?: string;
   message: string;
-  kind?: DyadErrorKind;
+  kind?: NextBillionErrorKind;
   stack?: string;
 }
 
@@ -32,7 +36,7 @@ export type SandboxWorkerMessage =
 export function serializeSandboxWorkerError(
   error: unknown,
 ): SerializedSandboxWorkerError {
-  if (isDyadError(error)) {
+  if (isNextBillionError(error)) {
     return {
       name: error.name,
       message: error.message,
@@ -52,20 +56,20 @@ export function serializeSandboxWorkerError(
   };
 }
 
-function isDyadErrorKind(value: unknown): value is DyadErrorKind {
+function isNextBillionErrorKind(value: unknown): value is NextBillionErrorKind {
   return (
     typeof value === "string" &&
-    Object.values(DyadErrorKind).includes(value as DyadErrorKind)
+    Object.values(NextBillionErrorKind).includes(value as NextBillionErrorKind)
   );
 }
 
 export function deserializeSandboxWorkerError(
   error: SerializedSandboxWorkerError,
 ): Error {
-  if (isDyadErrorKind(error.kind)) {
-    const dyadError = new DyadError(error.message, error.kind);
-    dyadError.stack = error.stack;
-    return dyadError;
+  if (isNextBillionErrorKind(error.kind)) {
+    const nextBillionError = new NextBillionError(error.message, error.kind);
+    nextBillionError.stack = error.stack;
+    return nextBillionError;
   }
 
   const genericError = new Error(error.message);

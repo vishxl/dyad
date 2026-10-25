@@ -3,7 +3,10 @@ import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { queryKeys } from "@/lib/queryKeys";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { SETUP_MACHINE_REPORTED } from "@/ipc/types/coolify_setup";
 
 const toastMock = vi.hoisted(() => ({
@@ -90,7 +93,8 @@ function renderPanel(
   };
 }
 
-const PUBLIC_KEY = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA dyad-server-access";
+const PUBLIC_KEY =
+  "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAA nextbillion-server-access";
 
 beforeEach(() => {
   vi.clearAllMocks();
@@ -109,7 +113,7 @@ beforeEach(() => {
   });
 });
 
-/** Install is offered only for a server Dyad has looked at. */
+/** Install is offered only for a server NextBillion has looked at. */
 async function checkServer(user: ReturnType<typeof userEvent.setup>) {
   await user.click(screen.getByTestId("coolify-setup-inspect"));
   await waitFor(() =>
@@ -136,7 +140,7 @@ describe("the admin address", () => {
     renderPanel();
     await user.type(
       screen.getByTestId("coolify-setup-email"),
-      "admin@dyad.test",
+      "admin@nextbillion.test",
     );
 
     expect(screen.getByText(/receive mail at/)).toBeTruthy();
@@ -156,7 +160,7 @@ describe("the admin address", () => {
     await user.type(screen.getByTestId("coolify-setup-host"), "203.0.113.5");
     await user.type(
       screen.getByTestId("coolify-setup-email"),
-      "admin@dyad.test",
+      "admin@nextbillion.test",
     );
     // Checked, so what refuses below is the address rather than the check the
     // button is otherwise waiting for.
@@ -729,9 +733,12 @@ describe("when the user stops it", () => {
     // and reporting it says something went wrong while the screen says
     // nothing did.
     h.run.mockRejectedValue(
-      Object.assign(new DyadError("Cancelled.", DyadErrorKind.UserCancelled), {
-        code: SETUP_MACHINE_REPORTED,
-      }),
+      Object.assign(
+        new NextBillionError("Cancelled.", NextBillionErrorKind.UserCancelled),
+        {
+          code: SETUP_MACHINE_REPORTED,
+        },
+      ),
     );
     const user = userEvent.setup();
     renderPanel();
@@ -749,9 +756,9 @@ describe("when the user stops it", () => {
     // that error carries no mark and the machine has no state for it. Left
     // unsaid, pressing Install would do nothing at all.
     h.run.mockRejectedValue(
-      new DyadError(
+      new NextBillionError(
         "[coolify-setup:run] Invalid input",
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       ),
     );
     const user = userEvent.setup();
@@ -768,9 +775,9 @@ describe("when the user stops it", () => {
     // The shape the handler actually refuses with: nothing reached the
     // machine, so the error carries no mark and the panel says it out loud.
     h.run.mockRejectedValue(
-      new DyadError(
+      new NextBillionError(
         "A server is already being set up.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       ),
     );
     const user = userEvent.setup();
@@ -788,9 +795,9 @@ describe("when the user stops it", () => {
     // repeats the same event with less to show.
     h.run.mockRejectedValue(
       Object.assign(
-        new DyadError(
+        new NextBillionError(
           "Installing Coolify failed (exit 1).",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         ),
         { code: SETUP_MACHINE_REPORTED },
       ),
@@ -842,7 +849,7 @@ describe("when it finishes", () => {
     adminEmail: "me@gmail.com",
     adminPassword: "Abc123@xyz",
     tokenStored: true,
-    // A token comes from a mint, and Dyad enables the API to reach one.
+    // A token comes from a mint, and NextBillion enables the API to reach one.
     apiEnabled: true,
     tokenUnavailableReason: null,
     version: "4.3.2",
@@ -908,7 +915,7 @@ describe("when it finishes", () => {
       screen.getByTestId("coolify-setup-manual-token"),
     );
     expect(panel.textContent).toContain("Security → API Tokens");
-    // A token Dyad made and will drop is not one it could not make. Saying
+    // A token NextBillion made and will drop is not one it could not make. Saying
     // the latter here would contradict the offer to keep it, directly above.
     expect(panel.textContent).toContain("Unless you tick the box above");
     expect(panel.textContent).not.toContain("could not create");
@@ -963,7 +970,7 @@ describe("when it finishes", () => {
   });
 
   it("says nothing about encryption when the server got a certificate", async () => {
-    // Dyad asks for one and usually gets it, so a standing warning would be
+    // NextBillion asks for one and usually gets it, so a standing warning would be
     // noise — and noise is what makes a real warning easy to miss.
     h.snapshot.mockResolvedValue(doneState({ tokenStored: false }));
     renderPanel();
@@ -1013,7 +1020,7 @@ describe("when it finishes", () => {
         tokenStored: false,
         apiEnabled: true,
         tokenUnavailableReason:
-          "Dyad could not save these details on this computer. Copy the " +
+          "NextBillion could not save these details on this computer. Copy the " +
           "password above before leaving this screen.",
       }),
     );
@@ -1030,7 +1037,7 @@ describe("when it finishes", () => {
   });
 
   it("does not ask for the API step when the mint was what failed", async () => {
-    // Dyad turns the API on and then mints, so an account with no team, or a
+    // NextBillion turns the API on and then mints, so an account with no team, or a
     // link that drops, leaves the API on and no token. Saying to go and
     // enable it sends the user after something already done.
     h.snapshot.mockResolvedValue(

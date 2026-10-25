@@ -32,9 +32,9 @@ import {
   UserSettings,
   AzureProviderSetting,
   VertexProviderSetting,
-  hasDyadProKey,
+  hasNextBillionProKey,
 } from "@/lib/schemas";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import {
   findInvalidProviderApiKeyCharacter,
   formatInvalidProviderApiKeyMessage,
@@ -53,7 +53,7 @@ type ApiKeyValidationDialogState = {
   message: string;
   apiKey: string;
   allowKeepInvalidKey: boolean;
-  errorKind?: DyadErrorKind;
+  errorKind?: NextBillionErrorKind;
 };
 
 const VALIDATED_API_KEY_PROVIDERS = new Set<string>([
@@ -62,21 +62,21 @@ const VALIDATED_API_KEY_PROVIDERS = new Set<string>([
   "auto",
 ]);
 
-function getErrorKind(error: unknown): DyadErrorKind | undefined {
+function getErrorKind(error: unknown): NextBillionErrorKind | undefined {
   const kind =
     typeof error === "object" && error !== null
       ? (error as { kind?: unknown }).kind
       : undefined;
   return typeof kind === "string" &&
-    Object.values(DyadErrorKind).includes(kind as DyadErrorKind)
-    ? (kind as DyadErrorKind)
+    Object.values(NextBillionErrorKind).includes(kind as NextBillionErrorKind)
+    ? (kind as NextBillionErrorKind)
     : undefined;
 }
 
 function getApiKeyValidationDialogTitle(
   dialog: ApiKeyValidationDialogState | null,
 ) {
-  return dialog?.errorKind === DyadErrorKind.Auth
+  return dialog?.errorKind === NextBillionErrorKind.Auth
     ? "API key rejected"
     : "Could not verify API key";
 }
@@ -113,7 +113,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
   const supportsCustomModels =
     providerData?.type === "custom" || providerData?.type === "cloud";
 
-  const isDyad = provider === "auto";
+  const isNextBillion = provider === "auto";
 
   const [apiKeyInput, setApiKeyInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -133,13 +133,13 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
   const { hasArmedPayload } = useFirstPromptSaga();
   const resumeFirstPrompt = useFirstPromptProviderResume();
 
-  // Use fetched data (or defaults for Dyad)
-  const providerDisplayName = isDyad
-    ? "Dyad"
+  // Use fetched data (or defaults for NextBillion)
+  const providerDisplayName = isNextBillion
+    ? "NextBillion"
     : (providerData?.name ?? "Unknown Provider");
   const providerWebsiteUrl = providerData?.websiteUrl;
-  const hasFreeTier = isDyad ? false : providerData?.hasFreeTier;
-  const envVarName = isDyad ? undefined : providerData?.envVarName;
+  const hasFreeTier = isNextBillion ? false : providerData?.hasFreeTier;
+  const envVarName = isNextBillion ? undefined : providerData?.envVarName;
 
   // Use provider ID (which is the 'provider' prop)
   const userApiKey = settings?.providerSettings?.[provider]?.apiKey?.value;
@@ -232,7 +232,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
           setApiKeyValidationDialog({
             message:
               error?.message ||
-              `Dyad could not verify this ${providerDisplayName} API key.`,
+              `NextBillion could not verify this ${providerDisplayName} API key.`,
             apiKey: normalizedValue,
             allowKeepInvalidKey: true,
             errorKind: getErrorKind(error),
@@ -242,8 +242,9 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
       }
 
       const isFirstProviderSetup = !isAnyProviderSetup();
-      // Check if this is the first time user is setting up Dyad Pro
-      const isNewDyadProSetup = isDyad && settings && !hasDyadProKey(settings);
+      // Check if this is the first time user is setting up NextBillion Pro
+      const isNewNextBillionProSetup =
+        isNextBillion && settings && !hasNextBillionProKey(settings);
 
       const settingsUpdate: Partial<UserSettings> = {
         providerSettings: {
@@ -256,10 +257,10 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
           },
         },
       };
-      if (isDyad) {
-        settingsUpdate.enableDyadPro = true;
+      if (isNextBillion) {
+        settingsUpdate.enableNextBillionPro = true;
         // Set default chat mode to local-agent when user upgrades to pro
-        if (isNewDyadProSetup) {
+        if (isNewNextBillionProSetup) {
           settingsUpdate.defaultChatMode = "local-agent";
         }
       }
@@ -274,8 +275,8 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
         setShowStartBuildingBanner(true);
       }
 
-      // Refetch user budget when Dyad Pro key is saved
-      if (isDyad) {
+      // Refetch user budget when NextBillion Pro key is saved
+      if (isNextBillion) {
         queryClient.invalidateQueries({ queryKey: queryKeys.userBudget.info });
       }
     } catch (error: any) {
@@ -309,7 +310,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
       setApiKeyValidationDialog({
         message:
           error?.message ||
-          `Dyad could not verify this ${providerDisplayName} API key.`,
+          `NextBillion could not verify this ${providerDisplayName} API key.`,
         apiKey: normalizedValue,
         allowKeepInvalidKey: false,
         errorKind: getErrorKind(error),
@@ -342,15 +343,15 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
     }
   };
 
-  // --- Toggle Dyad Pro Handler ---
-  const handleToggleDyadPro = async (enabled: boolean) => {
+  // --- Toggle NextBillion Pro Handler ---
+  const handleToggleNextBillionPro = async (enabled: boolean) => {
     setIsSaving(true);
     try {
       await updateSettings({
-        enableDyadPro: enabled,
+        enableNextBillionPro: enabled,
       });
     } catch (error: any) {
-      showError(`Error toggling Dyad Pro: ${error}`);
+      showError(`Error toggling NextBillion Pro: ${error}`);
     } finally {
       setIsSaving(false);
     }
@@ -421,7 +422,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
   }
 
   // Handle case where provider is not found (e.g., invalid ID in URL)
-  if (!providerData && !isDyad) {
+  if (!providerData && !isNextBillion) {
     return (
       <div className="min-h-screen px-8 py-4">
         <div className="max-w-4xl mx-auto">
@@ -500,7 +501,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
                   AI access is ready
                 </h2>
                 <p className="mt-1 text-sm text-green-800/80 dark:text-green-200/80">
-                  You can now start building with Dyad.
+                  You can now start building with NextBillion.
                 </p>
               </div>
             </div>
@@ -519,7 +520,7 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
             isLoading={settingsLoading}
             hasFreeTier={hasFreeTier}
             providerWebsiteUrl={providerWebsiteUrl}
-            isDyad={isDyad}
+            isNextBillion={isNextBillion}
             onOpenProviderWebsite={() => {
               if (!isConfigured) {
                 setAwaitingKeyFromWebsite(true);
@@ -557,25 +558,25 @@ export function ProviderSettingsPage({ provider }: ProviderSettingsPageProps) {
               onSaveKey={handleSaveKey}
               onTestKey={shouldValidateApiKey ? handleTestKey : undefined}
               onDeleteKey={handleDeleteKey}
-              isDyad={isDyad}
+              isNextBillion={isNextBillion}
               updateSettings={updateSettings}
               highlightPasteButton={highlightPasteButton}
               onDismissPasteHighlight={() => setHighlightPasteButton(false)}
             />
           )}
 
-          {isDyad && !settingsLoading && (
+          {isNextBillion && !settingsLoading && (
             <div className="mt-6 flex items-center justify-between p-4 bg-(--background-lightest) rounded-lg border">
               <div>
-                <h3 className="font-medium">Enable Dyad Pro</h3>
+                <h3 className="font-medium">Enable NextBillion Pro</h3>
                 <p className="text-sm text-gray-600 dark:text-gray-400">
-                  Toggle to enable Dyad Pro
+                  Toggle to enable NextBillion Pro
                 </p>
               </div>
               <Switch
-                aria-label="Enable Dyad Pro"
-                checked={settings?.enableDyadPro}
-                onCheckedChange={handleToggleDyadPro}
+                aria-label="Enable NextBillion Pro"
+                checked={settings?.enableNextBillionPro}
+                onCheckedChange={handleToggleNextBillionPro}
                 disabled={isSaving}
               />
             </div>

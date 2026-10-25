@@ -1,3 +1,3 @@
 chat2
 
-<dyad-chat-summary>Chat 2</dyad-chat-summary>
+<nextbillion-chat-summary>Chat 2</nextbillion-chat-summary>

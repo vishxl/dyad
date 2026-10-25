@@ -3,11 +3,11 @@ import type { UserSettings } from "./schemas";
 import { getHomeDefaultChatMode } from "./homeChatMode";
 
 describe("getHomeDefaultChatMode", () => {
-  it("uses local agent after Dyad Pro setup", () => {
+  it("uses local agent after NextBillion Pro setup", () => {
     const settings = {
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       enableAutoUpdate: true,
-      providerSettings: { auto: { apiKey: { value: "dyad-pro-key" } } },
+      providerSettings: { auto: { apiKey: { value: "nextbillion-pro-key" } } },
       releaseChannel: "stable",
       selectedModel: { provider: "auto", name: "auto" },
       selectedTemplateId: "react",
@@ -19,7 +19,7 @@ describe("getHomeDefaultChatMode", () => {
   it("preserves a Basic Agent default for free users", () => {
     const settings = {
       defaultChatMode: "local-agent",
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       enableAutoUpdate: true,
       providerSettings: {},
       releaseChannel: "stable",

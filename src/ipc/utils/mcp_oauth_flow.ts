@@ -10,14 +10,17 @@ import { eq } from "drizzle-orm";
 import { db } from "../../db";
 import { mcpServers } from "../../db/schema";
 import {
-  DyadOAuthClientProvider,
+  NextBillionOAuthClientProvider,
   decryptFromString,
   issueMcpOAuthWriteAuthority,
   revokeMcpOAuthWriteAuthority,
 } from "./mcp_oauth_provider";
 import { DEFAULT_OAUTH_CALLBACK_PORT } from "../types/mcp";
 import { mcpManager } from "./mcp_manager";
-import { DyadError, DyadErrorKind } from "../../errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "../../errors/nextbillion_error";
 import {
   createMcpOAuthRegistry,
   type McpOAuthListenerHandle,
@@ -68,13 +71,13 @@ function renderCallbackPage(options: {
   const accent = isSuccess ? "#10b981" : "#ef4444";
   const safeTitle = escapeHtml(options.title);
   const safeMessage = escapeHtml(options.message);
-  const returnUrl = "dyad://mcp-oauth-return";
+  const returnUrl = "nextbillion://mcp-oauth-return";
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>${safeTitle} — Dyad</title>
+<title>${safeTitle} — NextBillion</title>
 <style>
   :root { color-scheme: light dark; }
   * { box-sizing: border-box; }
@@ -145,11 +148,11 @@ function renderCallbackPage(options: {
     <p>${safeMessage}</p>
     ${
       isSuccess
-        ? `<a class="btn" href="${returnUrl}">Open Dyad</a>
+        ? `<a class="btn" href="${returnUrl}">Open NextBillion</a>
     <script>
       setTimeout(function () { window.location.href = ${JSON.stringify(returnUrl)}; }, 500);
     </script>`
-        : `<p class="muted">You can close this window and return to Dyad.</p>`
+        : `<p class="muted">You can close this window and return to NextBillion.</p>`
     }
   </div>
 </body>
@@ -211,7 +214,7 @@ function bindCallbackListener(
             kind: "error",
             title: "Authorization could not be verified",
             message:
-              "The browser's response didn't match the request Dyad started. You can close this window.",
+              "The browser's response didn't match the request NextBillion started. You can close this window.",
           }),
         );
         return;
@@ -222,7 +225,7 @@ function bindCallbackListener(
           renderCallbackPage({
             kind: "success",
             title: "Authorization successful",
-            message: "You can close this tab and return to Dyad.",
+            message: "You can close this tab and return to NextBillion.",
           }),
         );
         return;
@@ -436,7 +439,7 @@ async function prepareAndRunOAuthFlow(
     : undefined;
   const expectedState = generateState();
   const writeAuthority = issueMcpOAuthWriteAuthority(server.id);
-  const provider = new DyadOAuthClientProvider({
+  const provider = new NextBillionOAuthClientProvider({
     serverId: server.id,
     callbackPort,
     scope,
@@ -491,12 +494,12 @@ export async function disconnectOAuth(
         .from(mcpServers)
         .where(eq(mcpServers.id, serverId));
       if (!rows[0]) {
-        throw new DyadError(
+        throw new NextBillionError(
           `MCP server not found: ${serverId}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
-      const provider = new DyadOAuthClientProvider({
+      const provider = new NextBillionOAuthClientProvider({
         serverId,
         allowInteractive: true,
       });

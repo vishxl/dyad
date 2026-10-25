@@ -1,11 +1,11 @@
 # Preserved thinking: Plan → Agent
 
-Validated on 2026-09-28 against Dyad Engine's streaming Messages endpoint with
-`anthropic/claude-opus-5-5` and a protected Dyad Pro credential.
+Validated on 2026-09-28 against NextBillion Engine's streaming Messages endpoint with
+`anthropic/claude-opus-5-5` and a protected NextBillion Pro credential.
 
 ## Configuration
 
-Both the Dyad Pro Engine and direct Anthropic provider now send
+Both the NextBillion Pro Engine and direct Anthropic provider now send
 `thinking.block_binding.prefix_mismatch_behavior: "drop_block"` together with
 `anthropic-beta: thinking-binding-controls-2026-08-01`, preserving other beta
 headers. This applies to adaptive/enabled thinking, not disabled/between-tools
@@ -45,7 +45,7 @@ does not mean that every block was discarded. Further edits to the system, tools
 or earlier messages can still invalidate newer thinking; this is not a promise
 that arbitrary file edits, context rewriting, or tool changes preserve it.
 
-## Real Dyad pipeline
+## Real NextBillion pipeline
 
 The opt-in `src/__tests__/evals/preserved_thinking.eval.ts` drives the real
 `chat:stream` handler, mode-specific prompts/tools, database persistence and
@@ -59,7 +59,7 @@ switch and on the subsequent Agent turn, the only reported dropped path was
 sent both that block and `messages.3.content.0` (the Agent block); only the Plan
 block appeared in the response transformation list.
 
-Run with `DYAD_LIVE_PRESERVED_THINKING=1` and `DYAD_PRO_KEY` supplied securely in the
+Run with `NEXTBILLION_LIVE_PRESERVED_THINKING=1` and `NEXTBILLION_PRO_KEY` supplied securely in the
 environment:
 
 ```sh

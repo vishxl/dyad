@@ -3,7 +3,7 @@ import path from "node:path";
 import { db } from "../../db";
 import { apps } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { getDyadAppPath } from "../../paths/paths";
+import { getNextBillionAppPath } from "../../paths/paths";
 import log from "electron-log";
 import { createTypedHandler } from "./base";
 import { planContracts } from "../types/plan";
@@ -14,22 +14,25 @@ import {
   planDirForAppPath,
   savePlanToDisk,
 } from "./planPersistence";
-import { ensureDyadGitignored } from "./gitignoreUtils";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import { ensureNextBillionGitignored } from "./gitignoreUtils";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const logger = log.scope("plan_handlers");
 
 async function getAppPath(appId: number): Promise<string> {
   const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
   if (!app) throw new Error("App not found");
-  return getDyadAppPath(app.path);
+  return getNextBillionAppPath(app.path);
 }
 
 async function getPlanDir(appId: number): Promise<string> {
   const appPath = await getAppPath(appId);
   const planDir = planDirForAppPath(appPath);
   await fs.promises.mkdir(planDir, { recursive: true });
-  await ensureDyadGitignored(appPath);
+  await ensureNextBillionGitignored(appPath);
   return planDir;
 }
 
@@ -69,9 +72,9 @@ export function registerPlanHandlers() {
       raw = await fs.promises.readFile(filePath, "utf-8");
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new DyadError(
+        throw new NextBillionError(
           `Plan not found: ${planId}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
       throw err;
@@ -141,9 +144,9 @@ export function registerPlanHandlers() {
       await fs.promises.unlink(filePath);
     } catch (err) {
       if ((err as NodeJS.ErrnoException).code === "ENOENT") {
-        throw new DyadError(
+        throw new NextBillionError(
           `Plan not found: ${planId}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
       throw err;

@@ -1,7 +1,7 @@
 // @vitest-environment node
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { unwrapIpcEnvelope } from "@/ipc/contracts/core";
 import { configureTrustedRenderer } from "@/ipc/utils/renderer_security";
 import {
@@ -15,7 +15,7 @@ const mocks = vi.hoisted(() => ({
   isTestBuild: true,
   ipcHandlers: new Map<string, (event: unknown, input: unknown) => unknown>(),
   readSettings: vi.fn(),
-  transcribeWithDyadEngine: vi.fn(),
+  transcribeWithNextBillionEngine: vi.fn(),
   fetch: vi.fn(),
   openExternal: vi.fn(),
   logger: {
@@ -51,11 +51,11 @@ vi.mock("../../main/settings", () => ({
 }));
 
 vi.mock("../utils/llm_engine_provider", () => ({
-  transcribeWithDyadEngine: mocks.transcribeWithDyadEngine,
+  transcribeWithNextBillionEngine: mocks.transcribeWithNextBillionEngine,
 }));
 
-vi.mock("../utils/dyad_engine_url", () => ({
-  getDyadEngineBaseUrl: () => "https://engine.example/v1",
+vi.mock("../utils/nextbillion_engine_url", () => ({
+  getNextBillionEngineBaseUrl: () => "https://engine.example/v1",
 }));
 
 vi.mock("../utils/telemetry", () => ({
@@ -90,13 +90,13 @@ describe("pro audio transcription handler", () => {
   beforeEach(() => {
     mocks.readSettings.mockReset();
     mocks.readSettings.mockReturnValue({
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       providerSettings: {
         auto: { apiKey: { value: "test-api-key" } },
       },
     });
-    mocks.transcribeWithDyadEngine.mockReset();
-    mocks.transcribeWithDyadEngine.mockResolvedValue("transcribed text");
+    mocks.transcribeWithNextBillionEngine.mockReset();
+    mocks.transcribeWithNextBillionEngine.mockResolvedValue("transcribed text");
   });
 
   it("transcribes a bounded typed array through a zero-copy Buffer view", async () => {
@@ -110,13 +110,13 @@ describe("pro audio transcription handler", () => {
       }),
     ).resolves.toEqual({ text: "transcribed text" });
 
-    expect(mocks.transcribeWithDyadEngine).toHaveBeenCalledTimes(1);
-    const audioBuffer = mocks.transcribeWithDyadEngine.mock.calls[0][0];
+    expect(mocks.transcribeWithNextBillionEngine).toHaveBeenCalledTimes(1);
+    const audioBuffer = mocks.transcribeWithNextBillionEngine.mock.calls[0][0];
     expect(Buffer.isBuffer(audioBuffer)).toBe(true);
     expect([...audioBuffer]).toEqual([1, 2, 3, 4]);
     audioData[0] = 9;
     expect(audioBuffer[0]).toBe(9);
-    expect(mocks.transcribeWithDyadEngine).toHaveBeenCalledWith(
+    expect(mocks.transcribeWithNextBillionEngine).toHaveBeenCalledWith(
       audioBuffer,
       "recording.webm",
       "request-123",
@@ -178,14 +178,14 @@ describe("pro audio transcription handler", () => {
     },
   ])("rejects $name before calling the engine", async ({ input }) => {
     await expect(transcribeAudio({} as never, input)).rejects.toMatchObject({
-      kind: DyadErrorKind.Validation,
+      kind: NextBillionErrorKind.Validation,
     });
-    expect(mocks.transcribeWithDyadEngine).not.toHaveBeenCalled();
+    expect(mocks.transcribeWithNextBillionEngine).not.toHaveBeenCalled();
   });
 
   it("classifies a missing Pro subscription as an auth error", async () => {
     mocks.readSettings.mockReturnValue({
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       providerSettings: {},
     });
 
@@ -195,8 +195,8 @@ describe("pro audio transcription handler", () => {
         filename: "recording.webm",
         requestId: "request-123",
       }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Auth });
-    expect(mocks.transcribeWithDyadEngine).not.toHaveBeenCalled();
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Auth });
+    expect(mocks.transcribeWithNextBillionEngine).not.toHaveBeenCalled();
   });
 
   it("rejects transcription IPC from an untrusted renderer", async () => {
@@ -215,16 +215,16 @@ describe("pro audio transcription handler", () => {
     );
 
     expect(() => unwrapIpcEnvelope(envelope as never)).toThrow(
-      "trusted Dyad renderer",
+      "trusted NextBillion renderer",
     );
     expect(mocks.readSettings).not.toHaveBeenCalled();
-    expect(mocks.transcribeWithDyadEngine).not.toHaveBeenCalled();
+    expect(mocks.transcribeWithNextBillionEngine).not.toHaveBeenCalled();
   });
 });
 
 describe("subscription status handlers", () => {
   beforeEach(() => {
-    process.env.DYAD_SUBSCRIPTION_STATUS_URL =
+    process.env.NEXTBILLION_SUBSCRIPTION_STATUS_URL =
       "https://academy.test/api/desktop/subscription-status";
     mocks.fetch.mockReset();
     mocks.openExternal.mockReset();
@@ -236,7 +236,7 @@ describe("subscription status handlers", () => {
   });
 
   afterEach(() => {
-    delete process.env.DYAD_SUBSCRIPTION_STATUS_FIXTURE_API_KEY;
+    delete process.env.NEXTBILLION_SUBSCRIPTION_STATUS_FIXTURE_API_KEY;
   });
 
   it("sends the stored bearer key and validates the response", async () => {
@@ -275,9 +275,9 @@ describe("subscription status handlers", () => {
   });
 
   it("uses a fixture key for a loopback endpoint without stored Pro settings", async () => {
-    process.env.DYAD_SUBSCRIPTION_STATUS_URL =
+    process.env.NEXTBILLION_SUBSCRIPTION_STATUS_URL =
       "http://127.0.0.1:4321/subscription-status";
-    process.env.DYAD_SUBSCRIPTION_STATUS_FIXTURE_API_KEY = "fixture-key";
+    process.env.NEXTBILLION_SUBSCRIPTION_STATUS_FIXTURE_API_KEY = "fixture-key";
     mocks.readSettings.mockReturnValue({ providerSettings: {} });
     mocks.fetch.mockResolvedValue({
       ok: true,
@@ -302,7 +302,7 @@ describe("subscription status handlers", () => {
   });
 
   it("never sends a fixture key to a non-loopback endpoint", async () => {
-    process.env.DYAD_SUBSCRIPTION_STATUS_FIXTURE_API_KEY = "fixture-key";
+    process.env.NEXTBILLION_SUBSCRIPTION_STATUS_FIXTURE_API_KEY = "fixture-key";
     mocks.readSettings.mockReturnValue({ providerSettings: {} });
 
     await expect(

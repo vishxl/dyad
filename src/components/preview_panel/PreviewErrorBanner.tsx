@@ -27,8 +27,8 @@ export function PreviewErrorBanner({
   const { isStreaming } = useStreamChat();
 
   const isDockerError = error.message.includes("Cannot connect to the Docker");
-  const isInternalDyadError = error.source === "dyad-app";
-  const isSyncError = error.source === "dyad-sync";
+  const isInternalNextBillionError = error.source === "nextbillion-app";
+  const isSyncError = error.source === "nextbillion-sync";
 
   const firstLine = error.message.split("\n")[0];
   const summaryWithoutErrorPrefix = firstLine.replace(/^Error:?\s+/i, "");
@@ -54,9 +54,11 @@ export function PreviewErrorBanner({
             >
               {errorSummary}
             </p>
-            {(isInternalDyadError || isSyncError) && (
+            {(isInternalNextBillionError || isSyncError) && (
               <span className="shrink-0 rounded bg-red-100 px-1.5 py-0.5 text-xs font-medium text-red-700 dark:bg-red-900 dark:text-red-300">
-                {isSyncError ? "Cloud sync issue" : "Internal Dyad error"}
+                {isSyncError
+                  ? "Cloud sync issue"
+                  : "Internal NextBillion error"}
               </span>
             )}
           </div>
@@ -122,9 +124,9 @@ export function PreviewErrorBanner({
               {isDockerError
                 ? "Make sure Docker Desktop is running and try restarting the app."
                 : isSyncError
-                  ? "Dyad could not upload your latest local changes to the cloud sandbox. Check your network connection or wait for sync to recover."
-                  : isInternalDyadError
-                    ? "Try restarting the Dyad app or your computer."
+                  ? "NextBillion could not upload your latest local changes to the cloud sandbox. Check your network connection or wait for sync to recover."
+                  : isInternalNextBillionError
+                    ? "Try restarting the NextBillion app or your computer."
                     : "Try restarting the app."}
             </span>
           </div>

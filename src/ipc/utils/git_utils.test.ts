@@ -160,7 +160,7 @@ describe("gitCommit", () => {
       path.join(os.tmpdir(), "git-repo-hook-suppression-"),
     );
     await runGit(repoDir, ["init"]);
-    const maliciousHooksDir = path.join(repoDir, ".dyad-no-git-hooks");
+    const maliciousHooksDir = path.join(repoDir, ".nextbillion-no-git-hooks");
     const markerPath = path.join(repoDir, "malicious-hook-ran");
     await fs.promises.mkdir(maliciousHooksDir);
     await fs.promises.writeFile(
@@ -476,7 +476,7 @@ describe("inspectRepositoryHealth", () => {
     }
   });
 
-  it("ignores Dyad-managed working-tree churn when assessing cleanliness", async () => {
+  it("ignores NextBillion-managed working-tree churn when assessing cleanliness", async () => {
     repoDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "git-health-"));
     await runGit(repoDir, ["init", "-b", "main"]);
     await fs.promises.writeFile(
@@ -574,7 +574,7 @@ describe("gitListFilesNative", () => {
   });
 });
 
-// Gates whether Dyad may auto-commit a file it rewrote: `git commit -- <path>`
+// Gates whether NextBillion may auto-commit a file it rewrote: `git commit -- <path>`
 // records the whole working-tree version of that path, so a file the user was
 // already editing must not be committed on their behalf.
 describe("isGitPathClean", () => {
@@ -637,7 +637,7 @@ describe("isGitPathClean", () => {
 
   // "Clean" authorizes an auto-commit, so a user config that merely HIDES
   // untracked files must not make a wholly untracked file look committed —
-  // that would sweep every line the user wrote into Dyad's commit.
+  // that would sweep every line the user wrote into NextBillion's commit.
   it("is dirty for an untracked file even with status.showUntrackedFiles=no", async () => {
     const repo = await makeRepo();
     await runGit(repo, ["config", "status.showUntrackedFiles", "no"]);
@@ -678,17 +678,19 @@ describe("getGitUncommittedFiles", () => {
     }
   });
 
-  it("ignores Dyad-managed runtime files in native git status", async () => {
+  it("ignores NextBillion-managed runtime files in native git status", async () => {
     repoDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "git-utils-"));
 
     await runGit(repoDir, ["init"]);
-    await fs.promises.mkdir(path.join(repoDir, ".dyad"), { recursive: true });
+    await fs.promises.mkdir(path.join(repoDir, ".nextbillion"), {
+      recursive: true,
+    });
     await fs.promises.writeFile(
       path.join(repoDir, "pnpm-workspace.yaml"),
       'packages: ["."]\n',
     );
     await fs.promises.writeFile(
-      path.join(repoDir, ".dyad", "screenshot.png"),
+      path.join(repoDir, ".nextbillion", "screenshot.png"),
       "generated",
     );
     await fs.promises.writeFile(
@@ -702,21 +704,23 @@ describe("getGitUncommittedFiles", () => {
     ]);
   });
 
-  it("ignores Dyad-managed runtime files in native status details", async () => {
+  it("ignores NextBillion-managed runtime files in native status details", async () => {
     repoDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "git-utils-"));
 
     await runGit(repoDir, ["init"]);
-    await fs.promises.mkdir(path.join(repoDir, ".dyad"), { recursive: true });
+    await fs.promises.mkdir(path.join(repoDir, ".nextbillion"), {
+      recursive: true,
+    });
     await fs.promises.writeFile(
       path.join(repoDir, "pnpm-workspace.yaml"),
       'packages: ["."]\n',
     );
     await fs.promises.writeFile(
-      path.join(repoDir, ".dyad", "screenshot.png"),
+      path.join(repoDir, ".nextbillion", "screenshot.png"),
       "generated",
     );
     await fs.promises.writeFile(
-      path.join(repoDir, ".dyad", "foo [bar]"),
+      path.join(repoDir, ".nextbillion", "foo [bar]"),
       "generated",
     );
     await fs.promises.writeFile(path.join(repoDir, "src.ts"), "user change");
@@ -755,12 +759,12 @@ describe("getGitUncommittedFiles", () => {
     repoDir = nextRepoDir;
 
     await runGit(nextRepoDir, ["init"]);
-    await fs.promises.mkdir(path.join(nextRepoDir, ".dyad"), {
+    await fs.promises.mkdir(path.join(nextRepoDir, ".nextbillion"), {
       recursive: true,
     });
     // Git quotes these non-ASCII names with `\NNN` octal escapes in porcelain
     // output; both must be decoded back to their real UTF-8 paths so the
-    // user-visible file is reported and the `.dyad/` one is still filtered out.
+    // user-visible file is reported and the `.nextbillion/` one is still filtered out.
     await fs.promises.writeFile(
       path.join(nextRepoDir, "café.txt"),
       "user change",
@@ -770,7 +774,7 @@ describe("getGitUncommittedFiles", () => {
       "user change",
     );
     await fs.promises.writeFile(
-      path.join(nextRepoDir, ".dyad", "naïve.png"),
+      path.join(nextRepoDir, ".nextbillion", "naïve.png"),
       "generated",
     );
 
@@ -837,17 +841,17 @@ describe("gitStageToRevert", () => {
     return { repoDir, targetOid };
   }
 
-  it("ignores untracked Dyad-managed runtime files", async () => {
+  it("ignores untracked NextBillion-managed runtime files", async () => {
     const repo = await createTwoVersionRepo();
-    await fs.promises.mkdir(path.join(repo.repoDir, ".dyad"), {
+    await fs.promises.mkdir(path.join(repo.repoDir, ".nextbillion"), {
       recursive: true,
     });
     await fs.promises.writeFile(
-      path.join(repo.repoDir, ".dyad", "screenshot.png"),
+      path.join(repo.repoDir, ".nextbillion", "screenshot.png"),
       "generated",
     );
     await fs.promises.writeFile(
-      path.join(repo.repoDir, ".dyad", "foo [bar]"),
+      path.join(repo.repoDir, ".nextbillion", "foo [bar]"),
       "generated",
     );
     await fs.promises.writeFile(

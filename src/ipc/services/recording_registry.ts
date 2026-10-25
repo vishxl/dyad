@@ -7,7 +7,10 @@
  * single per-app Neon test-branch slot) without an import cycle.
  */
 
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 export type RecordingEndReason =
   | "stopped"
@@ -168,9 +171,9 @@ export function isRecordingActive(appId: number): boolean {
  */
 export function assertNoActiveRecording(appId: number, action: string): void {
   if (!isRecordingActive(appId)) return;
-  throw new DyadError(
+  throw new NextBillionError(
     `Stop the recording session before you ${action} — it's holding this app while it records.`,
-    DyadErrorKind.Precondition,
+    NextBillionErrorKind.Precondition,
   );
 }
 

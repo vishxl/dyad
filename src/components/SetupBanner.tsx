@@ -18,7 +18,7 @@ import openrouterLogo from "../../assets/ai-logos/openrouter-logo.png";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSubscriptionAccount } from "@/hooks/useSubscriptionAccount";
 import { useSettings } from "@/hooks/useSettings";
-import { isDyadProEnabled } from "@/lib/schemas";
+import { isNextBillionProEnabled } from "@/lib/schemas";
 import { queryKeys } from "@/lib/queryKeys";
 import { ProviderIcon } from "./ProviderIcon";
 
@@ -35,7 +35,7 @@ export function SetupBanner({
   const client = useQueryClient();
   const subscription = useSubscriptionAccount();
   const { settings } = useSettings();
-  const hasPro = settings && isDyadProEnabled(settings);
+  const hasPro = settings && isNextBillionProEnabled(settings);
   const connection = useMutation({
     mutationFn: (cancel: boolean) =>
       cancel
@@ -120,8 +120,8 @@ export function SetupBanner({
           ) : (
             <p className="mt-2 text-sm leading-6 text-muted-foreground">
               {hasProviderSetup
-                ? "Change how Dyad accesses AI."
-                : "Dyad uses AI to build your app."}
+                ? "Change how NextBillion accesses AI."
+                : "NextBillion uses AI to build your app."}
             </p>
           )}
         </div>
@@ -170,7 +170,7 @@ export function SetupBanner({
           </div>
           {!settings && (
             <p className="mt-2 text-xs text-muted-foreground">
-              Checking Dyad Pro status…
+              Checking NextBillion Pro status…
             </p>
           )}
           {subscription.data?.pending && (

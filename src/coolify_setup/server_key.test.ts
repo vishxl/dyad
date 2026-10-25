@@ -11,7 +11,9 @@ const { ensureServerKey, serverKeyPath } = await import("./server_key");
 
 describe("the key the user installs on their server", () => {
   beforeEach(() => {
-    h.userData = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-server-key-"));
+    h.userData = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-server-key-"),
+    );
   });
 
   afterEach(() => {

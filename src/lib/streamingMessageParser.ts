@@ -1,7 +1,7 @@
 import { unescapeXmlAttr, unescapeXmlContent } from "../../shared/xmlEscape";
 
 /**
- * Incremental dyad-tag parser.
+ * Incremental nextbillion-tag parser.
  *
  * Feed the message content as it grows; emit a list of stable Block
  * objects for the renderer. Committed Block objects keep referential
@@ -20,72 +20,72 @@ import { unescapeXmlAttr, unescapeXmlContent } from "../../shared/xmlEscape";
  * only mark blocks as `complete` (closing tag seen) vs not.
  */
 
-// Recognised dyad custom-tag names. Anything outside this set with a
+// Recognised nextbillion custom-tag names. Anything outside this set with a
 // leading "<NAME" is treated as markdown text, matching the rendering
-// behavior in DyadMarkdownParser.
-const DYAD_CUSTOM_TAG_NAMES = [
-  "dyad-write",
-  "dyad-rename",
-  "dyad-delete",
-  "dyad-add-dependency",
-  "dyad-execute-sql",
-  "dyad-read-logs",
-  "dyad-add-integration",
-  "dyad-suggest-plugin",
-  "dyad-enable-nitro",
-  "dyad-output",
-  "dyad-problem-report",
-  "dyad-chat-summary",
-  "dyad-edit",
-  "dyad-grep",
-  "dyad-explore-code",
-  "dyad-search-replace",
-  "dyad-codebase-context",
-  "dyad-web-search-result",
-  "dyad-web-search",
-  "dyad-web-crawl",
-  "dyad-web-fetch",
-  "dyad-code-search-result",
-  "dyad-code-search",
-  "dyad-read",
-  "dyad-git",
+// behavior in NextBillionMarkdownParser.
+const NEXTBILLION_CUSTOM_TAG_NAMES = [
+  "nextbillion-write",
+  "nextbillion-rename",
+  "nextbillion-delete",
+  "nextbillion-add-dependency",
+  "nextbillion-execute-sql",
+  "nextbillion-read-logs",
+  "nextbillion-add-integration",
+  "nextbillion-suggest-plugin",
+  "nextbillion-enable-nitro",
+  "nextbillion-output",
+  "nextbillion-problem-report",
+  "nextbillion-chat-summary",
+  "nextbillion-edit",
+  "nextbillion-grep",
+  "nextbillion-explore-code",
+  "nextbillion-search-replace",
+  "nextbillion-codebase-context",
+  "nextbillion-web-search-result",
+  "nextbillion-web-search",
+  "nextbillion-web-crawl",
+  "nextbillion-web-fetch",
+  "nextbillion-code-search-result",
+  "nextbillion-code-search",
+  "nextbillion-read",
+  "nextbillion-git",
   "think",
-  "dyad-command",
-  "dyad-mcp-tool-call",
-  "dyad-mcp-tool-result",
-  "dyad-mcp-tool-search",
-  "dyad-mcp-tool-schema",
-  "dyad-list-files",
-  "dyad-database-schema",
-  "dyad-db-table-schema",
-  "dyad-supabase-table-schema",
-  "dyad-supabase-project-info",
-  "dyad-neon-project-info",
-  "dyad-neon-table-schema",
-  "dyad-read-guide",
-  "dyad-status",
-  "dyad-claude-tool",
-  "dyad-compaction",
-  "dyad-copy",
-  "dyad-image-generation",
-  "dyad-write-plan",
-  "dyad-exit-plan",
-  "dyad-questionnaire",
-  "dyad-step-limit",
-  "dyad-script",
-  "dyad-app-blueprint",
-  "dyad-security-finding",
-  "dyad-test-assertions",
+  "nextbillion-command",
+  "nextbillion-mcp-tool-call",
+  "nextbillion-mcp-tool-result",
+  "nextbillion-mcp-tool-search",
+  "nextbillion-mcp-tool-schema",
+  "nextbillion-list-files",
+  "nextbillion-database-schema",
+  "nextbillion-db-table-schema",
+  "nextbillion-supabase-table-schema",
+  "nextbillion-supabase-project-info",
+  "nextbillion-neon-project-info",
+  "nextbillion-neon-table-schema",
+  "nextbillion-read-guide",
+  "nextbillion-status",
+  "nextbillion-claude-tool",
+  "nextbillion-compaction",
+  "nextbillion-copy",
+  "nextbillion-image-generation",
+  "nextbillion-write-plan",
+  "nextbillion-exit-plan",
+  "nextbillion-questionnaire",
+  "nextbillion-step-limit",
+  "nextbillion-script",
+  "nextbillion-app-blueprint",
+  "nextbillion-security-finding",
+  "nextbillion-test-assertions",
   // Legacy: no longer emitted (test writing moved to the agent's write_file /
   // run_tests tools), but historical chats still contain it and must render as
   // a file-write card rather than raw markup.
-  "dyad-generate-test",
-  "dyad-search-chats",
-  "dyad-read-chat",
-  "dyad-explore-chat-history",
-  "dyad-subagent",
+  "nextbillion-generate-test",
+  "nextbillion-search-chats",
+  "nextbillion-read-chat",
+  "nextbillion-explore-chat-history",
+  "nextbillion-subagent",
 ];
-const DYAD_CUSTOM_TAG_SET = new Set(DYAD_CUSTOM_TAG_NAMES);
+const NEXTBILLION_CUSTOM_TAG_SET = new Set(NEXTBILLION_CUSTOM_TAG_NAMES);
 
 export type Block =
   | {
@@ -126,7 +126,7 @@ export interface ParserState {
   /** Bytes from `content` already consumed. */
   cursor: number;
   mode: Mode;
-  /** Bytes seen but not yet committed (e.g. partial "<dyad-..."). */
+  /** Bytes seen but not yet committed (e.g. partial "<nextbillion-..."). */
   pending: string;
   /** While in tag-attrs, the tag name. */
   pendingTagName: string;
@@ -279,7 +279,7 @@ export function advanceParser(prev: ParserState, content: string): ParserState {
       // tag, NAME must be in the set AND the next char must be ws or '>'.
       const name = state.pending.slice(1);
       if (
-        DYAD_CUSTOM_TAG_SET.has(name) &&
+        NEXTBILLION_CUSTOM_TAG_SET.has(name) &&
         (ch === " " || ch === "\t" || ch === "\n" || ch === "\r" || ch === ">")
       ) {
         state.pendingTagName = name;

@@ -3,7 +3,7 @@
 # patched headless harness against neon-sim + the engine recording proxy.
 #
 # Usage: ./run-cell.sh [engine-model-spec]   (default openai/gpt-5.6-luna)
-# Reads DYAD_PRO_KEY from the repo .env.
+# Reads NEXTBILLION_PRO_KEY from the repo .env.
 set -euo pipefail
 
 BENCH="$(cd "$(dirname "$0")" && pwd)"
@@ -18,7 +18,7 @@ if [[ -f "$REPO/.env" ]]; then
   source "$REPO/.env"
   set +a
 fi
-: "${DYAD_PRO_KEY:?DYAD_PRO_KEY must be set (env or $REPO/.env)}"
+: "${NEXTBILLION_PRO_KEY:?NEXTBILLION_PRO_KEY must be set (env or $REPO/.env)}"
 
 cleanup() {
   [[ "${APPBENCH_EXTERNAL_SERVICES:-0}" == "1" ]] && return 0
@@ -47,7 +47,7 @@ fi
 # delete a browser another stage depends on.
 export PLAYWRIGHT_SKIP_BROWSER_GC=1
 
-ENGINE_URL="${DYAD_ENGINE_UPSTREAM:-https://engine.dyad.sh/v1}"
+ENGINE_URL="${NEXTBILLION_ENGINE_UPSTREAM:-https://engine.dyad.sh/v1}"
 echo "[run-cell] engine drain check…"
 # Probe with the model this cell will actually use, and inspect the STREAM BODY,
 # not the status line. The engine answers HTTP 200 and reports failures inside
@@ -66,7 +66,7 @@ echo "[run-cell] engine drain check…"
 ENGINE_PROBE_SPEC="$MODEL"
 engine_probe() { # model-string token-param-name
   curl -s --max-time 20 -X POST "$ENGINE_URL/chat/completions" \
-    -H "authorization: Bearer $DYAD_PRO_KEY" -H 'content-type: application/json' \
+    -H "authorization: Bearer $NEXTBILLION_PRO_KEY" -H 'content-type: application/json' \
     -d "{\"model\":\"$1\",\"stream\":true,\"$2\":16,\"messages\":[{\"role\":\"user\",\"content\":\"hi\"}]}" || true
   # 16 tokens, not 1: OpenRouter refuses a 1-token budget for reasoning models
   # (muse-spark-1.3 answered 400), which read as "model rejected". The param

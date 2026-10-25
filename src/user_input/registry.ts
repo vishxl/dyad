@@ -7,7 +7,10 @@
  * the state-machine event enumeration. `request` also accepts an optional
  * requestId solely to preserve/test duplicate-correlation supersession.
  */
-import { DyadError, DyadErrorKind } from "../errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "../errors/nextbillion_error";
 import type { Clock, ClockHandle, IdSource } from "../state_machines/clock";
 import { createTraceObserver } from "../state_machines/trace";
 import {
@@ -316,9 +319,9 @@ export function createUserInputRegistry(deps: {
     request(input, explicitRequestId, options) {
       const requestId = explicitRequestId ?? deps.idSource.next(input.kind);
       if (pendingOutcomes.has(requestId))
-        throw new DyadError(
+        throw new NextBillionError(
           "User input is being saved",
-          DyadErrorKind.Conflict,
+          NextBillionErrorKind.Conflict,
         );
       const ms =
         input.kind !== "questionnaire" && options?.deadline === "review"
@@ -406,9 +409,9 @@ export function createUserInputRegistry(deps: {
         response,
       });
       if (!applied) {
-        throw new DyadError(
+        throw new NextBillionError(
           `No pending user-input request: ${requestId}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
     },
@@ -463,9 +466,9 @@ export function createUserInputRegistry(deps: {
         requestId,
       });
       if (!applied) {
-        throw new DyadError(
+        throw new NextBillionError(
           `No due user-input request: ${requestId}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
     },
@@ -480,9 +483,9 @@ export function createUserInputRegistry(deps: {
         requestId,
       });
       if (!applied) {
-        throw new DyadError(
+        throw new NextBillionError(
           `No live user-input follow-up: ${requestId}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
     },

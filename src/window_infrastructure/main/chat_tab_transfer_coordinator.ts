@@ -1,4 +1,7 @@
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import type {
   ChatTabTransferPayload,
   WindowSessionId,
@@ -48,9 +51,9 @@ export class ChatTabTransferCoordinator {
   ): string {
     this.sweep();
     if (this.pending.has(transferId)) {
-      throw new DyadError(
+      throw new NextBillionError(
         "This tab transfer identifier is already in use",
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
     for (const [existingId, transfer] of this.pending) {
@@ -59,18 +62,18 @@ export class ChatTabTransferCoordinator {
         transfer.payload.tabInstanceId === payload.tabInstanceId
       ) {
         if (transfer.destinationWindowSessionId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This tab is already being transferred",
-            DyadErrorKind.Conflict,
+            NextBillionErrorKind.Conflict,
           );
         }
         this.deleteTransfer(existingId, transfer);
       }
     }
     if (this.pending.size >= this.maxPendingTransfers) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Too many tab transfers are pending",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     const transfer: PendingTransfer = {
@@ -96,18 +99,18 @@ export class ChatTabTransferCoordinator {
     }
     const transfer = this.require(transferId);
     if (transfer.sourceWindowSessionId === destinationWindowSessionId) {
-      throw new DyadError(
+      throw new NextBillionError(
         "A tab transfer destination must be another window",
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
     if (
       transfer.destinationWindowSessionId &&
       transfer.destinationWindowSessionId !== destinationWindowSessionId
     ) {
-      throw new DyadError(
+      throw new NextBillionError(
         "This tab transfer is already being adopted",
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
     transfer.destinationWindowSessionId = destinationWindowSessionId;
@@ -141,9 +144,9 @@ export class ChatTabTransferCoordinator {
   ): Promise<void> {
     const transfer = this.require(transferId);
     if (transfer.destinationWindowSessionId !== destinationWindowSessionId) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Only the adopting window can acknowledge this transfer",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     if (transfer.sourceRemoval) return transfer.sourceRemoval.promise;
@@ -152,9 +155,9 @@ export class ChatTabTransferCoordinator {
       transfer.sourceWindowSessionId,
     );
     if (!endpoint) {
-      throw new DyadError(
+      throw new NextBillionError(
         "The source window is no longer available",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     this.clearExpiry(transfer);
@@ -171,9 +174,9 @@ export class ChatTabTransferCoordinator {
       transfer.expiresAt = this.now() + this.lifetimeMs;
       this.scheduleTimedOutReceiptExpiry(transferId, transfer);
       rejectReceipt(
-        new DyadError(
+        new NextBillionError(
           "The source window did not confirm tab removal",
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         ),
       );
     }, this.sourceReceiptWaitMs);
@@ -196,9 +199,9 @@ export class ChatTabTransferCoordinator {
       this.clearSourceRemoval(transfer);
       transfer.expiresAt = this.now() + this.lifetimeMs;
       this.scheduleClaimExpiry(transferId, transfer);
-      throw new DyadError(
+      throw new NextBillionError(
         "The source window could not remove the transferred tab",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
         { cause: error },
       );
     }
@@ -220,9 +223,9 @@ export class ChatTabTransferCoordinator {
       transfer.payload.chatId !== input.chatId ||
       !transfer.sourceRemoval
     ) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Tab removal confirmation does not match the pending transfer",
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
     const receipt = transfer.sourceRemoval;
@@ -232,9 +235,9 @@ export class ChatTabTransferCoordinator {
 
   private waitForBegin(transferId: string): Promise<void> {
     if (this.beginWaiterCount >= this.maxBeginWaiters) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Too many tab transfer adoptions are waiting",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     return new Promise((resolve) => {
@@ -260,9 +263,9 @@ export class ChatTabTransferCoordinator {
   private require(transferId: string): PendingTransfer {
     const transfer = this.pending.get(transferId);
     if (!transfer) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Tab transfer is missing or expired",
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
     return transfer;

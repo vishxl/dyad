@@ -14,25 +14,25 @@
 //
 // Gated: it installs the benchmark's Next.js template with pnpm and runs
 // `next dev`, so it is far too heavy for the default unit run. Enable with
-//   DYAD_DEV_SERVER_SMOKE=1 npx vitest run --project unit \
+//   NEXTBILLION_DEV_SERVER_SMOKE=1 npx vitest run --project unit \
 //     src/__tests__/headless_dev_server.smoke.test.ts
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { execSync } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
 
-const RUN = process.env.DYAD_DEV_SERVER_SMOKE === "1";
+const RUN = process.env.NEXTBILLION_DEV_SERVER_SMOKE === "1";
 
 const h = vi.hoisted(() => {
   process.env.NODE_ENV = "development";
-  if (process.env.DYAD_DEV_SERVER_SMOKE === "1") {
+  if (process.env.NEXTBILLION_DEV_SERVER_SMOKE === "1") {
     // node-pty is Electron-ABI and posix_spawnp-fails under vitest; the
     // child_process fallback in pty_command_runner handles the `pnpm --version`
     // probe. Same setting the benchmark runner uses.
-    process.env.DYAD_DISABLE_PTY = "1";
+    process.env.NEXTBILLION_DISABLE_PTY = "1";
     // Keep app/proxy ports out of the benchmark's 7788/7789/3000/3210 and out
     // of the default 32100 band. Block 4 => app 40300+, proxy 41300+.
-    process.env.DYAD_E2E_PORT_BLOCK_INDEX =
+    process.env.NEXTBILLION_E2E_PORT_BLOCK_INDEX =
       process.env.APPBENCH_PORT_BLOCK ?? "4";
   }
   return { ipcHandlers: new Map() };

@@ -74,8 +74,8 @@ describe("isComponentTaggerUpgradeNeeded Heuristics", () => {
     vi.spyOn(fs, "readFileSync").mockReturnValue(`
       import { defineConfig } from 'vite';
       import react from '@vitejs/plugin-react';
-      import dyadComponentTagger from '@dyad-sh/react-vite-component-tagger';
-      export default defineConfig({ plugins: [dyadComponentTagger(), react()] });
+      import nextBillionComponentTagger from '@dyad-sh/react-vite-component-tagger';
+      export default defineConfig({ plugins: [nextBillionComponentTagger(), react()] });
     `);
     expect(isComponentTaggerUpgradeNeeded(mockPath)).toBe(false);
   });
@@ -106,9 +106,11 @@ describe("applyComponentTagger", () => {
 
     await applyComponentTagger(mockPath);
     expect(writtenContent).toContain(
-      "import dyadComponentTagger from '@dyad-sh/react-vite-component-tagger';",
+      "import nextBillionComponentTagger from '@dyad-sh/react-vite-component-tagger';",
     );
-    expect(writtenContent).toContain("plugins: [dyadComponentTagger(), ");
+    expect(writtenContent).toContain(
+      "plugins: [nextBillionComponentTagger(), ",
+    );
     expect(gitAddAll).toHaveBeenCalled();
     expect(gitCommit).toHaveBeenCalled();
   });
@@ -144,7 +146,7 @@ describe("applyComponentTagger", () => {
     expect(writtenContent).toContain("plugins: [someTool()]");
     // The main plugins array under defineConfig should get the component tagger
     expect(writtenContent).toContain(
-      "plugins: [dyadComponentTagger(), react()]",
+      "plugins: [nextBillionComponentTagger(), react()]",
     );
   });
 
@@ -191,7 +193,7 @@ describe("applyComponentTagger", () => {
       k.includes("vite.config"),
     );
     expect(viteWrite).toBeDefined();
-    expect(viteWrite![1]).toContain("dyadComponentTagger()");
+    expect(viteWrite![1]).toContain("nextBillionComponentTagger()");
 
     // Check package.json was updated with the tagger dependency
     const pkgWrite = Object.entries(writtenFiles).find(([k]) =>

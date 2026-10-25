@@ -1,7 +1,7 @@
 import { db } from "../../db";
 import { apps, chats } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { getDyadAppPath } from "../../paths/paths";
+import { getNextBillionAppPath } from "../../paths/paths";
 import { CodebaseFile, extractCodebase } from "../../utils/codebase";
 import { validateChatContext } from "../utils/context_paths_utils";
 import log from "electron-log";
@@ -90,7 +90,7 @@ async function extractCodebasesForApps(
 
   for (const app of dedupedApps) {
     try {
-      const appPath = getDyadAppPath(app.path);
+      const appPath = getNextBillionAppPath(app.path);
       const chatContext = validateChatContext(app.chatContext);
 
       const { formattedOutput, files } = await extractCodebase({
@@ -193,7 +193,7 @@ export async function resolveStickyReferencedApps({
     references: dedupedApps.map((app) => ({
       appId: app.id,
       appName: app.name,
-      appPath: getDyadAppPath(app.path),
+      appPath: getNextBillionAppPath(app.path),
     })),
     appIds,
     changed: !sameIdSet(appIds, persistedAppIds),

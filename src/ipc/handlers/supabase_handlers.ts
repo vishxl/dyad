@@ -18,7 +18,7 @@ import {
   detectLegacyAppKey,
   switchAppToPublishableKey,
 } from "../../supabase_admin/supabase_app_key";
-import { getDyadAppPath } from "../../paths/paths";
+import { getNextBillionAppPath } from "../../paths/paths";
 import { createTypedHandler } from "./base";
 import { createAppOperationHandler } from "../utils/app_mutation_lock";
 import {
@@ -31,7 +31,11 @@ import {
   SUPABASE_PROJECT_CREATED_BUT_UNLINKED,
   supabaseContracts,
 } from "../types/supabase";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import { assertNoNeonProject } from "../utils/neon_utils";
 import { runOAuthReturnExchange } from "./connection_flow_handlers";
 import { IS_TEST_BUILD } from "../utils/test_utils";
@@ -90,18 +94,18 @@ function recordUnlinkedProject(
  * slots — and carries Supabase's own explanation, so it must not be reported as
  * an upstream exception. `classifyManagementApiError` would call every 403 an
  * auth problem and tell them to reconnect their account. See
- * `rules/dyad-errors.md` for which kinds reach PostHog.
+ * `rules/nextbillion-errors.md` for which kinds reach PostHog.
  */
 function classifyCreateProjectError(error: unknown): unknown {
-  if (isDyadError(error)) {
+  if (isNextBillionError(error)) {
     return error;
   }
   // Before the SupabaseManagementAPIError branch: an exhausted 429 is rethrown
   // as a RateLimitError, so a status check inside that branch never sees it.
   if (isRateLimitError(error)) {
-    return new DyadError(
+    return new NextBillionError(
       error instanceof Error ? error.message : String(error),
-      DyadErrorKind.RateLimited,
+      NextBillionErrorKind.RateLimited,
     );
   }
   if (error instanceof SupabaseManagementAPIError) {
@@ -110,11 +114,14 @@ function classifyCreateProjectError(error: unknown): unknown {
       return classifyManagementApiError(error, "create a Supabase project");
     }
     if (status >= 400 && status < 500) {
-      return new DyadError(error.message, DyadErrorKind.Precondition);
+      return new NextBillionError(
+        error.message,
+        NextBillionErrorKind.Precondition,
+      );
     }
-    return new DyadError(
+    return new NextBillionError(
       `Couldn't create the Supabase project: ${error.message}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
   // A bare network failure is passed through untouched, because that is how it
@@ -126,9 +133,9 @@ function classifyCreateProjectError(error: unknown): unknown {
   ) {
     return error;
   }
-  return new DyadError(
+  return new NextBillionError(
     `Couldn't create the Supabase project: ${error instanceof Error ? error.message : error}`,
-    DyadErrorKind.External,
+    NextBillionErrorKind.External,
   );
 }
 
@@ -182,9 +189,9 @@ export function registerSupabaseHandlers() {
       const organizations = { ...settings.supabase?.organizations };
 
       if (!organizations[organizationSlug]) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Supabase organization ${organizationSlug} not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -273,18 +280,18 @@ export function registerSupabaseHandlers() {
           where: eq(apps.id, appId),
         });
         if (!app) {
-          throw new DyadError(
+          throw new NextBillionError(
             `App ${appId} not found.`,
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
         // Repointing is the selector's job; creating on top of an existing link
         // would strand the project the user already had. Neon's create guards
         // against its own provider the same way.
         if (app.supabaseProjectId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This app is already connected to a Supabase project. Disconnect it first.",
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         }
         // The check above cannot see a project whose link write failed — that
@@ -300,14 +307,14 @@ export function registerSupabaseHandlers() {
         // one still has a way out.
         if (unlinkedProjectsByApp.has(appId)) {
           const stranded = unlinkedProjectsByApp.get(appId);
-          throw new DyadError(
+          throw new NextBillionError(
             // Both branches name the escape for someone who has deleted the
             // stranded project, and any project releases the record — so
             // selecting one they already have comes before making another.
             stranded
               ? `Supabase project ${stranded} was created for this app but couldn't be linked. Select it from the project list to finish connecting. If you have deleted it, select another project, or create one in your Supabase dashboard if you have none left.`
               : "A Supabase project was already created for this app but couldn't be linked. Check your Supabase dashboard, then select a project from the list. Create one there first if you have none.",
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         }
 
@@ -330,11 +337,11 @@ export function registerSupabaseHandlers() {
               classified,
             );
             recordUnlinkedProject(appId, null, event);
-            const unnamed = new DyadError(
+            const unnamed = new NextBillionError(
               "Supabase accepted the project but didn't say which one it created. Check your Supabase dashboard before trying again.",
-              DyadErrorKind.External,
+              NextBillionErrorKind.External,
             );
-            (unnamed as DyadError & { code: string }).code =
+            (unnamed as NextBillionError & { code: string }).code =
               SUPABASE_PROJECT_CREATED_BUT_UNLINKED;
             throw unnamed;
           }
@@ -356,20 +363,20 @@ export function registerSupabaseHandlers() {
         } catch (error) {
           recordUnlinkedProject(appId, project.id, event);
           // The database error is logged, not interpolated: it can carry SQL,
-          // parameters and local paths, and `rules/dyad-errors.md` treats the
+          // parameters and local paths, and `rules/nextbillion-errors.md` treats the
           // main-to-renderer projection as a security boundary. The project ref
           // is the user's own and is the actionable part, so it stays.
           logger.error(
             `Created Supabase project ${project.id} but couldn't link it to app ${appId}`,
             error,
           );
-          const unlinked = new DyadError(
+          const unlinked = new NextBillionError(
             `Created Supabase project ${project.id} but couldn't link it to this app. Select it from the project list to finish connecting.`,
-            DyadErrorKind.Internal,
+            NextBillionErrorKind.Internal,
           );
           // The kind is the catch-all for bugs, so it cannot identify this
           // failure on its own. The code is what the renderer matches on.
-          (unlinked as DyadError & { code: string }).code =
+          (unlinked as NextBillionError & { code: string }).code =
             SUPABASE_PROJECT_CREATED_BUT_UNLINKED;
           throw unlinked;
         }
@@ -417,9 +424,9 @@ export function registerSupabaseHandlers() {
         typeof response.error === "string"
           ? response.error
           : JSON.stringify(response.error);
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to fetch logs: ${errorMsg}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
@@ -441,7 +448,7 @@ export function registerSupabaseHandlers() {
     });
   });
 
-  // Set app project - links a Dyad app to a Supabase project.
+  // Set app project - links a NextBillion app to a Supabase project.
   // Provider ownership serializes this with the key switch, which reads this
   // association and writes the matching key into the app's source. Repointing
   // mid-switch would leave the client holding the previous project's key.
@@ -482,7 +489,7 @@ export function registerSupabaseHandlers() {
     ),
   );
 
-  // Unset app project - removes the link between a Dyad app and a Supabase
+  // Unset app project - removes the link between a NextBillion app and a Supabase
   // project. This legacy contract spells the app id `app`, so it declares the
   // provider operation directly rather than using createAppOperationHandler.
   createTypedHandler(supabaseContracts.unsetAppProject, async (_, params) => {
@@ -527,7 +534,7 @@ export function registerSupabaseHandlers() {
         return { hasLegacyKey: false };
       }
       const legacy = await detectLegacyAppKey({
-        appPath: getDyadAppPath(app.path),
+        appPath: getNextBillionAppPath(app.path),
         projectId: app.supabaseProjectId,
         organizationSlug: app.supabaseOrganizationSlug,
       });
@@ -548,20 +555,20 @@ export function registerSupabaseHandlers() {
           where: eq(apps.id, appId),
         });
         if (!app) {
-          throw new DyadError(
+          throw new NextBillionError(
             `App ${appId} not found.`,
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
         if (!app.supabaseProjectId) {
-          throw new DyadError(
+          throw new NextBillionError(
             `App ${appId} is not connected to a Supabase project.`,
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         }
         try {
           const outcome = await switchAppToPublishableKey({
-            appPath: getDyadAppPath(app.path),
+            appPath: getNextBillionAppPath(app.path),
             projectId: app.supabaseProjectId,
             organizationSlug: app.supabaseOrganizationSlug,
           });
@@ -574,17 +581,17 @@ export function registerSupabaseHandlers() {
             error,
             "update this app's API key",
           );
-          if (isDyadError(classified)) {
+          if (isNextBillionError(classified)) {
             throw classified;
           }
           // Everything classifyManagementApiError doesn't recognise — a Supabase
           // 5xx, a `fetch failed` TypeError, an fs error the rewrite couldn't
           // classify — would otherwise reach the renderer as a bare Error with no
           // kind to branch on, and be reported as an unclassified product
-          // exception (`rules/dyad-errors.md`).
-          throw new DyadError(
+          // exception (`rules/nextbillion-errors.md`).
+          throw new NextBillionError(
             `Couldn't update this app's Supabase API key: ${classified instanceof Error ? classified.message : classified}`,
-            DyadErrorKind.External,
+            NextBillionErrorKind.External,
           );
         }
       },
@@ -610,22 +617,22 @@ export function registerSupabaseHandlers() {
           where: eq(apps.id, appId),
         });
         if (!app) {
-          throw new DyadError(
+          throw new NextBillionError(
             `App ${appId} not found.`,
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
         if (!app.supabaseProjectId) {
-          throw new DyadError(
+          throw new NextBillionError(
             `App ${appId} is not connected to a Supabase project.`,
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         }
 
         let summary = { functionCount: 0, prunedFunctionNames: [] as string[] };
         const settings = readSettings();
         const errors = await deployAllSupabaseFunctions({
-          appPath: getDyadAppPath(app.path),
+          appPath: getNextBillionAppPath(app.path),
           supabaseProjectId: app.supabaseProjectId,
           supabaseOrganizationSlug: app.supabaseOrganizationSlug ?? null,
           skipPruneEdgeFunctions: settings.skipPruneEdgeFunctions ?? false,
@@ -663,7 +670,7 @@ export function registerSupabaseHandlers() {
       // which fails with fake tokens, causing credentials to be stored in legacy format
       // Run the write through the connection flow machine so an active flow
       // (started by the connector's Connect click) advances just like a real
-      // dyad://supabase-oauth-return deep link would. Integration tests call
+      // nextbillion://supabase-oauth-return deep link would. Integration tests call
       // this without starting a flow, so this trusted test-only producer may
       // still write when nothing is awaiting a return.
       const outcome = await runOAuthReturnExchange(

@@ -6,7 +6,7 @@ When pushing changes and creating PRs:
 2. If the branch hasn't been pushed before, default to pushing to `origin` (the fork `wwwillchen/dyad`), then create a PR from the fork to the upstream repo (`dyad-sh/dyad`).
 3. If you cannot push to the fork due to permissions, push directly to `upstream` (`dyad-sh/dyad`) as a last resort.
 
-**Bot account push permissions:** The `keppo-bot` account does NOT have write access to `upstream` (`dyad-sh/dyad`). If a branch tracks `upstream` (e.g., `upstream/claude/...`), pushing will fail with a permission error. In this case, push to `origin` (the bot's fork at `keppo-bot/dyad`) instead:
+**Bot account push permissions:** The `keppo-bot` account does NOT have write access to `upstream` (`dyad-sh/dyad`). If a branch tracks `upstream` (e.g., `upstream/claude/...`), pushing will fail with a permission error. In this case, push to `origin` (the bot's fork at `keppo-bot/nextbillion`) instead:
 
 ```bash
 git push --force-with-lease -u origin HEAD
@@ -117,7 +117,7 @@ predates that flag and fails with `unknown flag: --slurp`:
 # query file: query($owner:String!,$repo:String!,$pr:Int!,$endCursor:String){...
 #   reviewThreads(first:100, after:$endCursor){ pageInfo{hasNextPage endCursor} totalCount nodes{...} } }
 gh api graphql --paginate -F query=@threads.graphql \
-  -f owner=dyad-sh -f repo=dyad -F pr=4065 \
+  -f owner=dyad-sh -f repo=nextbillion -F pr=4065 \
   --jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false)'
 ```
 
@@ -182,7 +182,7 @@ After a commit with lint-staged hooks, re-check both `git status --short` and an
 
 ## Runtime commit hook policy
 
-Dyad's low-level `gitCommit` helper is hook-free and does not expose a caller option. `--no-verify` alone is not enough: it bypasses only `pre-commit` and `commit-msg`, while Git still runs `prepare-commit-msg` (and `post-commit`), so a hook that appends to the message would rewrite it _after_ an explicit `commit-msg` run had already validated it. `gitCommit` therefore creates a fresh empty hooks directory under the OS temporary directory, passes its absolute path through `-c core.hooksPath=...`, and removes it after the commit. Never use a repository-relative suppression path: an imported repository could populate that path with executable hooks.
+NextBillion's low-level `gitCommit` helper is hook-free and does not expose a caller option. `--no-verify` alone is not enough: it bypasses only `pre-commit` and `commit-msg`, while Git still runs `prepare-commit-msg` (and `post-commit`), so a hook that appends to the message would rewrite it _after_ an explicit `commit-msg` run had already validated it. `gitCommit` therefore creates a fresh empty hooks directory under the OS temporary directory, passes its absolute path through `-c core.hooksPath=...`, and removes it after the commit. Never use a repository-relative suppression path: an imported repository could populate that path with executable hooks.
 
 Workflows that create user-requested commits must explicitly run every hook they promise to preserve, **in Git's own order**, before calling `gitCommit`. The manual UI flow runs `pre-commit`, then `prepare-commit-msg`, then `commit-msg` against `COMMIT_EDITMSG`, and commits whatever message those hooks left behind. Keep hook execution separate so failures can be surfaced and recovered from before committing, and never reorder the two message hooks — `commit-msg` must be the last thing to see the message that gets committed.
 
@@ -295,11 +295,11 @@ gh api repos/dyad-sh/dyad/pulls/<PR_NUMBER> -X PATCH -F body=@.claude/tmp/pr-bod
 
 ## CI file access (claude-code-action)
 
-In CI, `claude-code-action` restricts file access to the repo working directory (e.g., `/home/runner/work/dyad/dyad`). Skills that save intermediate files (like PR diffs) must use `./filename` (current working directory), **never** `/tmp/`. Using `/tmp/` causes errors like: `cat in '/tmp/pr_*_diff.patch' was blocked. For security, Claude Code may only concatenate files from the allowed working directories`.
+In CI, `claude-code-action` restricts file access to the repo working directory (e.g., `/home/runner/work/nextbillion/nextbillion`). Skills that save intermediate files (like PR diffs) must use `./filename` (current working directory), **never** `/tmp/`. Using `/tmp/` causes errors like: `cat in '/tmp/pr_*_diff.patch' was blocked. For security, Claude Code may only concatenate files from the allowed working directories`.
 
 ## Force-pushing after rebase with split-remote origin
 
-When `origin` has separate fetch and push URLs (e.g., fetch → `dyad-sh/dyad`, push → `keppo-bot/dyad`), `git push --force-with-lease` fails with **"stale info"** after a rebase because the local tracking ref was refreshed from the fetch URL but does not reflect the push URL's state. In this specific split-remote configuration, use `git push --force origin HEAD`:
+When `origin` has separate fetch and push URLs (e.g., fetch → `dyad-sh/dyad`, push → `keppo-bot/nextbillion`), `git push --force-with-lease` fails with **"stale info"** after a rebase because the local tracking ref was refreshed from the fetch URL but does not reflect the push URL's state. In this specific split-remote configuration, use `git push --force origin HEAD`:
 
 ```bash
 git push --force origin HEAD

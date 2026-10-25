@@ -2,8 +2,8 @@ import { randomBytes } from "node:crypto";
 import { createServer } from "node:http";
 import type { TestCaseLifecycle } from "./isolated_test_db";
 
-export const TEST_CASE_ENDPOINT_ENV = "DYAD_TEST_CASE_ENDPOINT";
-export const TEST_CASE_TOKEN_ENV = "DYAD_TEST_CASE_TOKEN";
+export const TEST_CASE_ENDPOINT_ENV = "NEXTBILLION_TEST_CASE_ENDPOINT";
+export const TEST_CASE_TOKEN_ENV = "NEXTBILLION_TEST_CASE_TOKEN";
 
 /**
  * Budget for one before/after hook: tearing down the previous case's isolated

@@ -19,7 +19,7 @@ it.each([
   "selects $expected for a $member member (pnpm available: $available)",
   async ({ member, available, expected }) => {
     const root = await fs.mkdtemp(
-      path.join(os.tmpdir(), "dyad-mixed-workspaces-"),
+      path.join(os.tmpdir(), "nextbillion-mixed-workspaces-"),
     );
     try {
       const appPath = path.join(root, member, "app");

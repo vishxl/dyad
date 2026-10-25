@@ -24,9 +24,12 @@ import {
   mcpServers,
 } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { getDyadAppPath } from "../../paths/paths";
+import { getNextBillionAppPath } from "../../paths/paths";
 import { validateChatContext } from "../utils/context_paths_utils";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   getPackageManagerCommandEnv,
   PNPM_PM_ON_FAIL_IGNORE_ARG,
@@ -111,12 +114,12 @@ async function getSystemDebugInfo({
     console.error("Failed to get node path:", err);
   }
 
-  // Get Dyad version from package.json
+  // Get NextBillion version from package.json
   const packageJsonPath = path.resolve(__dirname, "..", "..", "package.json");
-  let dyadVersion = "unknown";
+  let nextBillionVersion = "unknown";
   try {
     const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, "utf8"));
-    dyadVersion = packageJson.version;
+    nextBillionVersion = packageJson.version;
   } catch (err) {
     console.error("Failed to read package.json:", err);
   }
@@ -167,7 +170,7 @@ async function getSystemDebugInfo({
       serializeModelForDebug(settings.selectedModel) || "unknown",
     telemetryConsent: settings.telemetryConsent || "unknown",
     telemetryUrl: "https://us.i.posthog.com", // Hardcoded from renderer.tsx
-    dyadVersion,
+    nextBillionVersion,
     platform: process.platform,
     architecture: arch(),
     logs,
@@ -211,7 +214,7 @@ function sanitizeSettingsForDebug(
     selectedChatMode: settings.selectedChatMode ?? null,
     defaultChatMode: settings.defaultChatMode ?? null,
     autoApproveChanges: settings.autoApproveChanges ?? null,
-    enableDyadPro: settings.enableDyadPro ?? null,
+    enableNextBillionPro: settings.enableNextBillionPro ?? null,
     effortLevel: selectedModel.effortLevel,
     maxChatTurnsInContext: settings.maxChatTurnsInContext ?? null,
     enableAutoUpdate: settings.enableAutoUpdate,
@@ -340,19 +343,19 @@ export function registerDebugHandlers() {
     try {
       const settings = readSettings();
 
-      // Get Dyad version
+      // Get NextBillion version
       const packageJsonPath = path.resolve(
         __dirname,
         "..",
         "..",
         "package.json",
       );
-      let dyadVersion = "unknown";
+      let nextBillionVersion = "unknown";
       try {
         const packageJson = JSON.parse(
           fs.readFileSync(packageJsonPath, "utf8"),
         );
-        dyadVersion = packageJson.version;
+        nextBillionVersion = packageJson.version;
       } catch (err) {
         console.error("Failed to read package.json:", err);
       }
@@ -390,9 +393,9 @@ export function registerDebugHandlers() {
       });
 
       if (!chatRecord) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Chat with ID ${chatId} not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -402,9 +405,9 @@ export function registerDebugHandlers() {
       });
 
       if (!app) {
-        throw new DyadError(
+        throw new NextBillionError(
           `App with ID ${chatRecord.appId} not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -415,7 +418,7 @@ export function registerDebugHandlers() {
           db.select().from(language_models),
           db.select().from(mcpServers),
           extractCodebase({
-            appPath: getDyadAppPath(app.path),
+            appPath: getNextBillionAppPath(app.path),
             chatContext: validateChatContext(app.chatContext),
           }).then((result) => result.formattedOutput),
         ]);
@@ -429,7 +432,7 @@ export function registerDebugHandlers() {
         exportedAt: new Date().toISOString(),
 
         system: {
-          dyadVersion,
+          nextBillionVersion,
           platform: process.platform,
           architecture: arch(),
           nodeVersion,
@@ -540,9 +543,9 @@ export function registerDebugHandlers() {
   createTypedHandler(systemContracts.takeScreenshot, async () => {
     const win = BrowserWindow.getFocusedWindow();
     if (!win) {
-      throw new DyadError(
+      throw new NextBillionError(
         SCREENSHOT_ERRORS.noFocusedWindow,
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 
@@ -550,7 +553,10 @@ export function registerDebugHandlers() {
     const image = await win.capturePage();
     // Validate image
     if (!image || image.isEmpty()) {
-      throw new DyadError(SCREENSHOT_ERRORS.emptyImage, DyadErrorKind.External);
+      throw new NextBillionError(
+        SCREENSHOT_ERRORS.emptyImage,
+        NextBillionErrorKind.External,
+      );
     }
     // Write the image to the clipboard
     clipboard.writeImage(image);

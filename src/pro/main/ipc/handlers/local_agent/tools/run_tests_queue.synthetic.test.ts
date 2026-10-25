@@ -43,7 +43,7 @@ vi.mock("@/db", () => ({
 }));
 vi.mock("@/paths/paths", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/paths/paths")>()),
-  getDyadAppPath: () => h.appPath,
+  getNextBillionAppPath: () => h.appPath,
 }));
 vi.mock("@/main/settings", () => ({
   readSettings: () => ({ disableSandboxedE2eTests: true }),
@@ -120,7 +120,9 @@ describe("synthetic overlapping run_tests calls", () => {
   let tearingDown = false;
 
   beforeEach(() => {
-    fixtureRoot = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-test-queue-"));
+    fixtureRoot = fs.mkdtempSync(
+      path.join(os.tmpdir(), "nextbillion-test-queue-"),
+    );
     const realAppPath = path.join(fixtureRoot, "app");
     fs.mkdirSync(realAppPath);
     h.appPath = path.join(fixtureRoot, "linked-app");

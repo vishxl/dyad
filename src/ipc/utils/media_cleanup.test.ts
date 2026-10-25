@@ -40,10 +40,10 @@ vi.mock("electron-log", () => ({
 }));
 
 vi.mock("@/paths/paths", () => ({
-  getDyadAppPath: vi.fn((appPath: string) => {
+  getNextBillionAppPath: vi.fn((appPath: string) => {
     const path = require("node:path");
     if (path.isAbsolute(appPath)) return appPath;
-    return path.join("/home/user/dyad-apps", appPath);
+    return path.join("/home/user/nextbillion-apps", appPath);
   }),
 }));
 
@@ -57,7 +57,7 @@ vi.mock("@/db/schema", () => ({
 
 vi.mock("@/ipc/utils/media_path_utils", () => ({
   ATTACHMENTS_MANIFEST_FILE: "attachments-manifest.json",
-  DYAD_MEDIA_DIR_NAME: ".dyad/media",
+  NEXTBILLION_MEDIA_DIR_NAME: ".nextbillion/media",
   pruneAttachmentManifest: mediaPathMocks.pruneAttachmentManifest,
 }));
 
@@ -83,7 +83,7 @@ describe("cleanupOldMediaFiles", () => {
       Promise.resolve(filePath),
     );
     fsMocks.lstat.mockImplementation((filePath: string) => {
-      if (filePath.endsWith(path.join(".dyad", "media"))) {
+      if (filePath.endsWith(path.join(".nextbillion", "media"))) {
         return Promise.resolve({
           isDirectory: () => true,
           isSymbolicLink: () => false,
@@ -120,8 +120,8 @@ describe("cleanupOldMediaFiles", () => {
     const recentMtimeMs = now - 5 * 24 * 60 * 60 * 1000;
 
     dbMocks.from.mockResolvedValue([{ path: "my-app" }]);
-    const appPath = path.join("/home/user/dyad-apps", "my-app");
-    const mediaDir = path.join(appPath, ".dyad/media");
+    const appPath = path.join("/home/user/nextbillion-apps", "my-app");
+    const mediaDir = path.join(appPath, ".nextbillion/media");
 
     fsMocks.readdir.mockImplementation((dirPath: string) => {
       if (dirPath === mediaDir) {
@@ -167,7 +167,7 @@ describe("cleanupOldMediaFiles", () => {
     expect(logMocks.warn).not.toHaveBeenCalled();
   });
 
-  it("should skip apps without .dyad/media directory", async () => {
+  it("should skip apps without .nextbillion/media directory", async () => {
     dbMocks.from.mockResolvedValue([{ path: "app-no-media" }]);
 
     fsMocks.readdir.mockRejectedValue(new Error("ENOENT"));
@@ -198,7 +198,7 @@ describe("cleanupOldMediaFiles", () => {
     expect(logMocks.warn.mock.calls[0][1]).toBe(statError);
   });
 
-  it("should skip subdirectories inside .dyad/media", async () => {
+  it("should skip subdirectories inside .nextbillion/media", async () => {
     vi.useFakeTimers();
     vi.setSystemTime(new Date("2025-01-31T00:00:00.000Z"));
 
@@ -224,7 +224,7 @@ describe("cleanupOldMediaFiles", () => {
       expect.stringContaining("old-file.png"),
     );
     expect(mediaPathMocks.pruneAttachmentManifest).toHaveBeenCalledWith(
-      path.join("/home/user/dyad-apps", "my-app"),
+      path.join("/home/user/nextbillion-apps", "my-app"),
     );
   });
 
@@ -240,7 +240,11 @@ describe("cleanupOldMediaFiles", () => {
     fsMocks.stat.mockResolvedValue({ isFile: () => true, mtimeMs: oldMtimeMs });
     fsMocks.unlink.mockResolvedValue(undefined);
     mediaPathMocks.pruneAttachmentManifest.mockRejectedValue(pruneError);
-    const mediaDir = path.join("/home/user/dyad-apps", "my-app", ".dyad/media");
+    const mediaDir = path.join(
+      "/home/user/nextbillion-apps",
+      "my-app",
+      ".nextbillion/media",
+    );
 
     await cleanupOldMediaFiles();
 
@@ -299,7 +303,7 @@ describe("cleanupOldMediaFiles", () => {
     const oldMtimeMs = Date.now() - 31 * 24 * 60 * 60 * 1000;
 
     const appPath = path.resolve("/external/projects/my-imported-app");
-    const mediaDir = path.join(appPath, ".dyad/media");
+    const mediaDir = path.join(appPath, ".nextbillion/media");
 
     dbMocks.from.mockResolvedValue([{ path: appPath }]);
 

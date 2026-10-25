@@ -53,25 +53,36 @@ export const SOCKET_FIREWALL_PROBE_TIMEOUT_MS = 30 * 1000;
 export const PACKAGE_MANAGER_PROBE_TIMEOUT_MS = 30 * 1000;
 export const ADD_DEPENDENCY_INSTALL_TIMEOUT_MS = DEFAULT_PTY_COMMAND_TIMEOUT_MS;
 const logger = log.scope("socket_firewall");
-const DYAD_ALLOW_BUILDS_SCHEMA = "v1";
-const DYAD_ALLOW_BUILDS_SCHEMA_KEY = "dyad-default-allow-builds-schema";
-const DYAD_ALLOW_BUILDS_DATA_VERSION_KEY =
-  "dyad-default-allow-builds-data-version";
-const DYAD_ALLOW_BUILDS_CHANNEL_KEY = "dyad-default-allow-builds-channel";
-const DYAD_ALLOW_BUILDS_BEGIN = "# dyad-default-allow-builds begin";
-const DYAD_ALLOW_BUILDS_END = "# dyad-default-allow-builds end";
-const LEGACY_DYAD_ALLOW_BUILDS_BEGIN = "# dyad-default-allow-builds=v1 begin";
-const LEGACY_DYAD_ALLOW_BUILDS_END = "# dyad-default-allow-builds=v1 end";
-const DYAD_AUTO_DENIED_ALLOW_BUILDS_COMMENT = "# dyad-auto-denied";
+const NEXTBILLION_ALLOW_BUILDS_SCHEMA = "v1";
+const NEXTBILLION_ALLOW_BUILDS_SCHEMA_KEY =
+  "nextbillion-default-allow-builds-schema";
+const NEXTBILLION_ALLOW_BUILDS_DATA_VERSION_KEY =
+  "nextbillion-default-allow-builds-data-version";
+const NEXTBILLION_ALLOW_BUILDS_CHANNEL_KEY =
+  "nextbillion-default-allow-builds-channel";
+const NEXTBILLION_ALLOW_BUILDS_BEGIN =
+  "# nextbillion-default-allow-builds begin";
+const NEXTBILLION_ALLOW_BUILDS_END = "# nextbillion-default-allow-builds end";
+const LEGACY_NEXTBILLION_ALLOW_BUILDS_BEGIN =
+  "# nextbillion-default-allow-builds=v1 begin";
+const LEGACY_NEXTBILLION_ALLOW_BUILDS_END =
+  "# nextbillion-default-allow-builds=v1 end";
+const NEXTBILLION_AUTO_DENIED_ALLOW_BUILDS_COMMENT =
+  "# nextbillion-auto-denied";
+// Apps created before the rebrand carry "# dyad-..." markers in pnpm-workspace.yaml.
+const LEGACY_MARKER_PREFIX = /^(\s*#\s*)dyad-/;
+const LEGACY_AUTO_DENIED_ALLOW_BUILDS_COMMENT = "# dyad-auto-denied";
+const modernizeMarker = (line: string) =>
+  line.replace(LEGACY_MARKER_PREFIX, "$1nextbillion-");
 const PNPM_IGNORED_BUILDS_ERROR_CODE = "ERR_PNPM_IGNORED_BUILDS";
-const DYAD_ALLOW_BUILDS_METADATA_PATTERN =
-  /^#\s*(dyad-default-allow-builds-(?:schema|data-version|channel))=(.+)$/;
-const DYAD_ALLOW_BUILDS_REMOTE_URL =
-  process.env.DYAD_DEFAULT_APPROVE_BUILDS_URL ??
+const NEXTBILLION_ALLOW_BUILDS_METADATA_PATTERN =
+  /^#\s*(nextbillion-default-allow-builds-(?:schema|data-version|channel))=(.+)$/;
+const NEXTBILLION_ALLOW_BUILDS_REMOTE_URL =
+  process.env.NEXTBILLION_DEFAULT_APPROVE_BUILDS_URL ??
   `${apiBaseUrl()}/v1/default-approve-builds.txt`;
-const DYAD_ALLOW_BUILDS_FETCH_TIMEOUT_MS = 5_000;
-export const DYAD_ALLOW_BUILDS_CACHE_TTL_MS = 60 * 60 * 1000;
-const DYAD_ALLOW_BUILDS_MAX_BYTES = 256 * 1024;
+const NEXTBILLION_ALLOW_BUILDS_FETCH_TIMEOUT_MS = 5_000;
+export const NEXTBILLION_ALLOW_BUILDS_CACHE_TTL_MS = 60 * 60 * 1000;
+const NEXTBILLION_ALLOW_BUILDS_MAX_BYTES = 256 * 1024;
 
 export interface CommandExecutionOptions {
   cwd?: string;
@@ -164,15 +175,15 @@ export type PackageManager = "pnpm" | "npm";
 type AllowBuildsChannel = "local" | "remote";
 
 type AllowBuildsSource = {
-  schema: typeof DYAD_ALLOW_BUILDS_SCHEMA;
+  schema: typeof NEXTBILLION_ALLOW_BUILDS_SCHEMA;
   dataVersion: string;
   channel: AllowBuildsChannel;
   packages: string[];
 };
 type AllowBuildsMetadataKey =
-  | typeof DYAD_ALLOW_BUILDS_SCHEMA_KEY
-  | typeof DYAD_ALLOW_BUILDS_DATA_VERSION_KEY
-  | typeof DYAD_ALLOW_BUILDS_CHANNEL_KEY;
+  | typeof NEXTBILLION_ALLOW_BUILDS_SCHEMA_KEY
+  | typeof NEXTBILLION_ALLOW_BUILDS_DATA_VERSION_KEY
+  | typeof NEXTBILLION_ALLOW_BUILDS_CHANNEL_KEY;
 
 type AllowBuildsTextFetcher = (
   url: string,
@@ -204,7 +215,9 @@ function parseAllowBuildsMetadata(
 ): Partial<Record<AllowBuildsMetadataKey, string>> {
   const metadata: Partial<Record<AllowBuildsMetadataKey, string>> = {};
   for (const line of lines) {
-    const match = line.trim().match(DYAD_ALLOW_BUILDS_METADATA_PATTERN);
+    const match = modernizeMarker(line.trim()).match(
+      NEXTBILLION_ALLOW_BUILDS_METADATA_PATTERN,
+    );
     if (!match) {
       continue;
     }
@@ -218,26 +231,29 @@ function parseDefaultAllowBuilds(
 ): AllowBuildsSource {
   const lines = text.split(/\r?\n/).map((line) => line.trim());
   const metadata = parseAllowBuildsMetadata(lines);
-  if (metadata[DYAD_ALLOW_BUILDS_SCHEMA_KEY] !== DYAD_ALLOW_BUILDS_SCHEMA) {
+  if (
+    metadata[NEXTBILLION_ALLOW_BUILDS_SCHEMA_KEY] !==
+    NEXTBILLION_ALLOW_BUILDS_SCHEMA
+  ) {
     throw new Error(
-      `Invalid default pnpm allow-builds list. Expected "${DYAD_ALLOW_BUILDS_SCHEMA_KEY}=${DYAD_ALLOW_BUILDS_SCHEMA}".`,
+      `Invalid default pnpm allow-builds list. Expected "${NEXTBILLION_ALLOW_BUILDS_SCHEMA_KEY}=${NEXTBILLION_ALLOW_BUILDS_SCHEMA}".`,
     );
   }
-  const dataVersion = metadata[DYAD_ALLOW_BUILDS_DATA_VERSION_KEY];
+  const dataVersion = metadata[NEXTBILLION_ALLOW_BUILDS_DATA_VERSION_KEY];
   if (!dataVersion) {
     throw new Error(
-      `Invalid default pnpm allow-builds list. Expected "${DYAD_ALLOW_BUILDS_DATA_VERSION_KEY}".`,
+      `Invalid default pnpm allow-builds list. Expected "${NEXTBILLION_ALLOW_BUILDS_DATA_VERSION_KEY}".`,
     );
   }
-  const channel = metadata[DYAD_ALLOW_BUILDS_CHANNEL_KEY];
+  const channel = metadata[NEXTBILLION_ALLOW_BUILDS_CHANNEL_KEY];
   if (channel !== "local" && channel !== "remote") {
     throw new Error(
-      `Invalid default pnpm allow-builds list. Expected "${DYAD_ALLOW_BUILDS_CHANNEL_KEY}" to be local or remote.`,
+      `Invalid default pnpm allow-builds list. Expected "${NEXTBILLION_ALLOW_BUILDS_CHANNEL_KEY}" to be local or remote.`,
     );
   }
 
   return {
-    schema: DYAD_ALLOW_BUILDS_SCHEMA,
+    schema: NEXTBILLION_ALLOW_BUILDS_SCHEMA,
     dataVersion,
     channel,
     packages: Array.from(
@@ -259,12 +275,12 @@ function buildAllowBuildsManagedBlock(
   indent: string,
 ): string[] {
   return [
-    `${indent}${DYAD_ALLOW_BUILDS_BEGIN}`,
-    `${indent}# ${DYAD_ALLOW_BUILDS_SCHEMA_KEY}=${source.schema}`,
-    `${indent}# ${DYAD_ALLOW_BUILDS_DATA_VERSION_KEY}=${source.dataVersion}`,
-    `${indent}# ${DYAD_ALLOW_BUILDS_CHANNEL_KEY}=${source.channel}`,
+    `${indent}${NEXTBILLION_ALLOW_BUILDS_BEGIN}`,
+    `${indent}# ${NEXTBILLION_ALLOW_BUILDS_SCHEMA_KEY}=${source.schema}`,
+    `${indent}# ${NEXTBILLION_ALLOW_BUILDS_DATA_VERSION_KEY}=${source.dataVersion}`,
+    `${indent}# ${NEXTBILLION_ALLOW_BUILDS_CHANNEL_KEY}=${source.channel}`,
     ...source.packages.map((pkg) => `${indent}${quoteYamlMapKey(pkg)}: true`),
-    `${indent}${DYAD_ALLOW_BUILDS_END}`,
+    `${indent}${NEXTBILLION_ALLOW_BUILDS_END}`,
   ];
 }
 
@@ -274,16 +290,16 @@ function findAllowBuildsManagedBlock(lines: string[]): {
 } | null {
   const beginIndexes = lines
     .map((line, index) =>
-      line.trim() === DYAD_ALLOW_BUILDS_BEGIN ||
-      line.trim() === LEGACY_DYAD_ALLOW_BUILDS_BEGIN
+      modernizeMarker(line.trim()) === NEXTBILLION_ALLOW_BUILDS_BEGIN ||
+      modernizeMarker(line.trim()) === LEGACY_NEXTBILLION_ALLOW_BUILDS_BEGIN
         ? index
         : -1,
     )
     .filter((index) => index !== -1);
   const endIndexes = lines
     .map((line, index) =>
-      line.trim() === DYAD_ALLOW_BUILDS_END ||
-      line.trim() === LEGACY_DYAD_ALLOW_BUILDS_END
+      modernizeMarker(line.trim()) === NEXTBILLION_ALLOW_BUILDS_END ||
+      modernizeMarker(line.trim()) === LEGACY_NEXTBILLION_ALLOW_BUILDS_END
         ? index
         : -1,
     )
@@ -293,26 +309,28 @@ function findAllowBuildsManagedBlock(lines: string[]): {
     const beginIndex = beginIndexes[0];
     const endIndex = endIndexes[0];
     if (beginIndex >= endIndex) {
-      throw new Error("Malformed Dyad pnpm allow-builds markers.");
+      throw new Error("Malformed NextBillion pnpm allow-builds markers.");
     }
     return { beginIndex, endIndex };
   }
 
   if (beginIndexes.length !== endIndexes.length || beginIndexes.length > 1) {
-    throw new Error("Malformed Dyad pnpm allow-builds markers.");
+    throw new Error("Malformed NextBillion pnpm allow-builds markers.");
   }
 
   if (
     lines.some((line) => {
-      const trimmedLine = line.trim();
+      const trimmedLine = modernizeMarker(line.trim());
       return (
-        trimmedLine.startsWith("# dyad-default-allow-builds=") &&
-        trimmedLine !== LEGACY_DYAD_ALLOW_BUILDS_BEGIN &&
-        trimmedLine !== LEGACY_DYAD_ALLOW_BUILDS_END
+        trimmedLine.startsWith("# nextbillion-default-allow-builds=") &&
+        trimmedLine !== LEGACY_NEXTBILLION_ALLOW_BUILDS_BEGIN &&
+        trimmedLine !== LEGACY_NEXTBILLION_ALLOW_BUILDS_END
       );
     })
   ) {
-    throw new Error("Unsupported Dyad pnpm allow-builds marker version.");
+    throw new Error(
+      "Unsupported NextBillion pnpm allow-builds marker version.",
+    );
   }
 
   return null;
@@ -338,14 +356,15 @@ function getExistingManagedAllowBuildsMetadata(
   );
   return {
     schema:
-      metadata[DYAD_ALLOW_BUILDS_SCHEMA_KEY] === DYAD_ALLOW_BUILDS_SCHEMA
-        ? DYAD_ALLOW_BUILDS_SCHEMA
+      metadata[NEXTBILLION_ALLOW_BUILDS_SCHEMA_KEY] ===
+      NEXTBILLION_ALLOW_BUILDS_SCHEMA
+        ? NEXTBILLION_ALLOW_BUILDS_SCHEMA
         : undefined,
-    dataVersion: metadata[DYAD_ALLOW_BUILDS_DATA_VERSION_KEY],
+    dataVersion: metadata[NEXTBILLION_ALLOW_BUILDS_DATA_VERSION_KEY],
     channel:
-      metadata[DYAD_ALLOW_BUILDS_CHANNEL_KEY] === "local" ||
-      metadata[DYAD_ALLOW_BUILDS_CHANNEL_KEY] === "remote"
-        ? metadata[DYAD_ALLOW_BUILDS_CHANNEL_KEY]
+      metadata[NEXTBILLION_ALLOW_BUILDS_CHANNEL_KEY] === "local" ||
+      metadata[NEXTBILLION_ALLOW_BUILDS_CHANNEL_KEY] === "remote"
+        ? metadata[NEXTBILLION_ALLOW_BUILDS_CHANNEL_KEY]
         : undefined,
   };
 }
@@ -415,7 +434,7 @@ function parseAllowBuildsLine(
 // pnpm 11 appends `pkg: set this to true or false` placeholder entries to
 // allowBuilds after a non-strict install that ignored builds. A placeholder
 // neither satisfies strict mode (installs still fail with
-// ERR_PNPM_IGNORED_BUILDS) nor represents a human decision, so Dyad treats
+// ERR_PNPM_IGNORED_BUILDS) nor represents a human decision, so NextBillion treats
 // these as its own to resolve: remove them and let the caller convert them
 // into tagged denials (or a managed `true` when the allow-list covers them).
 const PNPM_PLACEHOLDER_ALLOW_BUILDS_VALUE_PATTERN =
@@ -476,7 +495,8 @@ function removeAutoDeniedPromotedBuilds(
     if (
       parsedLine &&
       promotedPackageSet.has(parsedLine.key) &&
-      lines[index].includes(DYAD_AUTO_DENIED_ALLOW_BUILDS_COMMENT)
+      (lines[index].includes(NEXTBILLION_AUTO_DENIED_ALLOW_BUILDS_COMMENT) ||
+        lines[index].includes(LEGACY_AUTO_DENIED_ALLOW_BUILDS_COMMENT))
     ) {
       lines.splice(index, 1);
       promotedPackages.push(parsedLine.key);
@@ -517,7 +537,7 @@ function insertAutoDeniedBuilds(
     0,
     ...newDeniedPackageNames.map(
       (packageName) =>
-        `  ${quoteYamlMapKey(packageName)}: false ${DYAD_AUTO_DENIED_ALLOW_BUILDS_COMMENT}`,
+        `  ${quoteYamlMapKey(packageName)}: false ${NEXTBILLION_AUTO_DENIED_ALLOW_BUILDS_COMMENT}`,
     ),
   );
   return newDeniedPackageNames;
@@ -677,11 +697,11 @@ async function fetchRemoteAllowBuildsSourceFromNetwork(
   const controller = new AbortController();
   const timeout = setTimeout(
     () => controller.abort(),
-    DYAD_ALLOW_BUILDS_FETCH_TIMEOUT_MS,
+    NEXTBILLION_ALLOW_BUILDS_FETCH_TIMEOUT_MS,
   );
 
   try {
-    const response = await fetcher(DYAD_ALLOW_BUILDS_REMOTE_URL, {
+    const response = await fetcher(NEXTBILLION_ALLOW_BUILDS_REMOTE_URL, {
       signal: controller.signal,
     });
     if (!response.ok) {
@@ -689,7 +709,7 @@ async function fetchRemoteAllowBuildsSourceFromNetwork(
     }
 
     const text = await response.text();
-    if (text.length > DYAD_ALLOW_BUILDS_MAX_BYTES) {
+    if (text.length > NEXTBILLION_ALLOW_BUILDS_MAX_BYTES) {
       return null;
     }
 
@@ -699,7 +719,7 @@ async function fetchRemoteAllowBuildsSourceFromNetwork(
     }
     remoteAllowBuildsCache.set(fetcher, {
       source,
-      expiresAtMs: Date.now() + DYAD_ALLOW_BUILDS_CACHE_TTL_MS,
+      expiresAtMs: Date.now() + NEXTBILLION_ALLOW_BUILDS_CACHE_TTL_MS,
     });
     return source;
   } catch (error) {
@@ -733,7 +753,7 @@ async function resolveAllowBuildsSource({
   const existingMetadata =
     getExistingManagedAllowBuildsMetadata(existingContent);
   if (
-    existingMetadata?.schema === DYAD_ALLOW_BUILDS_SCHEMA &&
+    existingMetadata?.schema === NEXTBILLION_ALLOW_BUILDS_SCHEMA &&
     existingMetadata.channel === "remote"
   ) {
     return null;
@@ -1217,7 +1237,7 @@ export async function getPnpmMinimumReleaseAgeSupport(
   warningMessage?: string;
 }> {
   const testPnpmVersion = IS_TEST_BUILD
-    ? process.env.DYAD_TEST_PNPM_VERSION
+    ? process.env.NEXTBILLION_TEST_PNPM_VERSION
     : undefined;
   if (testPnpmVersion) {
     if (isVersionAtLeast(testPnpmVersion, PNPM_MINIMUM_RELEASE_AGE_VERSION)) {

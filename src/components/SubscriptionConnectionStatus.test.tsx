@@ -54,7 +54,7 @@ it.each(["loading", "free", "pro"])(
   (state) => {
     if (state !== "loading") {
       mocks.settings = {
-        enableDyadPro: state === "pro",
+        enableNextBillionPro: state === "pro",
         providerSettings:
           state === "pro" ? { auto: { apiKey: { value: "test-key" } } } : {},
       } as UserSettings;
@@ -65,21 +65,25 @@ it.each(["loading", "free", "pro"])(
       screen.getByText("Your ChatGPT subscription is connected."),
     ).toBeVisible();
     if (state === "loading") {
-      expect(screen.getByText("Checking Dyad Pro status…")).toBeVisible();
+      expect(
+        screen.getByText("Checking NextBillion Pro status…"),
+      ).toBeVisible();
     } else {
       expect(
-        screen.queryByText("Checking Dyad Pro status…"),
+        screen.queryByText("Checking NextBillion Pro status…"),
       ).not.toBeInTheDocument();
     }
     if (state === "pro") {
-      expect(screen.getByText(/Uses up to 1.5 Dyad Pro credits/)).toBeVisible();
+      expect(
+        screen.getByText(/Uses up to 1.5 NextBillion Pro credits/),
+      ).toBeVisible();
     } else {
       expect(
-        screen.queryByText(/Uses up to 1.5 Dyad Pro credits/),
+        screen.queryByText(/Uses up to 1.5 NextBillion Pro credits/),
       ).not.toBeInTheDocument();
     }
     expect(
-      screen.queryByText(/No Dyad usage fees|Basic Agent quota/),
+      screen.queryByText(/No NextBillion usage fees|Basic Agent quota/),
     ).not.toBeInTheDocument();
   },
 );

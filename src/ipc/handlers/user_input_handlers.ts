@@ -11,7 +11,10 @@ import {
   appOperationCoordinator,
   readAppResource,
 } from "../services/app_operation_coordinator";
-import { DyadError, DyadErrorKind } from "../../errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "../../errors/nextbillion_error";
 
 async function respondToIntegrationSkip(requestId: string): Promise<void> {
   const response = {
@@ -33,7 +36,7 @@ async function respondToIntegrationSkip(requestId: string): Promise<void> {
     .where(eq(chats.id, pending.descriptor.chatId))
     .limit(1);
   if (!chat) {
-    throw new DyadError("Chat not found", DyadErrorKind.NotFound);
+    throw new NextBillionError("Chat not found", NextBillionErrorKind.NotFound);
   }
 
   await appOperationCoordinator.run(
@@ -52,12 +55,15 @@ async function respondToIntegrationSkip(requestId: string): Promise<void> {
         .where(eq(apps.id, chat.appId))
         .limit(1);
       if (!app) {
-        throw new DyadError("App not found", DyadErrorKind.NotFound);
+        throw new NextBillionError(
+          "App not found",
+          NextBillionErrorKind.NotFound,
+        );
       }
       if (app.supabaseProjectId || app.neonProjectId) {
-        throw new DyadError(
+        throw new NextBillionError(
           "A database integration finished connecting before Skip could be applied.",
-          DyadErrorKind.Conflict,
+          NextBillionErrorKind.Conflict,
         );
       }
       await userInputRegistry.respond(requestId, response);

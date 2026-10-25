@@ -36,9 +36,9 @@ describe("local-agent default request (integration)", () => {
       chatMode: "local-agent",
       settings: {
         isTestMode: true,
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         enableImplementerSubagent: true,
-        providerSettings: { auto: { apiKey: { value: "testdyadkey" } } },
+        providerSettings: { auto: { apiKey: { value: "testnextbillionkey" } } },
         // Compiler exploration is disabled, but the root still delegates
         // discovery to the Explorer sub-agent rather than exposing code_search.
         enableCodeExplorer: false,
@@ -69,7 +69,7 @@ describe("local-agent default request (integration)", () => {
     send();
 
     await waitFor(
-      () => expect(screen.getByText(/dyad-dump-path/)).toBeTruthy(),
+      () => expect(screen.getByText(/nextbillion-dump-path/)).toBeTruthy(),
       { timeout: 20_000 },
     );
     await streamEnd;
@@ -80,7 +80,7 @@ describe("local-agent default request (integration)", () => {
     ).toHaveLength(0);
 
     const req = harness.getServerDump({ type: "request" });
-    expect(req.parsed.headers.authorization).toBe("Bearer testdyadkey");
+    expect(req.parsed.headers.authorization).toBe("Bearer testnextbillionkey");
     expect(req.parsed.body.model).toBe("[[MODEL]]");
 
     const tools = (req.parsed.body.tools ?? []) as Array<{
@@ -167,7 +167,7 @@ describe("local-agent default request (integration)", () => {
     // Shared role block (create/modify web apps) — distinguishes agent mode from
     // the ask-mode "helps users understand" role.
     expect(systemText).toContain(
-      "You are Dyad, an AI assistant that creates and modifies web applications.",
+      "You are NextBillion, an AI assistant that creates and modifies web applications.",
     );
     // Pro-only file-editing guidance (basic mode uses a shorter table).
     expect(systemText).toContain(

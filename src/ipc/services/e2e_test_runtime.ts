@@ -8,9 +8,12 @@ import log from "electron-log";
 import {
   E2E_TEST_SERVER_PORT_RANGE,
   E2E_TEST_SERVER_PORT_START,
-  isReservedDyadPort,
+  isReservedNextBillionPort,
 } from "../../../shared/ports";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { trackE2eTestProcess } from "@/ipc/services/e2e_test_process_registry";
 import {
   choosePackageManagerFromSignal,
@@ -55,7 +58,7 @@ const SERVER_READY_CONFIRM_MS = 1_000;
  * anything answering on the port is not it.
  */
 export const INSTALL_COMPLETE_MARKER =
-  "Dyad: install step finished, starting the test server";
+  "NextBillion: install step finished, starting the test server";
 /** Loopback addresses readiness accepts, in preference order. */
 const READINESS_HOSTS = ["127.0.0.1", "[::1]"] as const;
 /**
@@ -82,7 +85,7 @@ async function writeOwnershipNonce(
   workspacePath: string,
 ): Promise<{ nonce: string | null; servedPath: string }> {
   const nonce = randomUUID();
-  const servedPath = `dyad-e2e-${nonce}.txt`;
+  const servedPath = `nextbillion-e2e-${nonce}.txt`;
   for (const directory of SERVED_ROOT_DIRECTORIES) {
     const root = path.join(workspacePath, directory);
     const exists = await fsPromises
@@ -154,7 +157,7 @@ class PortInUseError extends Error {
  * required, for the same reason `PortInUseError` exists: a sidecar's clash on a
  * different port is not this server's problem. Covers Vite's `Port 1234 is in
  * use, trying another one...` (its default `strictPort: false`, which keeps the
- * process alive on a port Dyad isn't polling) and Node's `listen EADDRINUSE:
+ * process alive on a port NextBillion isn't polling) and Node's `listen EADDRINUSE:
  * address already in use 127.0.0.1:1234`.
  */
 function reportsPortInUse(text: string, port: number): boolean {
@@ -254,7 +257,7 @@ export async function allocateE2eTestPort(
    */
   excludePorts?: ReadonlySet<number>,
 ): Promise<number> {
-  // Scan Dyad's reserved band first. Binding port 0 would let the OS pick from
+  // Scan NextBillion's reserved band first. Binding port 0 would let the OS pick from
   // the ephemeral range, which on Linux (32768–60999) overlaps the app, proxy
   // and proxy-fallback bands almost entirely — so a test server could hold
   // another app's deterministic port for the length of a run and make that app
@@ -262,11 +265,11 @@ export async function allocateE2eTestPort(
   for (let offset = 0; offset < E2E_TEST_SERVER_PORT_RANGE; offset += 1) {
     const port = E2E_TEST_SERVER_PORT_START + offset;
     if (pendingE2eTestPorts.has(port) || excludePorts?.has(port)) continue;
-    // The band is above every *default* reserved range, but Dyad's own E2E
-    // shards relocate those ranges: `DYAD_E2E_PORT_BLOCK_INDEX=9` puts a
+    // The band is above every *default* reserved range, but NextBillion's own E2E
+    // shards relocate those ranges: `NEXTBILLION_E2E_PORT_BLOCK_INDEX=9` puts a
     // block's proxy sub-range at 51550–52549, straight through this band. The
     // fallback loop below already asks; the band has to ask too.
-    if (isReservedDyadPort(port)) continue;
+    if (isReservedNextBillionPort(port)) continue;
     // Claimed BEFORE the probe is awaited, and released if it fails. Two
     // allocations racing would otherwise both pass the check above while
     // neither probe had resolved, and the bind inside `probePort` — which is
@@ -288,7 +291,7 @@ export async function allocateE2eTestPort(
     const port = await probePort(0);
     if (
       port !== null &&
-      !isReservedDyadPort(port) &&
+      !isReservedNextBillionPort(port) &&
       !pendingE2eTestPorts.has(port) &&
       !excludePorts?.has(port)
     ) {
@@ -298,10 +301,10 @@ export async function allocateE2eTestPort(
   }
   // Precondition, like every other server-start failure here: the machine has
   // no free port to give, which is an environment problem the user acts on, not
-  // a Dyad bug to record as a product exception.
-  throw new DyadError(
-    "Dyad couldn't find a free port for the isolated test server. Close some running servers and try again.",
-    DyadErrorKind.Precondition,
+  // a NextBillion bug to record as a product exception.
+  throw new NextBillionError(
+    "NextBillion couldn't find a free port for the isolated test server. Close some running servers and try again.",
+    NextBillionErrorKind.Precondition,
   );
 }
 
@@ -314,7 +317,7 @@ export function releaseE2eTestPort(port: number): void {
  * Whether the app supplies its own commands. Mirrors `getCommand` in
  * `app_runtime_service`: a command counts as custom only when BOTH the install
  * and the start command are set, so the sandbox and the normal preview never
- * disagree about which apps are Dyad-managed.
+ * disagree about which apps are NextBillion-managed.
  */
 export function hasCustomE2eStartCommand({
   installCommand,
@@ -342,7 +345,7 @@ export async function buildE2eTestStartCommand({
   // Every branch below builds on this rather than on `process.env`. The
   // workspace's `.env.local` is the only database the sandbox server may reach,
   // and `dotenv` will not overwrite a variable that is already set — so a
-  // credential inherited from the shell that launched Dyad would quietly beat
+  // credential inherited from the shell that launched NextBillion would quietly beat
   // the isolated one and point the app under test at the user's real data.
   const sandboxEnv = withoutInheritedDatabaseEnv();
   if (hasCustomE2eStartCommand({ installCommand, startCommand })) {
@@ -410,7 +413,12 @@ export async function buildE2eTestStartCommand({
 function delay(ms: number, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) {
-      reject(new DyadError("Test run stopped.", DyadErrorKind.UserCancelled));
+      reject(
+        new NextBillionError(
+          "Test run stopped.",
+          NextBillionErrorKind.UserCancelled,
+        ),
+      );
       return;
     }
     // `{ once: true }` only removes the listener when it FIRES. The readiness
@@ -419,7 +427,12 @@ function delay(ms: number, signal?: AbortSignal): Promise<void> {
     // on the run's signal, and Node logs MaxListenersExceededWarning past 10.
     const onAbort = () => {
       clearTimeout(timer);
-      reject(new DyadError("Test run stopped.", DyadErrorKind.UserCancelled));
+      reject(
+        new NextBillionError(
+          "Test run stopped.",
+          NextBillionErrorKind.UserCancelled,
+        ),
+      );
     };
     const timer = setTimeout(() => {
       signal?.removeEventListener("abort", onAbort);
@@ -466,20 +479,23 @@ async function waitForReady({
 }): Promise<string> {
   // Precondition throughout: a server that won't start or won't answer is a
   // user/environment problem (a broken start command, a port taken, a build
-  // error), not a Dyad bug, and must not be reported as a product exception.
+  // error), not a NextBillion bug, and must not be reported as a product exception.
   // A port clash is the exception: the retry loop turns it into a fresh port,
   // and only a repeat failure reaches the user.
   const assertStillStarting = () => {
     if (signal?.aborted)
-      throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+      throw new NextBillionError(
+        "Test run stopped.",
+        NextBillionErrorKind.UserCancelled,
+      );
     const startError = spawnError();
     if (startError) {
       if (reportsPortInUse(startError.message, port)) {
         throw new PortInUseError(startError.message, port);
       }
-      throw new DyadError(
+      throw new NextBillionError(
         `Could not start the isolated test server: ${startError.message}`,
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     if (child.exitCode !== null || child.signalCode !== null) {
@@ -489,9 +505,9 @@ async function waitForReady({
           port,
         );
       }
-      throw new DyadError(
+      throw new NextBillionError(
         `The isolated test server exited before becoming ready.\n${outputTail()}`,
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     if (reportsPortInUse(outputTail(), port)) {
@@ -585,11 +601,11 @@ async function waitForReady({
     }
     await delay(SERVER_READY_POLL_MS, signal);
   }
-  throw new DyadError(
+  throw new NextBillionError(
     `The isolated test server did not become ready within ${Math.round(
       timeoutMs / 60_000,
     )} minutes.${portHint}\n${outputTail()}`,
-    DyadErrorKind.Precondition,
+    NextBillionErrorKind.Precondition,
   );
 }
 
@@ -611,7 +627,10 @@ async function startE2eTestRuntimeOnce({
   excludePorts?: ReadonlySet<number>;
 }): Promise<E2eTestRuntime> {
   if (signal?.aborted)
-    throw new DyadError("Test run stopped.", DyadErrorKind.UserCancelled);
+    throw new NextBillionError(
+      "Test run stopped.",
+      NextBillionErrorKind.UserCancelled,
+    );
   const port = await allocateE2eTestPort(excludePorts);
   // Every exit from here on must hand the port back. Without this, anything
   // that throws before the try/catch below — a workspace read, the pnpm version
@@ -671,7 +690,7 @@ async function startServerOnPort({
   // here, so name the fix instead of leaving a bare timeout.
   const portHint =
     isCustom && !startCommand!.includes("{port}")
-      ? ` Your custom start command may be ignoring the PORT environment variable — add {port} to it so Dyad can tell it which port to use.`
+      ? ` Your custom start command may be ignoring the PORT environment variable — add {port} to it so NextBillion can tell it which port to use.`
       : "";
   const { nonce: ownershipNonce, servedPath: ownershipNonceFile } =
     await writeOwnershipNonce(workspacePath);
@@ -853,12 +872,12 @@ export async function startE2eTestRuntime(
     }
   }
   // Same reasoning: three fresh ports all found taken means something else on
-  // the machine holds them, not that Dyad malfunctioned. Left as-is when it is
-  // already a classified DyadError (an abort, a Precondition from readiness).
+  // the machine holds them, not that NextBillion malfunctioned. Left as-is when it is
+  // already a classified NextBillionError (an abort, a Precondition from readiness).
   if (lastError instanceof PortInUseError) {
-    throw new DyadError(
-      `Dyad couldn't get a free port for the isolated test server: ${lastError.message}`,
-      DyadErrorKind.Precondition,
+    throw new NextBillionError(
+      `NextBillion couldn't get a free port for the isolated test server: ${lastError.message}`,
+      NextBillionErrorKind.Precondition,
     );
   }
   throw lastError;

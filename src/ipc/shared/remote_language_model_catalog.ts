@@ -1,7 +1,10 @@
 import { apiBaseUrl } from "../../external_endpoints";
 import log from "electron-log";
 import { z } from "zod";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import type {
   LanguageModel,
   LanguageModelProvider,
@@ -33,8 +36,8 @@ const FALLBACK_CACHE_TTL_MS = 30 * 1000;
 export const FALLBACK_CODEX_CLIENT_VERSION = "0.155.1";
 
 function getRemoteLanguageModelCatalogUrl() {
-  if (process.env.DYAD_LANGUAGE_MODEL_CATALOG_URL) {
-    return process.env.DYAD_LANGUAGE_MODEL_CATALOG_URL;
+  if (process.env.NEXTBILLION_LANGUAGE_MODEL_CATALOG_URL) {
+    return process.env.NEXTBILLION_LANGUAGE_MODEL_CATALOG_URL;
   }
 
   if (process.env.E2E_TEST_BUILD === "true" && process.env.FAKE_LLM_PORT) {
@@ -395,9 +398,9 @@ async function fetchRemoteCatalog(): Promise<BuiltinLanguageModelCatalog | null>
     });
 
     if (!response.ok) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to fetch language model catalog: ${response.status} ${response.statusText}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
 
@@ -541,7 +544,7 @@ export async function getBuiltinLanguageModelCatalog(): Promise<BuiltinLanguageM
   return builtinCatalogFetchPromise;
 }
 
-/** The subscription catalog request must not wait for Dyad's remote catalog. */
+/** The subscription catalog request must not wait for NextBillion's remote catalog. */
 export function getCodexClientVersion(): string {
   if (!builtinCatalogCache || builtinCatalogCache.expiresAt <= Date.now()) {
     triggerBackgroundRefresh();

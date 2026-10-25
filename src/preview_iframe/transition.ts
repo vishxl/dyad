@@ -45,7 +45,7 @@ export function transition(
           currentUrl,
           // Provenance travels with the presentation: a restored route is only
           // the user's own selection if it was one when it was captured.
-          // Restoring it as "dyad" regardless would hand a redirect destination
+          // Restoring it as "nextbillion" regardless would hand a redirect destination
           // back as a deliberate choice, and a recording started after the tab
           // switch would open there and skip the navigation under test.
           //
@@ -95,7 +95,7 @@ export function transition(
           history,
           position: history.length - 1,
           currentUrl: event.path,
-          currentUrlSource: "dyad",
+          currentUrlSource: "nextbillion",
           preservedUrl: event.path,
         },
         [navigateCommand(event.path)],
@@ -125,7 +125,7 @@ export function transition(
           preservedUrl: currentUrl,
         });
       }
-      // A document load caused by Dyad's own navigation must not be misread as
+      // A document load caused by NextBillion's own navigation must not be misread as
       // the app's doing: that navigation already set `currentUrl` to this URL
       // before the document loaded, so it is ignored rather than downgrading
       // provenance to "app". `replaceState` shares the check for the same
@@ -185,7 +185,7 @@ export function transition(
           ...state,
           position,
           currentUrl,
-          currentUrlSource: "dyad",
+          currentUrlSource: "nextbillion",
           preservedUrl: currentUrl,
         },
         [navigateCommand(currentUrl, "backward")],
@@ -203,7 +203,7 @@ export function transition(
           ...state,
           position,
           currentUrl,
-          currentUrlSource: "dyad",
+          currentUrlSource: "nextbillion",
           preservedUrl: currentUrl,
         },
         [navigateCommand(currentUrl, "forward")],
@@ -286,33 +286,33 @@ export function transition(
         error: { message: event.message, source: event.source },
       });
     case "SYNC_ERROR":
-      if (state.error && state.error.source !== "dyad-sync") {
+      if (state.error && state.error.source !== "nextbillion-sync") {
         return ignore(state, "higher-priority-error");
       }
       if (
-        state.error?.source === "dyad-sync" &&
+        state.error?.source === "nextbillion-sync" &&
         state.error.message === event.message
       ) {
         return ignore(state, "same-preview-error");
       }
       return applied({
         ...state,
-        error: { message: event.message, source: "dyad-sync" },
+        error: { message: event.message, source: "nextbillion-sync" },
       });
     case "SYNC_RECOVERED":
-      return state.error?.source === "dyad-sync"
+      return state.error?.source === "nextbillion-sync"
         ? applied({ ...state, error: undefined })
         : ignore(state, "no-sync-error");
     case "APP_ERROR":
       if (
-        state.error?.source === "dyad-app" &&
+        state.error?.source === "nextbillion-app" &&
         state.error.message === event.message
       ) {
         return ignore(state, "same-preview-error");
       }
       return applied({
         ...state,
-        error: { message: event.message, source: "dyad-app" },
+        error: { message: event.message, source: "nextbillion-app" },
       });
     case "APP_ERROR_CLEARED":
       // Error operations are serialized by event arrival. App-run facade
@@ -355,8 +355,8 @@ export function transition(
         type: "post-to-iframe",
         message: {
           type: picking
-            ? "activate-dyad-component-selector"
-            : "deactivate-dyad-component-selector",
+            ? "activate-nextbillion-component-selector"
+            : "deactivate-nextbillion-component-selector",
         },
       });
       return applied({ ...state, picking }, commands);
@@ -370,7 +370,7 @@ export function transition(
         },
         {
           type: "post-to-iframe",
-          message: { type: "deactivate-dyad-component-selector" },
+          message: { type: "deactivate-nextbillion-component-selector" },
         },
       ]);
     case "SELECTION_RESTORE_QUEUED":

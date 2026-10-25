@@ -2,7 +2,7 @@
 
 import type { IpcMainInvokeEvent } from "electron";
 import { describe, expect, it } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { router } from "@/router";
 import {
   assertTrustedRenderer,
@@ -29,7 +29,7 @@ describe("renderer trust configuration", () => {
         senderFrame: frame,
       } as IpcMainInvokeEvent);
     } catch (error) {
-      expect(error).toMatchObject({ kind: DyadErrorKind.Internal });
+      expect(error).toMatchObject({ kind: NextBillionErrorKind.Internal });
     }
   });
 

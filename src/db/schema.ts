@@ -1,6 +1,7 @@
 import { INFERENCE_SOURCES } from "@/shared/inference_source";
 import { sql } from "drizzle-orm";
 import {
+  customType,
   index,
   integer,
   sqliteTable,
@@ -16,6 +17,18 @@ import {
   CHAT_TURN_TERMINAL_OUTCOMES,
   type ChatTurnTerminalOutcome,
 } from "@/shared/chat_turn_outcome";
+
+// Rows written before the rebrand store the legacy value 'dyad' (also the SQL
+// default, see drizzle/0051); the application only ever sees 'nextbillion'.
+const executionBackend = customType<{
+  data: "nextbillion" | "claude-code";
+  driverData: string;
+}>({
+  dataType: () => "text",
+  fromDriver: (value) =>
+    value === "dyad" ? "nextbillion" : (value as "claude-code"),
+  toDriver: (value) => (value === "nextbillion" ? "dyad" : value),
+});
 
 export const AI_MESSAGES_SDK_VERSION = "ai@v6" as const;
 
@@ -82,7 +95,7 @@ export const apps = sqliteTable("apps", {
   // In-flight ephemeral test-user id for isolated e2e runs against Supabase.
   // Supabase's free tier has no DB branching, so instead of a throwaway branch
   // we create a dedicated throwaway auth user (via the Auth Admin API, stamped
-  // app_metadata.dyad_test=true) and run the tests authenticated as it. Set
+  // app_metadata.nextbillion_test=true) and run the tests authenticated as it. Set
   // while a test session holds that user, cleared on teardown. Persisted so a
   // crash mid-session can be reconciled (orphan user deleted) on the next
   // launch. See ipc/utils/supabase_test_user.ts.
@@ -140,10 +153,9 @@ export const chats = sqliteTable("chats", {
     .notNull()
     .references(() => apps.id, { onDelete: "cascade" }),
   title: text("title"),
-  executionBackend: text("execution_backend")
-    .$type<"dyad" | "claude-code">()
+  executionBackend: executionBackend("execution_backend")
     .notNull()
-    .default("dyad"),
+    .default(sql`'dyad'`),
   claudeSessionId: text("claude_session_id"),
   claudeSessionState: text("claude_session_state").$type<
     "ready" | "running" | "interrupted"
@@ -427,7 +439,7 @@ export const agentActivities = sqliteTable(
     status: text("status", {
       enum: ["pending", "completed", "error", "aborted"],
     }).notNull(),
-    // Existing Dyad XML used to render the activity.
+    // Existing NextBillion XML used to render the activity.
     presentationXml: text("presentation_xml").notNull(),
     // Validated tool arguments retained for grounded report reconstruction.
     inputJson: text("input_json", { mode: "json" }).$type<Record<
@@ -809,7 +821,7 @@ export const mcpServers = sqliteTable(
       .default(sql`0`),
     // OAuth state (tokens, expiry, client info). Encrypted via Electron
     // `safeStorage`, or base64 plaintext where no keyring is available
-    // (see encryptToString). Read/written only by DyadOAuthClientProvider.
+    // (see encryptToString). Read/written only by NextBillionOAuthClientProvider.
     oauthState: text("oauth_state"),
     // Optional pre-registered OAuth client_id for servers that don't
     // support dynamic client registration (RFC 7591). User-supplied via

@@ -71,7 +71,7 @@ vi.mock("../shared/language_model_helpers", () => ({
     })),
     {
       id: "auto",
-      name: "Dyad",
+      name: "NextBillion",
       gatewayPrefix: "dyad/",
       type: "cloud",
     },
@@ -149,7 +149,7 @@ describe("getModelClient", () => {
     const { modelClient } = await getModelClient(
       { provider: "openai", name: "gpt-test" },
       {
-        enableDyadPro: false,
+        enableNextBillionPro: false,
         chatgptFastMode: true,
         providerSettings: { openai: { apiKey: { value: "test-api-key" } } },
       } as unknown as UserSettings,
@@ -177,7 +177,7 @@ describe("getModelClient", () => {
   test.each(["custom", "lmstudio", "ollama"])(
     "reports %s streaming usage only with Pro enabled",
     async (provider) => {
-      for (const enableDyadPro of [true, false]) {
+      for (const enableNextBillionPro of [true, false]) {
         const reports = vi.fn<typeof fetch>(async () =>
           Response.json({ chargedUsd: 0.1 }),
         );
@@ -216,7 +216,7 @@ describe("getModelClient", () => {
           const result = await getModelClient(
             { provider, name: "test-model" },
             {
-              enableDyadPro,
+              enableNextBillionPro,
               providerSettings: {
                 auto: { apiKey: { value: "test-pro" } },
                 custom: { apiKey: { value: "test-custom" } },
@@ -232,11 +232,11 @@ describe("getModelClient", () => {
           expect(JSON.stringify(providerHeaders)).not.toContain("test-pro");
           if (provider === "custom")
             expect(JSON.stringify(providerHeaders)).toContain("test-custom");
-          expect(reports).toHaveBeenCalledTimes(enableDyadPro ? 1 : 0);
+          expect(reports).toHaveBeenCalledTimes(enableNextBillionPro ? 1 : 0);
           expect(requestBody.stream_options).toEqual(
-            enableDyadPro ? { include_usage: true } : undefined,
+            enableNextBillionPro ? { include_usage: true } : undefined,
           );
-          if (enableDyadPro)
+          if (enableNextBillionPro)
             expect(
               JSON.parse(String(reports.mock.calls[0][1]?.body)),
             ).toMatchObject({
@@ -254,9 +254,9 @@ describe("getModelClient", () => {
   test.each(["custom", "lmstudio", "ollama"])(
     "keeps %s direct with Pro enabled and disabled",
     async (provider) => {
-      for (const enableDyadPro of [true, false]) {
+      for (const enableNextBillionPro of [true, false]) {
         const result = await getModelClient({ provider, name: "test-model" }, {
-          enableDyadPro,
+          enableNextBillionPro,
           providerSettings: {
             auto: { apiKey: { value: "test-pro" } },
             custom: { apiKey: { value: "test-custom" } },
@@ -273,7 +273,7 @@ describe("getModelClient", () => {
     const { modelClient, isEngineEnabled } = await getModelClient(
       { provider: "openai", name: "gpt-5.4", connection: "api-key" },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: {
           auto: { apiKey: { value: "test-pro" } },
           openai: { apiKey: { value: "test-api" } },
@@ -282,7 +282,7 @@ describe("getModelClient", () => {
     );
     expect(isEngineEnabled).toBe(true);
     expect((modelClient.model as { provider: string }).provider).toContain(
-      "dyad-engine",
+      "nextbillion-engine",
     );
   });
   test("explicit Pro selection does not fall back to a configured API key", async () => {
@@ -290,11 +290,11 @@ describe("getModelClient", () => {
       getModelClient(
         { provider: "openai", name: "gpt-5.4", connection: "pro" },
         {
-          enableDyadPro: false,
+          enableNextBillionPro: false,
           providerSettings: { openai: { apiKey: { value: "test-api" } } },
         } as unknown as UserSettings,
       ),
-    ).rejects.toThrow("Enable Dyad Pro");
+    ).rejects.toThrow("Enable NextBillion Pro");
   });
   test("an explicit auxiliary model does not inherit the default subscription connection", async () => {
     const { modelClient } = await getModelClient(
@@ -305,7 +305,7 @@ describe("getModelClient", () => {
           name: "gpt-5.4",
           connection: "subscription",
         },
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: { auto: { apiKey: { value: "test-pro" } } },
       } as unknown as UserSettings,
     );
@@ -322,7 +322,7 @@ describe("getModelClient", () => {
         models: ["gpt-5.5"],
       } as any);
       const settings = {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         chatgptFastMode: true,
         selectedChatMode,
         providerSettings: { auto: { apiKey: { value: "pro-key" } } },
@@ -371,7 +371,7 @@ describe("getModelClient", () => {
       { provider: "openai", name: "gpt-aux" },
       {
         selectedModel: { provider: "anthropic", name: "claude" },
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: { auto: { apiKey: { value: "pro-key" } } },
       } as unknown as UserSettings,
     );
@@ -397,7 +397,7 @@ describe("getModelClient", () => {
     const result = await getModelClient(
       { provider: "auto", name: "balanced" },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: { auto: { apiKey: { value: "pro-key" } } },
       } as unknown as UserSettings,
     );
@@ -415,7 +415,7 @@ describe("getModelClient", () => {
     async (name) => {
       const auto = { provider: "auto", name, effortLevel: "medium" };
       const settings = {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: { auto: { apiKey: { value: "pro-key" } } },
       } as unknown as UserSettings;
       vi.mocked(getSubscriptionAccount).mockResolvedValue({
@@ -461,7 +461,7 @@ describe("getModelClient", () => {
       models: ["gpt-5.5"],
     } as any);
     const result = await getModelClient({ provider: "auto", name: "auto" }, {
-      enableDyadPro: true,
+      enableNextBillionPro: true,
       proModelUsage: "pro",
       chatgptFastMode: true,
       selectedChatMode: "local-agent",
@@ -469,7 +469,7 @@ describe("getModelClient", () => {
     } as unknown as UserSettings);
     expect(
       (result.modelClient.model as any).settings.models[0].provider,
-    ).toContain("dyad-engine");
+    ).toContain("nextbillion-engine");
     expect(createCodexSubscriptionModel).not.toHaveBeenCalled();
   });
   test("does not inherit legacy source fields when resolving an auxiliary model", async () => {
@@ -480,7 +480,7 @@ describe("getModelClient", () => {
     const result = await getModelClient(
       { provider: "openai", name: "gpt-aux", connection: "api-key" },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: { auto: { apiKey: { value: "pro-key" } } },
       } as unknown as UserSettings,
     );
@@ -494,7 +494,7 @@ describe("getModelClient", () => {
       models: ["gpt-5.6-luna"],
     } as any);
     const result = await getModelClient({ provider: "auto", name: "auto" }, {
-      enableDyadPro: false,
+      enableNextBillionPro: false,
       chatgptFastMode: true,
       providerSettings: {},
       selectedModel: { provider: "auto", name: "auto" },
@@ -519,7 +519,7 @@ describe("getModelClient", () => {
     const result = await getModelClient(
       { provider: "openai", name: "gpt-aux" },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: { auto: { apiKey: { value: "pro-key" } } },
       } as unknown as UserSettings,
       {
@@ -529,7 +529,9 @@ describe("getModelClient", () => {
         connection: "pro",
       },
     );
-    expect((result.modelClient.model as any).provider).toContain("dyad-engine");
+    expect((result.modelClient.model as any).provider).toContain(
+      "nextbillion-engine",
+    );
     expect(createCodexSubscriptionModel).not.toHaveBeenCalled();
   });
   afterEach(() => {
@@ -542,18 +544,18 @@ describe("getModelClient", () => {
     vi.mocked(getLanguageModels).mockResolvedValue([]);
   });
 
-  test("keeps the Anthropic gateway prefix for Dyad Engine models", async () => {
+  test("keeps the Anthropic gateway prefix for NextBillion Engine models", async () => {
     const { modelClient } = await getModelClient(
       {
         provider: "anthropic",
         name: "claude-sonnet-4-20250514",
       },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: {
           auto: {
             apiKey: {
-              value: "dyad-pro-key",
+              value: "nextbillion-pro-key",
             },
           },
         },
@@ -565,19 +567,19 @@ describe("getModelClient", () => {
     );
   });
 
-  test("keeps the Anthropic gateway prefix for Dyad Engine auto-mode fallback models", async () => {
+  test("keeps the Anthropic gateway prefix for NextBillion Engine auto-mode fallback models", async () => {
     const { modelClient, runtimeModel } = await getModelClient(
       {
         provider: "auto",
         name: "auto",
       },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         selectedChatMode: "local-agent",
         providerSettings: {
           auto: {
             apiKey: {
-              value: "dyad-pro-key",
+              value: "nextbillion-pro-key",
             },
           },
         },
@@ -602,7 +604,7 @@ describe("getModelClient", () => {
     const { runtimeModel } = await getModelClient(
       { provider: "auto", name: "auto" },
       {
-        enableDyadPro: false,
+        enableNextBillionPro: false,
         providerSettings: {
           google: { apiKey: { value: "google-key" } },
         },
@@ -648,10 +650,10 @@ describe("getModelClient", () => {
     const { modelClient } = await getModelClient(
       { provider: "auto", name: "auto" },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         selectedChatMode: "local-agent",
         providerSettings: {
-          auto: { apiKey: { value: "dyad-pro-key" } },
+          auto: { apiKey: { value: "nextbillion-pro-key" } },
         },
       } as unknown as UserSettings,
     );
@@ -687,12 +689,12 @@ describe("getModelClient", () => {
         name: "auto-sidekick",
       },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         selectedChatMode: "local-agent",
         providerSettings: {
           auto: {
             apiKey: {
-              value: "dyad-pro-key",
+              value: "nextbillion-pro-key",
             },
           },
         },
@@ -713,14 +715,14 @@ describe("getModelClient", () => {
     expect(runtimeModel).toMatchObject({ provider: "auto", name: "auto" });
   });
 
-  test("adds OpenRouter free as a regular auto fallback only outside Dyad Pro", async () => {
+  test("adds OpenRouter free as a regular auto fallback only outside NextBillion Pro", async () => {
     const { modelClient, isEngineEnabled } = await getModelClient(
       {
         provider: "auto",
         name: "auto",
       },
       {
-        enableDyadPro: false,
+        enableNextBillionPro: false,
         providerSettings: {
           openrouter: {
             apiKey: {
@@ -745,18 +747,18 @@ describe("getModelClient", () => {
     expect(isEngineEnabled).toBeFalsy();
   });
 
-  test("routes Dyad Free through its dedicated engine model", async () => {
+  test("routes NextBillion Free through its dedicated engine model", async () => {
     const { modelClient } = await getModelClient(
       {
         provider: "auto",
         name: "free-pro",
       },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: {
           auto: {
             apiKey: {
-              value: "dyad-pro-key",
+              value: "nextbillion-pro-key",
             },
           },
         },
@@ -803,10 +805,10 @@ describe("getModelClient", () => {
     const { modelClient, runtimeModel } = await getModelClient(
       { provider: "auto", name: "balanced" },
       {
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         selectedChatMode: "build",
         providerSettings: {
-          auto: { apiKey: { value: "dyad-pro-key" } },
+          auto: { apiKey: { value: "nextbillion-pro-key" } },
         },
       } as unknown as UserSettings,
     );
@@ -826,17 +828,17 @@ describe("getModelClient", () => {
     expect(runtimeModel).toEqual({ provider: "auto", name: "balanced" });
   });
 
-  test("rejects Auto (balanced) without Dyad Pro instead of falling back", async () => {
+  test("rejects Auto (balanced) without NextBillion Pro instead of falling back", async () => {
     await expect(
       getModelClient({ provider: "auto", name: "balanced" }, {
-        enableDyadPro: false,
+        enableNextBillionPro: false,
         providerSettings: {
           openrouter: { apiKey: { value: "openrouter-key" } },
         },
       } as unknown as UserSettings),
     ).rejects.toMatchObject({
       message:
-        "Auto (balanced) requires Dyad Pro. Switch to another model or enable Dyad Pro.",
+        "Auto (balanced) requires NextBillion Pro. Switch to another model or enable NextBillion Pro.",
     });
   });
 
@@ -896,12 +898,12 @@ describe("getModelClient", () => {
           name,
         },
         {
-          enableDyadPro: true,
+          enableNextBillionPro: true,
           selectedChatMode: mode,
           providerSettings: {
             auto: {
               apiKey: {
-                value: "dyad-pro-key",
+                value: "nextbillion-pro-key",
               },
             },
           },
@@ -992,11 +994,11 @@ describe("getModelClient", () => {
 
 describe("modelClientSupportsPdfInput", () => {
   const proSettings = {
-    enableDyadPro: true,
+    enableNextBillionPro: true,
     providerSettings: { auto: { apiKey: { value: "test-pro" } } },
   } as unknown as UserSettings;
   const apiKeySettings = {
-    enableDyadPro: false,
+    enableNextBillionPro: false,
     providerSettings: {
       openai: { apiKey: { value: "test-openai" } },
       google: { apiKey: { value: "test-google" } },

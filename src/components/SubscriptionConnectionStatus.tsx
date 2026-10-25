@@ -16,12 +16,12 @@ import {
   DialogFooter,
 } from "./ui/dialog";
 import { Button } from "./ui/button";
-import { isDyadProEnabled } from "@/lib/schemas";
+import { isNextBillionProEnabled } from "@/lib/schemas";
 
 /** Mounted once, so closing the picker does not interrupt sign-in completion. */
 export function SubscriptionConnectionStatus() {
   const { settings } = useSettings();
-  const hasPro = settings && isDyadProEnabled(settings);
+  const hasPro = settings && isNextBillionProEnabled(settings);
   const status = useSubscriptionAccount();
   const resumeFirstPrompt = useFirstPromptProviderResume();
   const [resumeRequested, setResumeRequested] = useState(false);
@@ -116,7 +116,7 @@ export function SubscriptionConnectionStatus() {
           <div className="mx-auto mb-3 rounded-full bg-primary/10 p-4 text-primary">
             <Sparkles className="size-8" />
           </div>
-          <DialogTitle>Enjoy your extra Dyad usage!</DialogTitle>
+          <DialogTitle>Enjoy your extra NextBillion usage!</DialogTitle>
           <DialogDescription>
             Your ChatGPT subscription is connected.
           </DialogDescription>
@@ -132,8 +132,8 @@ export function SubscriptionConnectionStatus() {
           {(!settings || hasPro) && (
             <p>
               {!settings
-                ? "Checking Dyad Pro status…"
-                : "Uses up to 1.5 Dyad Pro credits / 1 million tokens processed."}
+                ? "Checking NextBillion Pro status…"
+                : "Uses up to 1.5 NextBillion Pro credits / 1 million tokens processed."}
             </p>
           )}
         </div>
@@ -164,14 +164,14 @@ export function SubscriptionLimitBanner() {
     >
       You've reached a ChatGPT subscription usage limit. Wait for your limit to
       reset or upgrade your ChatGPT subscription tier.
-      {!isDyadProEnabled(settings) && (
+      {!isNextBillionProEnabled(settings) && (
         <>
           {" "}
           You can also disconnect ChatGPT in the Subscription menu to use your
           OpenAI API key.
         </>
       )}
-      {isDyadProEnabled(settings) && (
+      {isNextBillionProEnabled(settings) && (
         <>
           {" "}
           You can also select <strong>Pro credits</strong> under{" "}

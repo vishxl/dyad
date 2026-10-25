@@ -2,7 +2,10 @@ import * as fs from "node:fs/promises";
 import * as os from "node:os";
 import * as path from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { shouldFilterTelemetryException } from "@/ipc/utils/telemetry";
 import {
   BufferedProcessSpawnError,
@@ -32,7 +35,7 @@ vi.mock("@/paths/paths", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/paths/paths")>();
   return {
     ...actual,
-    getTypeScriptCachePath: vi.fn(() => "/tmp/dyad-tsc-test-cache"),
+    getTypeScriptCachePath: vi.fn(() => "/tmp/nextbillion-tsc-test-cache"),
   };
 });
 
@@ -61,7 +64,7 @@ describe("toProblemReportError", () => {
 
     expect(error).toBeInstanceOf(TypeCheckPreconditionError);
     expect((error as TypeCheckPreconditionError).kind).toBe(
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
     expect(getTypeCheckPreconditionKind(error)).toBe("typescript-not-found");
     expect(shouldFilterTelemetryException(error)).toBe(true);
@@ -74,8 +77,10 @@ describe("toProblemReportError", () => {
       ),
     );
 
-    expect(error).toBeInstanceOf(DyadError);
-    expect((error as DyadError).kind).toBe(DyadErrorKind.Precondition);
+    expect(error).toBeInstanceOf(NextBillionError);
+    expect((error as NextBillionError).kind).toBe(
+      NextBillionErrorKind.Precondition,
+    );
     expect(getTypeCheckPreconditionKind(error)).toBe("typescript-not-found");
     expect(shouldFilterTelemetryException(error)).toBe(true);
   });
@@ -87,8 +92,10 @@ describe("toProblemReportError", () => {
       ),
     );
 
-    expect(error).toBeInstanceOf(DyadError);
-    expect((error as DyadError).kind).toBe(DyadErrorKind.Precondition);
+    expect(error).toBeInstanceOf(NextBillionError);
+    expect((error as NextBillionError).kind).toBe(
+      NextBillionErrorKind.Precondition,
+    );
     expect(getTypeCheckPreconditionKind(error)).toBe("tsconfig-not-found");
   });
 });
@@ -243,7 +250,7 @@ describe("runTypeScriptCheck", () => {
     // realpath: the resolver returns resolved paths, and macOS tmpdirs are
     // symlinks (/var -> /private/var).
     appPath = await fs.realpath(
-      await fs.mkdtemp(path.join(os.tmpdir(), "dyad-tsc-cli-")),
+      await fs.mkdtemp(path.join(os.tmpdir(), "nextbillion-tsc-cli-")),
     );
     await writeTypeScriptPackage(
       path.join(appPath, "node_modules", "typescript"),
@@ -327,7 +334,7 @@ describe("runTypeScriptCheck", () => {
     );
     const tsBuildInfoPath = args[args.indexOf("--tsBuildInfoFile") + 1];
     expect(path.dirname(tsBuildInfoPath)).toBe(
-      path.normalize("/tmp/dyad-tsc-test-cache"),
+      path.normalize("/tmp/nextbillion-tsc-test-cache"),
     );
     expect(path.basename(tsBuildInfoPath)).toMatch(
       /^[a-f0-9]{64}\.tsbuildinfo$/,
@@ -410,7 +417,7 @@ describe("runTypeScriptCheck", () => {
     });
 
     it("surfaces real type errors instead of the TS5023 flag rejection on legacy TypeScript", async () => {
-      // Before the fix, dyad unconditionally passed `--explainFiles false`,
+      // Before the fix, nextbillion unconditionally passed `--explainFiles false`,
       // so tsc < 4.2 aborted with `error TS5023: Unknown compiler option
       // '--explainFiles'.` and the user's real diagnostics never appeared.
       // With the flag omitted, tsc runs normally and reports real errors.
@@ -457,7 +464,7 @@ describe("runTypeScriptCheck", () => {
 
   it("resolves a TypeScript install hoisted to an ancestor node_modules", async () => {
     const workspaceRoot = await fs.realpath(
-      await fs.mkdtemp(path.join(os.tmpdir(), "dyad-tsc-hoist-")),
+      await fs.mkdtemp(path.join(os.tmpdir(), "nextbillion-tsc-hoist-")),
     );
     try {
       const packagePath = path.join(workspaceRoot, "packages", "web");

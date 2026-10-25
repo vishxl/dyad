@@ -6,7 +6,10 @@ import { db } from "../../db";
 import { apps } from "../../db/schema";
 import { getNeonClient } from "../../neon_admin/neon_management_client";
 import { getConnectionUri } from "../../neon_admin/neon_context";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { readEnvVarsOrEmpty, updateNeonEnvVars } from "./app_env_var_utils";
 import { detectFrameworkType } from "./framework_utils";
 import { retryOnLocked } from "./retryOnLocked";
@@ -16,7 +19,7 @@ import {
   appOperationCoordinator,
   readAppResource,
 } from "../services/app_operation_coordinator";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 
 const logger = log.scope("neon_test_branch");
 
@@ -31,7 +34,7 @@ type AppRow = typeof apps.$inferSelect;
 // Keeping that distinction durable prevents a harmless Neon cleanup outage
 // from blocking Run after a restart. Neon branch ids do not use this namespaced
 // value, and every API boundary below strips it before addressing Neon.
-const CLEANUP_ONLY_BRANCH_PREFIX = "dyad-cleanup-only:v1:";
+const CLEANUP_ONLY_BRANCH_PREFIX = "nextbillion-cleanup-only:v1:";
 
 /**
  * The Neon branch id a `neonTestBranchId` value refers to.
@@ -132,7 +135,7 @@ async function appUsesNeonAuth(
   // Auth removed since the snapshot — trusting them ahead of the tree under
   // test provisions auth the run has no use for, and the provisioning is
   // several Neon calls per run.
-  const appPath = appPathOverride ?? getDyadAppPath(appData.path);
+  const appPath = appPathOverride ?? getNextBillionAppPath(appData.path);
   try {
     const envVars = await readEnvVarsOrEmpty({ appPath });
     if (
@@ -180,7 +183,7 @@ function resolveAuthBranchType(
  * auth-gated tests can run. The branch id is persisted on the app row
  * (`neonTestBranchId`) so a crash mid-run can be reconciled on next launch.
  *
- * Throws `DyadError` if the app has no Neon project or no parent branch.
+ * Throws `NextBillionError` if the app has no Neon project or no parent branch.
  */
 export async function createTempTestBranch(
   appData: AppRow,
@@ -195,17 +198,17 @@ export async function createTempTestBranch(
 ): Promise<TempTestBranch> {
   const projectId = appData.neonProjectId;
   if (!projectId) {
-    throw new DyadError(
+    throw new NextBillionError(
       `App ${appData.id} is not connected to a Neon project.`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 
   const parentBranchId = resolveParentBranchId(appData);
   if (!parentBranchId) {
-    throw new DyadError(
+    throw new NextBillionError(
       `App ${appData.id} has no Neon branch to base a test branch on.`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 
@@ -233,9 +236,9 @@ export async function createTempTestBranch(
     // recovery under its own claim before the snapshot; this is the guard that
     // catches the case where it did not, or could not.
     if (cleanupOnly && !isTestBranchCleanupOnly(appData.neonTestBranchId)) {
-      throw new DyadError(
-        `App ${appData.id} still has real database settings pointing at a previous session's temporary Neon branch. Dyad will restore them on the next launch; skipping this run so that recovery isn't lost.`,
-        DyadErrorKind.Precondition,
+      throw new NextBillionError(
+        `App ${appData.id} still has real database settings pointing at a previous session's temporary Neon branch. NextBillion will restore them on the next launch; skipping this run so that recovery isn't lost.`,
+        NextBillionErrorKind.Precondition,
       );
     }
     const priorCleanupOk = await deleteBranchBestEffort(
@@ -243,15 +246,15 @@ export async function createTempTestBranch(
       trackedBranchId(appData.neonTestBranchId),
     );
     if (!priorCleanupOk) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Couldn't clean up the previous Neon test branch for app ${appData.id}. Skipping this run to avoid leaking a branch; it will be retried on the next launch.`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   }
 
   const neonClient = await getNeonClient();
-  const branchName = `dyad-test-${appData.id}-${Date.now()}`;
+  const branchName = `nextbillion-test-${appData.id}-${Date.now()}`;
 
   const response = await retryOnLocked(
     () =>
@@ -275,9 +278,9 @@ export async function createTempTestBranch(
     if (branch) {
       await deleteBranchBestEffort(projectId, branch.id);
     }
-    throw new DyadError(
+    throw new NextBillionError(
       "Neon did not return a connection string for the test branch.",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 
@@ -354,9 +357,9 @@ export async function createTempTestBranch(
           .set({ neonTestBranchId: null })
           .where(eq(apps.id, appData.id));
       }
-      throw new DyadError(
+      throw new NextBillionError(
         "Couldn't set up isolated Neon Auth for the test branch.",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   }
@@ -398,7 +401,7 @@ export async function deleteTempTestBranch(appData: AppRow): Promise<boolean> {
     // path reads this to decide whether anything was left behind, and would drop
     // the row — the last record of this branch — believing it was cleaned up.
     logger.error(
-      `App ${appData.id} still tracks temporary Neon test branch ${branchId}, but the app is no longer linked to a Neon project; Dyad cannot delete it and it must be removed manually.`,
+      `App ${appData.id} still tracks temporary Neon test branch ${branchId}, but the app is no longer linked to a Neon project; NextBillion cannot delete it and it must be removed manually.`,
     );
     return false;
   }
@@ -456,7 +459,7 @@ export async function markAndDeleteTempTestBranch(
   }
   try {
     // Still best-effort — never throws — but the verdict is reported now.
-    // Callers that promise the user "Dyad will retry remote cleanup on next
+    // Callers that promise the user "NextBillion will retry remote cleanup on next
     // startup" need to know whether the branch actually leaked.
     return await deleteTempTestBranch(cleanupApp);
   } catch (error) {
@@ -521,7 +524,7 @@ async function restoreRealBranchEnvVars(appData: AppRow): Promise<boolean> {
   }
 
   try {
-    const appPath = getDyadAppPath(appData.path);
+    const appPath = getNextBillionAppPath(appData.path);
     const frameworkType = detectFrameworkType(appPath);
     const connectionUri = await retryOnLocked(
       () => getConnectionUri({ projectId, branchId }),

@@ -4,7 +4,10 @@ import { existsSync } from "node:fs";
 import { Worker } from "worker_threads";
 import path from "path";
 import log from "electron-log";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   PROXY_FALLBACK_MAX_ATTEMPTS,
   getProxyFallbackPortStart,
@@ -46,16 +49,16 @@ export async function startProxy(
     port: number;
     hostname: string;
     onStarted?: (proxyUrl: string) => void;
-    onError?: (error: DyadError) => void;
+    onError?: (error: NextBillionError) => void;
     fixedHeaders?: Record<string, string>;
     authBootstrapToken: string;
     signal?: AbortSignal;
   },
 ) {
   if (!/^https?:\/\//.test(targetOrigin))
-    throw new DyadError(
+    throw new NextBillionError(
       "startProxy: targetOrigin must be absolute http/https URL",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   const { port, onStarted, onError, fixedHeaders, authBootstrapToken } = opts;
   const fallbackPortStart = getProxyFallbackPortStart();
@@ -63,9 +66,9 @@ export async function startProxy(
   logger.info("Starting proxy on port", port, "using worker", workerPath);
 
   if (!existsSync(workerPath)) {
-    const error = new DyadError(
+    const error = new NextBillionError(
       `Preview proxy worker not found at ${workerPath}. Looked for worker/proxy_server.js in the current app and several repo-relative paths.`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
     onError?.(error);
     throw error;
@@ -85,7 +88,7 @@ export async function startProxy(
 
   let started = false;
   let reportedError = false;
-  const reportError = (error: DyadError) => {
+  const reportError = (error: NextBillionError) => {
     if (reportedError || opts.signal?.aborted) return;
     reportedError = true;
     onError?.(error);
@@ -100,9 +103,9 @@ export async function startProxy(
     } else if (typeof m === "string" && m.startsWith("proxy-server-error")) {
       logger.error("[proxy] failed to bind:", m);
       reportError(
-        new DyadError(
+        new NextBillionError(
           `Could not start the preview proxy: every port from ${port} to ${fallbackPortStart + PROXY_FALLBACK_MAX_ATTEMPTS - 1} is in use. Free up a port and restart the app.`,
-          DyadErrorKind.Conflict,
+          NextBillionErrorKind.Conflict,
         ),
       );
     }
@@ -110,9 +113,9 @@ export async function startProxy(
   worker.on("error", (e) => {
     logger.error("[proxy] error:", e);
     reportError(
-      new DyadError(
+      new NextBillionError(
         `Preview proxy failed: ${e.message}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       ),
     );
   });
@@ -120,9 +123,9 @@ export async function startProxy(
     logger.info("[proxy] exit", c);
     if (!started && !reportedError)
       reportError(
-        new DyadError(
+        new NextBillionError(
           "Preview proxy exited before it was ready",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         ),
       );
   });

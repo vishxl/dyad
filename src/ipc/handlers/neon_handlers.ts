@@ -19,7 +19,10 @@ import { apps } from "../../db/schema";
 import { eq } from "drizzle-orm";
 import { EndpointType } from "@neondatabase/api-client";
 import { retryOnLocked } from "../utils/retryOnLocked";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   getEnvFilePath,
   readEnvFileIfExists,
@@ -43,7 +46,7 @@ import {
   ensureNitroIfVite,
   type EnsureNitroResult,
 } from "../utils/nitro_setup";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 import { createAppOperationHandler } from "@/ipc/utils/app_mutation_lock";
 import { readAppResource } from "@/ipc/services/app_operation_coordinator";
 import type { AppOperationRequest } from "@/ipc/services/app_operation_coordinator";
@@ -123,13 +126,13 @@ export function registerNeonHandlers() {
       .where(eq(apps.id, appId))
       .limit(1);
     if (appRecord.length === 0) {
-      throw new DyadError(
+      throw new NextBillionError(
         `App with ID ${appId} not found`,
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
     const appPath = appRecord[0].path;
-    const resolvedAppPath = getDyadAppPath(appPath);
+    const resolvedAppPath = getNextBillionAppPath(appPath);
 
     // Vite apps need a Nitro server layer to safely host server-only Neon code
     // (DATABASE_URL, neon client, auth secrets). Add it before any Neon API
@@ -166,16 +169,16 @@ export function registerNeonHandlers() {
       );
 
       if (!response.data.project) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Failed to create project: No project data returned.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
 
       if (!response.data.branch) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Failed to create project: No branch data returned.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
 
@@ -217,9 +220,9 @@ export function registerNeonHandlers() {
           !developmentBranchResponse.data.connection_uris ||
           developmentBranchResponse.data.connection_uris.length === 0
         ) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Failed to create development branch: No branch data returned.",
-            DyadErrorKind.External,
+            NextBillionErrorKind.External,
           );
         }
 
@@ -253,9 +256,9 @@ export function registerNeonHandlers() {
           !previewBranchResponse.data.connection_uris ||
           previewBranchResponse.data.connection_uris.length === 0
         ) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Failed to create preview branch: No branch data returned.",
-            DyadErrorKind.External,
+            NextBillionErrorKind.External,
           );
         }
 
@@ -366,11 +369,11 @@ export function registerNeonHandlers() {
       // createProject). The postCreate inner catch already rolled back Nitro
       // for its failures; this handles everything else.
       await rollbackNitroOnce();
-      if (error instanceof DyadError) throw error;
+      if (error instanceof NextBillionError) throw error;
       const errorMessage = getNeonErrorMessage(error);
       const message = `Failed to create Neon project for app ${appId}: ${errorMessage}`;
       logger.error(message);
-      throw new DyadError(message, DyadErrorKind.External);
+      throw new NextBillionError(message, NextBillionErrorKind.External);
     }
   });
 
@@ -387,17 +390,17 @@ export function registerNeonHandlers() {
         .limit(1);
 
       if (app.length === 0) {
-        throw new DyadError(
+        throw new NextBillionError(
           `App with ID ${appId} not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
       const appData = app[0];
       if (!appData.neonProjectId) {
-        throw new DyadError(
+        throw new NextBillionError(
           `No Neon project found for app ${appId}`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
 
@@ -409,9 +412,9 @@ export function registerNeonHandlers() {
       );
 
       if (!projectResponse.data.project) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Failed to get project: No project data returned.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
 
@@ -423,9 +426,9 @@ export function registerNeonHandlers() {
       });
 
       if (!branchesResponse.data.branches) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Failed to get branches: No branch data returned.",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
 
@@ -512,14 +515,14 @@ export function registerNeonHandlers() {
     } catch (error: any) {
       const errorMessage = getNeonErrorMessage(error);
       logger.error(`Failed to list Neon projects: ${errorMessage}`);
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to list Neon projects: ${errorMessage}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   });
 
-  // Link an existing Neon project to a Dyad app
+  // Link an existing Neon project to a NextBillion app
   createLockedHandler(neonContracts.setAppProject, async (_, params) => {
     const { appId, projectId } = params;
     logger.info(`Setting Neon project ${projectId} for app ${appId}`);
@@ -534,13 +537,13 @@ export function registerNeonHandlers() {
       .where(eq(apps.id, appId))
       .limit(1);
     if (appRecord.length === 0) {
-      throw new DyadError(
+      throw new NextBillionError(
         `App with ID ${appId} not found`,
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
     const appPath = appRecord[0].path;
-    const resolvedAppPath = getDyadAppPath(appPath);
+    const resolvedAppPath = getNextBillionAppPath(appPath);
 
     const envFileSnapshot = await readEnvFileIfExists({ appPath });
     let nitroSetup: EnsureNitroResult | null = null;
@@ -560,9 +563,9 @@ export function registerNeonHandlers() {
       nitroSetup = await ensureNitroIfVite(resolvedAppPath);
 
       if (!branchesResponse.data.branches) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Failed to get branches for project",
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
 
@@ -582,9 +585,9 @@ export function registerNeonHandlers() {
         dedicatedDevBranch?.id ?? defaultBranch?.id ?? null;
 
       if (!activeBranchId) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Linked Neon project has no writable branch. Create a development branch in Neon before connecting this app.",
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         );
       }
 
@@ -668,19 +671,19 @@ export function registerNeonHandlers() {
           );
         }
       }
-      if (error instanceof DyadError) throw error;
+      if (error instanceof NextBillionError) throw error;
       const errorMessage = getNeonErrorMessage(error);
       logger.error(
         `Failed to set Neon project for app ${appId}: ${errorMessage}`,
       );
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to set Neon project for app ${appId}: ${errorMessage}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   });
 
-  // Unlink a Neon project from a Dyad app
+  // Unlink a Neon project from a NextBillion app
   createLockedHandler(neonContracts.unsetAppProject, async (_, params) => {
     const { appId } = params;
     logger.info(`Unsetting Neon project for app ${appId}`);
@@ -721,9 +724,9 @@ export function registerNeonHandlers() {
       logger.error(
         `Failed to unset Neon project for app ${appId}: ${errorMessage}`,
       );
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to unset Neon project for app ${appId}: ${errorMessage}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   });
@@ -741,9 +744,9 @@ export function registerNeonHandlers() {
         .limit(1);
 
       if (appRecord.length === 0) {
-        throw new DyadError(
+        throw new NextBillionError(
           `App with ID ${appId} not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -753,9 +756,9 @@ export function registerNeonHandlers() {
       });
 
       if (!appData.neonProjectId) {
-        throw new DyadError(
+        throw new NextBillionError(
           `No Neon project found for app ${appId}`,
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         );
       }
 
@@ -766,16 +769,16 @@ export function registerNeonHandlers() {
         branchId,
       );
       if (branchResponse.data.branch?.project_id !== appData.neonProjectId) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Branch ${branchId} does not belong to Neon project ${appData.neonProjectId}`,
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         );
       }
 
       if (branchId === appData.neonPreviewBranchId) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Preview branches are used for historical rollback and cannot be selected as the active Neon branch.",
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         );
       }
 
@@ -877,14 +880,14 @@ export function registerNeonHandlers() {
       );
       return { success: true, warning };
     } catch (error: any) {
-      if (error instanceof DyadError) throw error;
+      if (error instanceof NextBillionError) throw error;
       const errorMessage = getNeonErrorMessage(error);
       logger.error(
         `Failed to set active branch for app ${appId}: ${errorMessage}`,
       );
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to set active branch for app ${appId}: ${errorMessage}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   });
@@ -930,9 +933,9 @@ export function registerNeonHandlers() {
         .where(eq(apps.id, appId))
         .limit(1);
       if (appRows.length === 0) {
-        throw new DyadError(
+        throw new NextBillionError(
           `App with ID ${appId} not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
       // Provision-on-view: resolveNeonBranchEnvVars ensures Neon Auth is active
@@ -968,15 +971,15 @@ export function registerNeonHandlers() {
           .where(eq(apps.id, appId))
           .limit(1);
         if (rows.length === 0) {
-          throw new DyadError(
+          throw new NextBillionError(
             `App with ID ${appId} not found`,
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
         if (!rows[0].neonDevelopmentBranchId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "This app has no development branch, so it can't be selected for deployment. Create one in Neon first.",
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         }
       }
@@ -988,9 +991,9 @@ export function registerNeonHandlers() {
         .returning({ id: apps.id });
 
       if (updated.length === 0) {
-        throw new DyadError(
+        throw new NextBillionError(
           `App with ID ${appId} not found`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -1002,7 +1005,7 @@ export function registerNeonHandlers() {
   testOnlyHandle("neon:fake-connect", async () => {
     // Call handleNeonOAuthReturn with fake data, running it through the
     // connection flow machine so an active flow (started by the connector's
-    // Connect click) advances just like a real dyad://neon-oauth-return.
+    // Connect click) advances just like a real nextbillion://neon-oauth-return.
     // Tests may call this without starting a flow, so this trusted test-only
     // producer may still write when nothing is awaiting a return.
     const outcome = await runOAuthReturnExchange(

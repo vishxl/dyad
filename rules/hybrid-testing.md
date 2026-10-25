@@ -18,7 +18,7 @@ These tests are faster, easier to debug, and avoid Electron launch/package
 overhead.
 
 When moving a workflow from Build mode to Agent mode, update its fake-LLM
-response from `<dyad-write>` XML to a local-Agent fixture that invokes
+response from `<nextbillion-write>` XML to a local-Agent fixture that invokes
 `write_file` or `search_replace`, then run the integration path that exercises
 the real chat stream. Build-mode text responses are not processed as Agent tool
 calls.
@@ -69,16 +69,16 @@ per-invocation tracking with a focused unit test, and use separate chats for
 integration coverage of app-wide cancellation.
 
 When a renderer+IPC hybrid or chat-flow harness test passes `engine: true`,
-production code must read Dyad Engine/Gateway URLs at call time. If a test still
+production code must read NextBillion Engine/Gateway URLs at call time. If a test still
 logs `POST https://engine.dyad.sh/v1/... 401 (Unauthorized)`, search for
-module-scope `DYAD_ENGINE_URL` constants and switch those call sites to
-`getDyadEngineBaseUrl()`.
+module-scope `NEXTBILLION_ENGINE_URL` constants and switch those call sites to
+`getNextBillionEngineBaseUrl()`.
 
 ## Test log noise
 
 - `src/testing/hybrid.setup.ts` caps electron-log's console transport at
   `warn` (its default prints everything, including `logger.debug`). Set
-  `DYAD_TEST_LOG_LEVEL=debug` to see info/debug logs while debugging a test.
+  `NEXTBILLION_TEST_LOG_LEVEL=debug` to see info/debug logs while debugging a test.
   New per-request logging in app code should be `logger.debug`, not
   `logger.info`/`logger.log`.
 - In `testing/fake-llm-server/`, informational logs must go through
@@ -138,7 +138,7 @@ deterministic fallback; otherwise the handler waits for its production timeout
 and teardown reports a misleading pending `chat:stream`.
 
 If a chat-flow or hybrid harness suite passes all tests but fails during
-`dispose()` with `ENOTEMPTY` for a `dyad-chat-flow-*` temp directory, look for a
+`dispose()` with `ENOTEMPTY` for a `nextbillion-chat-flow-*` temp directory, look for a
 launched app process still writing under that root (often `pnpm install`). Stop
 running apps and await process closure before removing the harness temp dir.
 
@@ -215,7 +215,7 @@ continuation schedules a dependent invoke, so returning on the first empty
 observation recreates teardown races.
 
 If `settleInFlight()` times out with pending `nodejs-status`, check host Node/pnpm
-probes. The hybrid harness sets and restores `DYAD_DEV_NODEJS_STATUS=installed`
+probes. The hybrid harness sets and restores `NEXTBILLION_DEV_NODEJS_STATUS=installed`
 to avoid those subprocesses; skipping implicit pnpm installation alone is insufficient.
 
 A distributed-machine dispatch receipt confirms admission, not completion of
@@ -257,7 +257,7 @@ database foreign-key constraint before the behavior under test can run.
 
 - Any code path through `runPtyCommand` (e.g. `add_dependency` → npm) fails under
   plain node/vitest with `posix_spawnp failed` — node-pty is built for Electron's
-  ABI. Set `DYAD_DISABLE_PTY=1` to use the child_process fallback.
+  ABI. Set `NEXTBILLION_DISABLE_PTY=1` to use the child_process fallback.
 - Local-agent consent-gated tools default to "ask"; headless there is no UI, so
   each prompt hangs to the 300s consent deadline and then throws
   `User denied permission for <tool>`. Pre-seed `settings.agentToolConsents`
@@ -268,7 +268,7 @@ database foreign-key constraint before the behavior under test can run.
   `vi.mock("electron")` never reaches it — helpers that dereference
   `electron.app` need explicit non-Electron fallbacks. Symptom:
   `Cannot read properties of undefined (reading 'app')`.
-- The Dyad engine does not cancel server-side work when a client disconnects.
+- The NextBillion engine does not cancel server-side work when a client disconnects.
   Killing a mid-stream run leaves zombies that degrade the engine until even
   tiny requests time out (undici's 300s headersTimeout + silent AI-SDK retries
   look like exactly-300s stall loops). Probe with a small request before starting

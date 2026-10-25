@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 import { setModelClientFetchForTesting } from "@/ipc/utils/test_fetch_override";
 import { validateProviderApiKey } from "./provider_api_key_validation_service";
 
@@ -26,9 +26,9 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-describe("Dyad API-key validation", () => {
+describe("NextBillion API-key validation", () => {
   it("sends a Responses request with a dedicated model and reasoning budget", async () => {
-    vi.stubEnv("DYAD_ENGINE_URL", "https://engine.example.test/v1");
+    vi.stubEnv("NEXTBILLION_ENGINE_URL", "https://engine.example.test/v1");
     const fetch = vi.fn(async () =>
       eventStream([
         {
@@ -95,7 +95,7 @@ describe("Dyad API-key validation", () => {
     );
     await expect(
       validateProviderApiKey({ provider: "auto", apiKey: "invalid-key" }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Auth });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Auth });
   });
 
   it("classifies authentication errors inside a successful HTTP stream", async () => {
@@ -114,6 +114,6 @@ describe("Dyad API-key validation", () => {
     );
     await expect(
       validateProviderApiKey({ provider: "auto", apiKey: "invalid-key" }),
-    ).rejects.toMatchObject({ kind: DyadErrorKind.Auth });
+    ).rejects.toMatchObject({ kind: NextBillionErrorKind.Auth });
   });
 });

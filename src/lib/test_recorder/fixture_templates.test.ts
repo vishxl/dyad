@@ -18,25 +18,25 @@ describe("generateTestUserFixtureSource", () => {
     const source = generateTestUserFixtureSource("neon-better-auth");
     expect(source).toContain("export async function signIn(page: Page)");
     expect(source).toContain("/api/auth/sign-in/email");
-    expect(source).toContain("process.env.DYAD_TEST_USER_EMAIL");
-    expect(source).toContain("process.env.DYAD_TEST_USER_PASSWORD");
+    expect(source).toContain("process.env.NEXTBILLION_TEST_USER_EMAIL");
+    expect(source).toContain("process.env.NEXTBILLION_TEST_USER_PASSWORD");
     // The browser must own the request so Electron accepts Better Auth's
     // HttpOnly cookie in the same first-party session as the app page.
-    expect(source).toContain("process.env.DYAD_TEST_BASE_URL");
+    expect(source).toContain("process.env.NEXTBILLION_TEST_BASE_URL");
     expect(source).toContain("await page.goto(origin)");
     expect(source).toContain("await page.evaluate(");
     expect(source).toContain('credentials: "include"');
     expect(source).not.toContain("page.request.post");
     // Should NOT reference Supabase-only env vars.
-    expect(source).not.toContain("DYAD_TEST_SUPABASE_ANON_KEY");
+    expect(source).not.toContain("NEXTBILLION_TEST_SUPABASE_ANON_KEY");
   });
 
   it("generates a Supabase password-grant sign-in helper", () => {
     const source = generateTestUserFixtureSource("supabase-password");
     expect(source).toContain("export async function signIn(page: Page)");
     expect(source).toContain("/auth/v1/token?grant_type=password");
-    expect(source).toContain("process.env.DYAD_TEST_SUPABASE_URL");
-    expect(source).toContain("process.env.DYAD_TEST_SUPABASE_ANON_KEY");
+    expect(source).toContain("process.env.NEXTBILLION_TEST_SUPABASE_URL");
+    expect(source).toContain("process.env.NEXTBILLION_TEST_SUPABASE_ANON_KEY");
     expect(source).toContain("addInitScript");
     expect(source).toContain("sb-${projectRef}-auth-token");
   });
@@ -52,7 +52,7 @@ describe("generateTestUserFixtureSource", () => {
     ).toBe("supabase-password");
   });
 
-  it("reports a user-authored fixture as not Dyad-generated", () => {
+  it("reports a user-authored fixture as not NextBillion-generated", () => {
     expect(readFixtureMode(`export async function signIn() {}\n`)).toBeNull();
   });
 });

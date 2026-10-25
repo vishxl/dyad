@@ -26,7 +26,7 @@ vi.mock("node:fs/promises", async (original) => {
     },
   };
 });
-import { createDyadToolBridge } from "./tool_bridge";
+import { createNextBillionToolBridge } from "./tool_bridge";
 afterEach(() => {
   for (const server of state.servers.splice(0)) server.close();
   vi.restoreAllMocks();
@@ -36,7 +36,7 @@ it.each(["address", "write"])(
   async (fail) => {
     state.fail = fail;
     await expect(
-      createDyadToolBridge({
+      createNextBillionToolBridge({
         tools: {},
         signal: new AbortController().signal,
         invoke: vi.fn(),

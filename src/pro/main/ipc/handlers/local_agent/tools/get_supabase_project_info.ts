@@ -6,7 +6,10 @@ import {
   escapeXmlContent,
 } from "./types";
 import { getSupabaseProjectInfo } from "../../../../../../supabase_admin/supabase_context";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const getSupabaseProjectInfoSchema = z.object({
   includeDbFunctions: z
@@ -31,14 +34,14 @@ export const getSupabaseProjectInfoTool: ToolDefinition<
 
   execute: async (args, ctx: AgentContext) => {
     if (!canUseSupabaseTools(ctx)) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Supabase is not connected to this app",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
 
     ctx.onXmlStream(
-      "<dyad-supabase-project-info></dyad-supabase-project-info>",
+      "<nextbillion-supabase-project-info></nextbillion-supabase-project-info>",
     );
 
     const info = await getSupabaseProjectInfo({
@@ -48,7 +51,7 @@ export const getSupabaseProjectInfoTool: ToolDefinition<
     });
 
     ctx.onXmlComplete(
-      `<dyad-supabase-project-info>\n${escapeXmlContent(info)}\n</dyad-supabase-project-info>`,
+      `<nextbillion-supabase-project-info>\n${escapeXmlContent(info)}\n</nextbillion-supabase-project-info>`,
     );
 
     return info;

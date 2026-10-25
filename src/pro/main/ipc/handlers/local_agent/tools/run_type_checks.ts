@@ -12,7 +12,10 @@ import {
 } from "@/ipc/processors/tsc";
 import type { Problem, ProblemReport } from "@/ipc/types";
 import { broadcastToRegisteredWindows } from "@/ipc/utils/window_broadcast";
-import { DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 
 import { normalizePath } from "../../../../../../../shared/normalizePath";
 
@@ -179,14 +182,17 @@ export const runTypeChecksTool: ToolDefinition<
         ? `Type checking: ${paths.join(", ")}`
         : "Type checking all files";
     ctx.onXmlStream(
-      `<dyad-status title="${escapeXmlAttr(title)}"></dyad-status>`,
+      `<nextbillion-status title="${escapeXmlAttr(title)}"></nextbillion-status>`,
     );
 
     let problemReport: ProblemReport;
     try {
       problemReport = await runTypeScriptCheck({ appPath: ctx.appPath });
     } catch (error) {
-      if (!isDyadError(error) || error.kind !== DyadErrorKind.Precondition) {
+      if (
+        !isNextBillionError(error) ||
+        error.kind !== NextBillionErrorKind.Precondition
+      ) {
         throw error;
       }
 
@@ -200,7 +206,7 @@ export const runTypeChecksTool: ToolDefinition<
         appPath: ctx.appPath,
         agentInstructionMode: ctx.reinstallAndRestartAppToolAvailable
           ? "local-agent-tool"
-          : "dyad-command",
+          : "nextbillion-command",
       });
 
       broadcastToRegisteredWindows(
@@ -213,7 +219,7 @@ export const runTypeChecksTool: ToolDefinition<
       );
 
       ctx.onXmlComplete(
-        `<dyad-output type="warning" message="${escapeXmlAttr("Type checking unavailable")}">\n${escapeXmlContent(result)}\n</dyad-output>`,
+        `<nextbillion-output type="warning" message="${escapeXmlAttr("Type checking unavailable")}">\n${escapeXmlContent(result)}\n</nextbillion-output>`,
       );
 
       return result;
@@ -251,7 +257,7 @@ export const runTypeChecksTool: ToolDefinition<
 
     // Complete XML with result
     ctx.onXmlComplete(
-      `<dyad-status title="${escapeXmlAttr(completedTitle)}" state="${completedState}">\n${escapeXmlContent(result)}\n</dyad-status>`,
+      `<nextbillion-status title="${escapeXmlAttr(completedTitle)}" state="${completedState}">\n${escapeXmlContent(result)}\n</nextbillion-status>`,
     );
 
     return result;

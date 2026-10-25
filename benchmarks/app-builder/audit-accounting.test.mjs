@@ -50,7 +50,7 @@ function fixture(t) {
   );
   const row = {
     ts: "2026-09-28T00:00:01Z",
-    dyadRequestId: "turn-a:attempt-1",
+    nextBillionRequestId: "turn-a:attempt-1",
     path: "/responses",
     status: 200,
     model: "gpt-6-sol",
@@ -76,11 +76,11 @@ function fixture(t) {
   const rows = Array.from({ length: 5 }, (_, i) => ({
     ...row,
     ts: `2026-09-28T00:00:0${i + 1}Z`,
-    dyadRequestId: `turn-a:attempt-${i + 1}`,
+    nextBillionRequestId: `turn-a:attempt-${i + 1}`,
   }));
   rows.push({
     ts: "2026-09-28T00:00:10Z",
-    dyadRequestId: null,
+    nextBillionRequestId: null,
     model: "gpt-5.6-luna",
     path: "/responses",
     status: 200,
@@ -91,7 +91,7 @@ function fixture(t) {
   });
   rows.push({
     ...row,
-    dyadRequestId: "another-run:attempt-1",
+    nextBillionRequestId: "another-run:attempt-1",
     estimatedUsd: 100,
   });
   const log = path.join(root, "proxy/logs/requests-shared.jsonl");
@@ -137,13 +137,13 @@ test("missing model usage is a labelled lower bound; tool requests are not token
   const f = fixture(t);
   f.rows.push({
     ...f.rows[0],
-    dyadRequestId: "turn-a:attempt-99",
+    nextBillionRequestId: "turn-a:attempt-99",
     usage: null,
     estimatedUsd: null,
   });
   f.rows.push({
     ts: "2026-09-28T00:00:10Z",
-    dyadRequestId: "turn-a",
+    nextBillionRequestId: "turn-a",
     path: "/tools/web-search",
     status: 200,
     usage: null,

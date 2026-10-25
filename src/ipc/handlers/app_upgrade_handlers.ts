@@ -4,8 +4,11 @@ import { AppUpgrade } from "@/ipc/types";
 import { db } from "../../db";
 import { apps } from "../../db/schema";
 import { eq } from "drizzle-orm";
-import { getDyadAppPath } from "../../paths/paths";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import { getNextBillionAppPath } from "../../paths/paths";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   isComponentTaggerUpgradeNeeded,
   applyComponentTagger,
@@ -33,7 +36,7 @@ function getAvailableUpgrades(): Omit<AppUpgrade, "isNeeded">[] {
       id: "component-tagger",
       title: "Enable select component to edit",
       description:
-        "Installs the Dyad component tagger Vite plugin and its dependencies.",
+        "Installs the NextBillion component tagger Vite plugin and its dependencies.",
     },
     {
       id: "capacitor",
@@ -45,7 +48,7 @@ function getAvailableUpgrades(): Omit<AppUpgrade, "isNeeded">[] {
       id: "pnpm-version-migration",
       title: `Migrate to pnpm ${managedPnpmMajor}`,
       description:
-        `This app has legacy pnpm metadata. Dyad already runs pnpm ${managedPnpmMajor}, ` +
+        `This app has legacy pnpm metadata. NextBillion already runs pnpm ${managedPnpmMajor}, ` +
         "which writes a lockfile format older pnpm versions can't read. This updates the " +
         `packageManager pin and the lockfile together so everything matches pnpm ${managedPnpmMajor}.`,
     },
@@ -57,9 +60,9 @@ async function getApp(appId: number) {
     where: eq(apps.id, appId),
   });
   if (!app) {
-    throw new DyadError(
+    throw new NextBillionError(
       `App with id ${appId} not found`,
-      DyadErrorKind.NotFound,
+      NextBillionErrorKind.NotFound,
     );
   }
   return app;
@@ -185,7 +188,7 @@ export function registerAppUpgradeHandlers() {
     "get-app-upgrades",
     async (_, { appId }: { appId: number }): Promise<AppUpgrade[]> => {
       const app = await getApp(appId);
-      const appPath = getDyadAppPath(app.path);
+      const appPath = getNextBillionAppPath(app.path);
 
       const upgradesWithStatus = getAvailableUpgrades().map((upgrade) => {
         let isNeeded = false;
@@ -210,11 +213,14 @@ export function registerAppUpgradeHandlers() {
       { appId, upgradeId }: { appId: number; upgradeId: string },
     ) => {
       if (!upgradeId) {
-        throw new DyadError("upgradeId is required", DyadErrorKind.Validation);
+        throw new NextBillionError(
+          "upgradeId is required",
+          NextBillionErrorKind.Validation,
+        );
       }
 
       const app = await getApp(appId);
-      const appPath = getDyadAppPath(app.path);
+      const appPath = getNextBillionAppPath(app.path);
 
       if (upgradeId === "component-tagger") {
         await applyComponentTagger(appPath);
@@ -223,9 +229,9 @@ export function registerAppUpgradeHandlers() {
       } else if (upgradeId === "pnpm-version-migration") {
         await applyPnpmVersionMigration({ appPath });
       } else {
-        throw new DyadError(
+        throw new NextBillionError(
           `Unknown upgrade id: ${upgradeId}`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
       queryInvalidationBus.publish([{ family: "versions", appId }], {

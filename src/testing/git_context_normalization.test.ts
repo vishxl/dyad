@@ -9,9 +9,9 @@ describe("Git context snapshot normalization", () => {
         input: [
           "<system-reminder>Previous assistant message created commit: 0123456789abcdef0123456789abcdef01234567.</system-reminder>",
           "<system-reminder>Previous assistant message created no commit. Repository commit before that message: abcdef0123456789abcdef0123456789abcdef01.</system-reminder>",
-          '<dyad-git-context commit="0123456789abcdef0123456789abcdef01234567"></dyad-git-context>',
+          '<nextbillion-git-context commit="0123456789abcdef0123456789abcdef01234567"></nextbillion-git-context>',
           {
-            text: '<dyad-git-context source_commit="abcdef0123456789abcdef0123456789abcdef01" no_commit="true"></dyad-git-context>',
+            text: '<nextbillion-git-context source_commit="abcdef0123456789abcdef0123456789abcdef01" no_commit="true"></nextbillion-git-context>',
           },
         ],
       },
@@ -25,9 +25,9 @@ describe("Git context snapshot normalization", () => {
     expect(dump.body.input).toEqual([
       "<system-reminder>Previous assistant message created commit: [[GIT_COMMIT]].</system-reminder>",
       "<system-reminder>Previous assistant message created no commit. Repository commit before that message: [[GIT_COMMIT]].</system-reminder>",
-      '<dyad-git-context commit="[[GIT_COMMIT]]"></dyad-git-context>',
+      '<nextbillion-git-context commit="[[GIT_COMMIT]]"></nextbillion-git-context>',
       {
-        text: '<dyad-git-context source_commit="[[GIT_COMMIT]]" no_commit="true"></dyad-git-context>',
+        text: '<nextbillion-git-context source_commit="[[GIT_COMMIT]]" no_commit="true"></nextbillion-git-context>',
       },
     ]);
   });

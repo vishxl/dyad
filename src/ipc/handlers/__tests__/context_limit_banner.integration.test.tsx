@@ -263,7 +263,7 @@ describe("context limit banner (integration)", () => {
     const original = readSettings();
     try {
       writeSettings({
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         providerSettings: {
           ...original.providerSettings,
           auto: { apiKey: { value: "test-key" } },

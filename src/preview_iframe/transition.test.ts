@@ -31,7 +31,7 @@ const EVENTS: readonly PreviewIframeEvent[] = [
   // Same URL as the `replaceState` case above on purpose: both take the same
   // branch, so a second URL only multiplies the explored state space without
   // covering anything new. The behaviour that IS specific to `documentLoad` —
-  // provenance, and ignoring Dyad's own load — is asserted directly below.
+  // provenance, and ignoring NextBillion's own load — is asserted directly below.
   {
     type: "NAVIGATED_IN_APP",
     kind: "documentLoad",
@@ -51,7 +51,11 @@ const EVENTS: readonly PreviewIframeEvent[] = [
 ];
 const ERROR_EVENTS: readonly PreviewIframeEvent[] = [
   { type: "IFRAME_ERROR", message: "iframe failed", source: "preview-app" },
-  { type: "IFRAME_ERROR", message: "sandbox failed", source: "dyad-app" },
+  {
+    type: "IFRAME_ERROR",
+    message: "sandbox failed",
+    source: "nextbillion-app",
+  },
   { type: "SYNC_ERROR", message: "sync failed" },
   { type: "SYNC_RECOVERED" },
   { type: "APP_ERROR", message: "run failed" },
@@ -253,7 +257,7 @@ describe("preview iframe transition", () => {
       },
       {
         type: "post-to-iframe",
-        message: { type: "deactivate-dyad-component-selector" },
+        message: { type: "deactivate-nextbillion-component-selector" },
       },
     ]);
 
@@ -353,7 +357,7 @@ describe("preview iframe transition", () => {
     expect(selectIframeSrc(state, URL)).toBe(URL);
   });
 
-  it("distinguishes a route Dyad selected from one the app navigated to", () => {
+  it("distinguishes a route NextBillion selected from one the app navigated to", () => {
     // The recorder reads this to decide whether the current route is a starting
     // point the user chose. An app-driven route is not, and recording it as the
     // session's opening `goto` would replay straight past the navigation that
@@ -370,7 +374,7 @@ describe("preview iframe transition", () => {
       type: "NAVIGATE",
       path: `${URL}/settings`,
     }).state;
-    expect(typedIn.currentUrlSource).toBe("dyad");
+    expect(typedIn.currentUrlSource).toBe("nextbillion");
 
     // `documentLoad` included: a plain link or a server redirect replaces the
     // whole document and never reaches the history shim, so without it the
@@ -383,14 +387,14 @@ describe("preview iframe transition", () => {
       }).state;
       expect(redirected.currentUrlSource).toBe("app");
 
-      // Going back through Dyad's chrome makes it the user's choice again.
+      // Going back through NextBillion's chrome makes it the user's choice again.
       expect(
         transition(redirected, { type: "GO_BACK" }).state.currentUrlSource,
-      ).toBe("dyad");
+      ).toBe("nextbillion");
     }
 
-    // Dyad's own navigation loads a document too. That load reports the route
-    // Dyad just set, so it must not downgrade the selection it belongs to.
+    // NextBillion's own navigation loads a document too. That load reports the route
+    // NextBillion just set, so it must not downgrade the selection it belongs to.
     const ownLoad = transition(typedIn, {
       type: "NAVIGATED_IN_APP",
       kind: "documentLoad",
@@ -528,9 +532,9 @@ describe("preview iframe transition", () => {
       type: "RESTORE_PRESENTATION",
       history: [URL, `${URL}/settings`],
       position: 1,
-      source: "dyad",
+      source: "nextbillion",
     });
-    expect(restored.state.currentUrlSource).toBe("dyad");
+    expect(restored.state.currentUrlSource).toBe("nextbillion");
 
     const appDriven = transition(INITIAL_PREVIEW_IFRAME_STATE, {
       type: "RESTORE_PRESENTATION",
@@ -573,7 +577,7 @@ describe("preview iframe transition", () => {
   });
 
   it("keeps higher-priority iframe and app errors ahead of sync errors", () => {
-    for (const source of ["preview-app", "dyad-app"] as const) {
+    for (const source of ["preview-app", "nextbillion-app"] as const) {
       const errored = transition(INITIAL_PREVIEW_IFRAME_STATE, {
         type: "IFRAME_ERROR",
         message: `${source} failed`,

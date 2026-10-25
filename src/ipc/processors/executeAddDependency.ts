@@ -5,7 +5,10 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Message } from "@/ipc/types";
 import { readEffectiveSettings } from "@/main/settings";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   ADD_DEPENDENCY_INSTALL_TIMEOUT_MS,
   buildAddDependencyCommand,
@@ -128,9 +131,9 @@ function parsePackageSpec(raw: string): ParsedPackageSpec | null {
 
 function parsePackageSpecs(packages: string[]): ParsedPackageSpec[] {
   if (packages.length === 0) {
-    throw new DyadError(
+    throw new NextBillionError(
       "At least one npm package is required",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
@@ -139,15 +142,15 @@ function parsePackageSpecs(packages: string[]): ParsedPackageSpec[] {
   for (const raw of packages) {
     const parsed = parsePackageSpec(raw);
     if (!parsed) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Invalid npm package spec: ${raw}`,
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
     if (seenNames.has(parsed.name)) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Duplicate npm package: ${parsed.name}`,
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
     seenNames.add(parsed.name);
@@ -177,9 +180,9 @@ async function readInstalledDependencyNames(
     packageJson = JSON.parse(packageJsonText) as Record<string, unknown>;
   } catch (error) {
     const details = error instanceof Error ? error.message : String(error);
-    throw new DyadError(
+    throw new NextBillionError(
       `Cannot install dependencies because package.json contains invalid JSON: ${details}`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   const installedNames = new Set<string>();
@@ -341,7 +344,7 @@ function formatDeniedBuildsNote(packageNames: string[]): string {
   }
 
   const packageList = packageNames.join(", ");
-  return `\n\nNote: build scripts for ${packageList} were not run (Dyad security policy).`;
+  return `\n\nNote: build scripts for ${packageList} were not run (NextBillion security policy).`;
 }
 
 async function rebuildPromotedPnpmBuilds(
@@ -544,10 +547,10 @@ export async function executeAddDependency({
   const escapedPackages = escapeXmlAttr(packages.join(" "));
   const updatedContent = message.content.replace(
     new RegExp(
-      `<dyad-add-dependency packages="(?:${buildPackagesAttrPattern(packages)})">[\\s\\S]*?</dyad-add-dependency>`,
+      `<nextbillion-add-dependency packages="(?:${buildPackagesAttrPattern(packages)})">[\\s\\S]*?</nextbillion-add-dependency>`,
       "g",
     ),
-    `<dyad-add-dependency packages="${escapedPackages}">${escapeXmlContent(installResults)}</dyad-add-dependency>`,
+    `<nextbillion-add-dependency packages="${escapedPackages}">${escapeXmlContent(installResults)}</nextbillion-add-dependency>`,
   );
 
   // Save the updated message back to the database

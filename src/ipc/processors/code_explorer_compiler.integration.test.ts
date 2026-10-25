@@ -1,5 +1,8 @@
 import { describe, expect, it, vi } from "vitest";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   resolveCodeExplorerCompiler,
   type CodeExplorerCompilerLoaders,
@@ -34,9 +37,9 @@ describe("Code Explorer compiler error classification", () => {
       "bundled package missing",
     );
     const classifiedError = toCodeExplorerError(resolutionError);
-    expect(classifiedError).toBeInstanceOf(DyadError);
-    expect((classifiedError as DyadError).kind).toBe(
-      DyadErrorKind.Precondition,
+    expect(classifiedError).toBeInstanceOf(NextBillionError);
+    expect((classifiedError as NextBillionError).kind).toBe(
+      NextBillionErrorKind.Precondition,
     );
   });
 });

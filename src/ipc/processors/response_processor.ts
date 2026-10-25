@@ -1,8 +1,9 @@
 import { db } from "../../db";
+import { normalizeLegacyTags } from "../../lib/legacy_tags";
 import { chats, messages } from "../../db/schema";
 import { and, eq } from "drizzle-orm";
 import fs from "node:fs";
-import { getDyadAppPath } from "../../paths/paths";
+import { getNextBillionAppPath } from "../../paths/paths";
 import path from "node:path";
 import {
   assertNotProjectRootPath,
@@ -39,17 +40,20 @@ import {
   hasStagedChanges,
 } from "../utils/git_utils";
 import { readSettings } from "@/main/settings";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { writeMigrationFile } from "../utils/file_utils";
 import {
-  getDyadWriteTags,
-  getDyadRenameTags,
-  getDyadDeleteTags,
-  getDyadAddDependencyTags,
-  getDyadExecuteSqlTags,
-  getDyadSearchReplaceTags,
-  getDyadCopyTags,
-} from "../utils/dyad_tag_parser";
+  getNextBillionWriteTags,
+  getNextBillionRenameTags,
+  getNextBillionDeleteTags,
+  getNextBillionAddDependencyTags,
+  getNextBillionExecuteSqlTags,
+  getNextBillionSearchReplaceTags,
+  getNextBillionCopyTags,
+} from "../utils/nextbillion_tag_parser";
 import { applySearchReplace } from "../../pro/main/ipc/processors/search_replace_processor";
 import { storeDbTimestampAtCurrentVersion } from "../utils/neon_timestamp_utils";
 import { executeNeonSql } from "../../neon_admin/neon_context";
@@ -75,21 +79,25 @@ function formatOutputError(error: unknown): string {
 
 function formatSkippedActionSummary(fullResponse: string): string {
   const counts: Array<[number, string, string]> = [
-    [getDyadWriteTags(fullResponse).length, "write", "writes"],
-    [getDyadRenameTags(fullResponse).length, "rename", "renames"],
-    [getDyadDeleteTags(fullResponse).length, "delete", "deletes"],
+    [getNextBillionWriteTags(fullResponse).length, "write", "writes"],
+    [getNextBillionRenameTags(fullResponse).length, "rename", "renames"],
+    [getNextBillionDeleteTags(fullResponse).length, "delete", "deletes"],
     [
-      getDyadAddDependencyTags(fullResponse).length,
+      getNextBillionAddDependencyTags(fullResponse).length,
       "dependency install",
       "dependency installs",
     ],
-    [getDyadExecuteSqlTags(fullResponse).length, "SQL query", "SQL queries"],
     [
-      getDyadSearchReplaceTags(fullResponse).length,
+      getNextBillionExecuteSqlTags(fullResponse).length,
+      "SQL query",
+      "SQL queries",
+    ],
+    [
+      getNextBillionSearchReplaceTags(fullResponse).length,
       "search-replace",
       "search-replaces",
     ],
-    [getDyadCopyTags(fullResponse).length, "copy", "copies"],
+    [getNextBillionCopyTags(fullResponse).length, "copy", "copies"],
   ];
 
   return counts
@@ -109,8 +117,9 @@ export async function dryRunSearchReplace({
   appPath: string;
 }) {
   const issues: { filePath: string; error: string }[] = [];
-  const dyadSearchReplaceTags = getDyadSearchReplaceTags(fullResponse);
-  for (const tag of dyadSearchReplaceTags) {
+  const nextBillionSearchReplaceTags =
+    getNextBillionSearchReplaceTags(fullResponse);
+  for (const tag of nextBillionSearchReplaceTags) {
     const filePath = tag.path;
     const fullFilePath = safeJoin(appPath, filePath);
     try {
@@ -164,6 +173,7 @@ export async function processFullResponseActions(
   extraFilesError?: string;
   warningMessages?: string[];
 }> {
+  fullResponse = normalizeLegacyTags(fullResponse);
   logger.log("processFullResponseActions for chatId", chatId);
   // Get the app associated with the chat
   const chatWithApp = await db.query.chats.findFirst({
@@ -177,17 +187,19 @@ export async function processFullResponseActions(
     return {};
   }
 
-  const appPath = getDyadAppPath(chatWithApp.app.path);
-  const dyadDeletePaths = getDyadDeleteTags(fullResponse);
+  const appPath = getNextBillionAppPath(chatWithApp.app.path);
+  const nextBillionDeletePaths = getNextBillionDeleteTags(fullResponse);
   let preparedDeletePaths: PreparedDeletePath[];
   try {
     // Perform the lexical pass across the entire batch first so a later root
     // alias cannot cause even read-only filesystem work for an earlier path.
-    for (const filePath of dyadDeletePaths) {
+    for (const filePath of nextBillionDeletePaths) {
       assertNotProjectRootPath(appPath, filePath);
     }
     preparedDeletePaths = await Promise.all(
-      dyadDeletePaths.map((filePath) => prepareDeletePath(appPath, filePath)),
+      nextBillionDeletePaths.map((filePath) =>
+        prepareDeletePath(appPath, filePath),
+      ),
     );
   } catch (error) {
     logger.error("Refusing unsafe delete response:", error);
@@ -209,10 +221,10 @@ export async function processFullResponseActions(
       });
     } catch (error) {
       logger.error("Error creating Neon branch at current version:", error);
-      throw new DyadError(
+      throw new NextBillionError(
         "Could not create Neon branch; database versioning functionality is not working: " +
           error,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   }
@@ -252,14 +264,15 @@ export async function processFullResponseActions(
 
   try {
     // Extract all tags
-    const dyadWriteTags = getDyadWriteTags(fullResponse);
-    const dyadRenameTags = getDyadRenameTags(fullResponse);
-    const dyadAddDependencyPackages = getDyadAddDependencyTags(fullResponse);
+    const nextBillionWriteTags = getNextBillionWriteTags(fullResponse);
+    const nextBillionRenameTags = getNextBillionRenameTags(fullResponse);
+    const nextBillionAddDependencyPackages =
+      getNextBillionAddDependencyTags(fullResponse);
     let installedOrUpdatedDependencyPackages: string[] = [];
     const hasDbProvider =
       chatWithApp.app.supabaseProjectId || chatWithApp.app.neonProjectId;
-    const dyadExecuteSqlQueries = hasDbProvider
-      ? getDyadExecuteSqlTags(fullResponse)
+    const nextBillionExecuteSqlQueries = hasDbProvider
+      ? getNextBillionExecuteSqlTags(fullResponse)
       : [];
 
     const message = await db.query.messages.findFirst({
@@ -276,8 +289,8 @@ export async function processFullResponseActions(
     }
 
     // Handle SQL execution tags
-    if (dyadExecuteSqlQueries.length > 0) {
-      for (const query of dyadExecuteSqlQueries) {
+    if (nextBillionExecuteSqlQueries.length > 0) {
+      for (const query of nextBillionExecuteSqlQueries) {
         try {
           if (chatWithApp.app.neonProjectId) {
             // Route to Neon executor
@@ -285,9 +298,9 @@ export async function processFullResponseActions(
               chatWithApp.app.neonActiveBranchId ??
               chatWithApp.app.neonDevelopmentBranchId;
             if (!branchId) {
-              throw new DyadError(
+              throw new NextBillionError(
                 "No active Neon branch found for SQL execution. Please select a branch in the Neon integration settings.",
-                DyadErrorKind.Precondition,
+                NextBillionErrorKind.Precondition,
               );
             }
             try {
@@ -309,14 +322,14 @@ export async function processFullResponseActions(
                 errorMsg.includes("authentication failed") ||
                 errorMsg.includes("access token")
               ) {
-                throw new DyadError(
+                throw new NextBillionError(
                   `Neon authentication failed. Please reconnect your Neon account in the integration settings. Details: ${errorMsg}`,
-                  DyadErrorKind.Auth,
+                  NextBillionErrorKind.Auth,
                 );
               }
-              throw new DyadError(
+              throw new NextBillionError(
                 `Neon SQL query failed: ${errorMsg}`,
-                DyadErrorKind.External,
+                NextBillionErrorKind.External,
               );
             }
           } else if (chatWithApp.app.supabaseProjectId) {
@@ -355,19 +368,19 @@ export async function processFullResponseActions(
           });
         }
       }
-      logger.log(`Executed ${dyadExecuteSqlQueries.length} SQL queries`);
+      logger.log(`Executed ${nextBillionExecuteSqlQueries.length} SQL queries`);
     }
 
     // TODO: Handle add dependency tags
-    if (dyadAddDependencyPackages.length > 0) {
+    if (nextBillionAddDependencyPackages.length > 0) {
       try {
         const addDependencyResult = await executeAddDependency({
-          packages: dyadAddDependencyPackages,
+          packages: nextBillionAddDependencyPackages,
           message: message,
           appPath,
         });
         warningMessages.push(...addDependencyResult.warningMessages);
-        installedOrUpdatedDependencyPackages = dyadAddDependencyPackages;
+        installedOrUpdatedDependencyPackages = nextBillionAddDependencyPackages;
       } catch (error) {
         if (error instanceof ExecuteAddDependencyError) {
           warningMessages.push(...error.warningMessages);
@@ -376,12 +389,12 @@ export async function processFullResponseActions(
             message:
               error.completedPackages.length > 0
                 ? `Partially installed or updated dependencies: ${error.completedPackages.join(", ")}. ${error.displaySummary}`
-                : `Failed to add dependencies: ${dyadAddDependencyPackages.join(", ")}. ${error.displaySummary}`,
+                : `Failed to add dependencies: ${nextBillionAddDependencyPackages.join(", ")}. ${error.displaySummary}`,
             error: error.displayDetails,
           });
         } else {
           errors.push({
-            message: `Failed to add dependencies: ${dyadAddDependencyPackages.join(", ")}`,
+            message: `Failed to add dependencies: ${nextBillionAddDependencyPackages.join(", ")}`,
             error: error,
           });
         }
@@ -466,7 +479,7 @@ export async function processFullResponseActions(
     }
 
     // Process all file renames
-    for (const tag of dyadRenameTags) {
+    for (const tag of nextBillionRenameTags) {
       const fromPath = safeJoin(appPath, tag.from);
       const toPath = safeJoin(appPath, tag.to);
 
@@ -549,8 +562,9 @@ export async function processFullResponseActions(
     }
 
     // Process all search-replace edits
-    const dyadSearchReplaceTags = getDyadSearchReplaceTags(fullResponse);
-    for (const tag of dyadSearchReplaceTags) {
+    const nextBillionSearchReplaceTags =
+      getNextBillionSearchReplaceTags(fullResponse);
+    for (const tag of nextBillionSearchReplaceTags) {
       const filePath = tag.path;
       const fullFilePath = safeJoin(appPath, filePath);
 
@@ -562,14 +576,14 @@ export async function processFullResponseActions(
 
       try {
         if (!fs.existsSync(fullFilePath)) {
-          // Do not show warning to user because we already attempt to do a <dyad-write> tag to fix it.
+          // Do not show warning to user because we already attempt to do a <nextbillion-write> tag to fix it.
           logger.warn(`Search-replace target file does not exist: ${filePath}`);
           continue;
         }
         const original = await readFile(fullFilePath, "utf8");
         const result = applySearchReplace(original, tag.content);
         if (!result.success || typeof result.content !== "string") {
-          // Do not show warning to user because we already attempt to do a <dyad-write> and/or a subsequent <dyad-search-replace> tag to fix it.
+          // Do not show warning to user because we already attempt to do a <nextbillion-write> and/or a subsequent <nextbillion-search-replace> tag to fix it.
           logger.warn(
             `Failed to apply search-replace to ${filePath}: ${result.error ?? "unknown"}`,
           );
@@ -612,8 +626,8 @@ export async function processFullResponseActions(
     }
 
     // Process all file copies
-    const dyadCopyTags = getDyadCopyTags(fullResponse);
-    for (const tag of dyadCopyTags) {
+    const nextBillionCopyTags = getNextBillionCopyTags(fullResponse);
+    for (const tag of nextBillionCopyTags) {
       try {
         const result = await executeCopyFile({
           from: tag.from,
@@ -649,7 +663,7 @@ export async function processFullResponseActions(
     }
 
     // Process all file writes
-    for (const tag of dyadWriteTags) {
+    for (const tag of nextBillionWriteTags) {
       const filePath = tag.path;
       const content = tag.content;
       const fullFilePath = safeJoin(appPath, filePath);
@@ -741,7 +755,7 @@ export async function processFullResponseActions(
       writtenFiles.length > 0 ||
       renamedFiles.length > 0 ||
       deletedFiles.length > 0 ||
-      dyadAddDependencyPackages.length > 0;
+      nextBillionAddDependencyPackages.length > 0;
 
     let uncommittedFiles: string[] = [];
     let extraFilesError: string | undefined;
@@ -767,8 +781,10 @@ export async function processFullResponseActions(
         changes.push(
           `installed or updated ${installedOrUpdatedDependencyPackages.join(", ")} package(s)`,
         );
-      if (dyadExecuteSqlQueries.length > 0)
-        changes.push(`executed ${dyadExecuteSqlQueries.length} SQL queries`);
+      if (nextBillionExecuteSqlQueries.length > 0)
+        changes.push(
+          `executed ${nextBillionExecuteSqlQueries.length} SQL queries`,
+        );
 
       const changeSummary = changes.join(", ");
       const trimmedChatSummary = chatSummary?.trim();
@@ -806,17 +822,17 @@ export async function processFullResponseActions(
           try {
             commitHash = await gitCommit({
               path: appPath,
-              message: message + " + extra files edited outside of Dyad",
+              message: message + " + extra files edited outside of NextBillion",
               amend: true,
             });
             logger.log(
-              `Amend commit with changes outside of dyad: ${uncommittedFiles.join(", ")}`,
+              `Amend commit with changes outside of nextbillion: ${uncommittedFiles.join(", ")}`,
             );
           } catch (error) {
             // Just log, but don't throw an error because the user can still
-            // commit these changes outside of Dyad if needed.
+            // commit these changes outside of NextBillion if needed.
             logger.error(
-              `Failed to commit changes outside of dyad: ${uncommittedFiles.join(", ")}`,
+              `Failed to commit changes outside of nextbillion: ${uncommittedFiles.join(", ")}`,
             );
             extraFilesError = (error as any).toString();
           }
@@ -846,7 +862,7 @@ export async function processFullResponseActions(
         changedPaths: [...writtenFiles, ...renamedFiles],
         deletedPaths: [
           ...processedDeletePaths,
-          ...dyadRenameTags.map((renameTag) => renameTag.from),
+          ...nextBillionRenameTags.map((renameTag) => renameTag.from),
         ],
       });
     }
@@ -870,13 +886,13 @@ export async function processFullResponseActions(
     ${warnings
       .map(
         (warning) =>
-          `<dyad-output type="warning" message="${escapeXmlAttr(warning.message)}">${escapeXmlContent(formatOutputError(warning.error))}</dyad-output>`,
+          `<nextbillion-output type="warning" message="${escapeXmlAttr(warning.message)}">${escapeXmlContent(formatOutputError(warning.error))}</nextbillion-output>`,
       )
       .join("\n")}
     ${errors
       .map(
         (error) =>
-          `<dyad-output type="error" message="${escapeXmlAttr(error.message)}">${escapeXmlContent(formatOutputError(error.error))}</dyad-output>`,
+          `<nextbillion-output type="error" message="${escapeXmlAttr(error.message)}">${escapeXmlContent(formatOutputError(error.error))}</nextbillion-output>`,
       )
       .join("\n")}
     `;

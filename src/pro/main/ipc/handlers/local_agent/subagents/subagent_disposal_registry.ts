@@ -1,4 +1,7 @@
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { withLock } from "@/ipc/utils/lock_utils";
 
 interface SubagentChatDisposal {
@@ -33,9 +36,9 @@ export class SubagentDisposalRegistry {
 
   assertAdmissionOpen(chatId: number): void {
     if (!this.isDisposing(chatId) && this.resetCount === 0) return;
-    throw new DyadError(
+    throw new NextBillionError(
       "Chat is temporarily unavailable",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
 

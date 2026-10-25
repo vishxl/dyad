@@ -1,9 +1,12 @@
 /**
- * Pure builders for what Dyad sends to Cloudflare: the prefilled API token
+ * Pure builders for what NextBillion sends to Cloudflare: the prefilled API token
  * form, Worker names, and the rule that deploys a target on every push.
  */
 
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { slugifyAppPath } from "@/shared/slugify";
 
 // ---------------------------------------------------------------------------
@@ -11,7 +14,7 @@ import { slugifyAppPath } from "@/shared/slugify";
 // ---------------------------------------------------------------------------
 
 /**
- * What the token must be able to do. The same token serves Dyad, which sets
+ * What the token must be able to do. The same token serves NextBillion, which sets
  * up Workers and deploy rules, and Cloudflare's build service, which runs the
  * deploy after each push.
  */
@@ -40,12 +43,12 @@ export function buildCloudflareTokenTemplateUrl(): string {
   );
   url.searchParams.set("accountId", "*");
   url.searchParams.set("zoneId", "all");
-  url.searchParams.set("name", "Dyad");
+  url.searchParams.set("name", "NextBillion");
   return url.toString();
 }
 
 /**
- * The create page of the account Dyad is checking, where GitHub is connected
+ * The create page of the account NextBillion is checking, where GitHub is connected
  * to that account and repositories are added to the connection. Naming the
  * account keeps the user from granting access on another one the dashboard
  * happens to open.
@@ -149,9 +152,9 @@ export interface DeployRuleBody {
 export function buildDeployRule(input: DeployRuleInput): DeployRuleBody {
   if (!isValidWorkerName(input.workerName)) {
     // The name is interpolated into a shell command run by Cloudflare.
-    throw new DyadError(
+    throw new NextBillionError(
       `Invalid Worker name: ${input.workerName}`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   const isRoot = input.rootDirectory === "";
@@ -159,7 +162,7 @@ export function buildDeployRule(input: DeployRuleInput): DeployRuleBody {
     external_script_id: input.workerTag,
     repo_connection_uuid: input.repoConnectionUuid,
     build_token_uuid: input.buildTokenUuid,
-    trigger_name: "Deploy from Dyad",
+    trigger_name: "Deploy from NextBillion",
     build_command: input.hasBuildScript ? "npm run build" : "",
     deploy_command: `npx wrangler deploy --name ${input.workerName}`,
     root_directory: isRoot ? "/" : `/${input.rootDirectory}`,

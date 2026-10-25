@@ -19,7 +19,10 @@ import type {
 } from "@/image_generation/state";
 import type { ImageGenerationKey } from "@/image_generation/transport";
 import { systemClock, type Clock } from "@/state_machines/clock";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 export const IMAGE_GENERATION_MAX_PENDING_OPERATIONS = 64;
 export const IMAGE_GENERATION_MAX_RETAINED_OPERATIONS = 128;
@@ -136,9 +139,9 @@ export class ImageGenerationOperationService {
       (owner) => owner.windowSessionId === windowSessionId,
     );
     if (!ticket) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Image generation operation not found",
-        DyadErrorKind.NotFound,
+        NextBillionErrorKind.NotFound,
       );
     }
     return (await ticket.settled).outcome;

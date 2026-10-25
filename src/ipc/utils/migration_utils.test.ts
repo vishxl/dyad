@@ -13,7 +13,7 @@ import {
   deriveDestructiveReasons,
   logger,
 } from "./migration_utils";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 
 vi.mock("ts-pg-schema-diff", async () => {
   const actual =
@@ -72,7 +72,7 @@ describe("generateNeonMigrationStatements", () => {
         desiredDatabaseUrl: "postgresql://dev",
       }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
       message:
         "Unsupported schema change: changing partition key def is not supported",
     });
@@ -91,7 +91,7 @@ describe("generateNeonMigrationStatements", () => {
         desiredDatabaseUrl: "postgresql://dev",
       }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.Precondition,
+      kind: NextBillionErrorKind.Precondition,
       message:
         "PostgreSQL server version 130000 is not supported; PostgreSQL 14 or newer is required",
     });
@@ -113,7 +113,7 @@ describe("generateNeonMigrationStatements", () => {
         desiredDatabaseUrl: "postgresql://dev",
       }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.External,
+      kind: NextBillionErrorKind.External,
       message:
         "Failed to compute migration plan: Failed to introspect current database schema: Error: connect ECONNRESET",
     });

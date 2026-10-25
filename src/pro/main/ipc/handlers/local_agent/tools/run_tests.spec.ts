@@ -74,7 +74,7 @@ function makeCtx(): AgentContext {
   } as unknown as AgentContext;
 }
 
-/** All user-facing XML the tool emitted (dyad-status/dyad-output titles + bodies). */
+/** All user-facing XML the tool emitted (nextbillion-status/nextbillion-output titles + bodies). */
 function emittedXml(ctx: AgentContext): string {
   return [
     ...vi.mocked(ctx.onXmlStream).mock.calls,
@@ -414,7 +414,7 @@ describe("runTestsTool", () => {
           "Tests ran against a temporary copy of the database — your real data was not touched.";
 
         expect(ctx.onXmlComplete).toHaveBeenCalledExactlyOnceWith(
-          `<dyad-status title="${grep ? "Matching tests passed" : "Tests passed"}">\n${summary}\n\n${isolation}\n</dyad-status>`,
+          `<nextbillion-status title="${grep ? "Matching tests passed" : "Tests passed"}">\n${summary}\n\n${isolation}\n</nextbillion-status>`,
         );
         expect(emittedXml(ctx)).not.toContain("do NOT run");
         expect(out).toContain(summary);
@@ -663,7 +663,7 @@ describe("runTestsTool", () => {
       expect(out).toContain("2 attempt(s) remain");
       expect(out).toContain("checkout broke");
       expect(ctx.onXmlComplete).toHaveBeenCalledExactlyOnceWith(
-        `<dyad-status title="Tests failed in 1 file(s)">\n${a}: passed — 1 passed, 0 skipped\n${b}: failed — 0 passed, 1 failed, 0 skipped\n${c}: no runnable tests — not verified\n${d}: no runnable tests — not verified\n\nTests ran against the app's current database.\n</dyad-status>`,
+        `<nextbillion-status title="Tests failed in 1 file(s)">\n${a}: passed — 1 passed, 0 skipped\n${b}: failed — 0 passed, 1 failed, 0 skipped\n${c}: no runnable tests — not verified\n${d}: no runnable tests — not verified\n\nTests ran against the app's current database.\n</nextbillion-status>`,
       );
       expect(emittedXml(ctx)).not.toContain("do NOT run");
       expect(emittedXml(ctx)).not.toContain("call run_tests again");
@@ -675,7 +675,7 @@ describe("runTestsTool", () => {
       const out = await runTestsTool.execute({}, ctx);
 
       expect(ctx.onXmlComplete).toHaveBeenCalledExactlyOnceWith(
-        `<dyad-output type="warning" message="Test batch finished — some files not verified">\n${a}: no runnable tests — not verified\n${b}: no runnable tests — not verified\n\nTests ran against the app's current database.\n</dyad-output>`,
+        `<nextbillion-output type="warning" message="Test batch finished — some files not verified">\n${a}: no runnable tests — not verified\n${b}: no runnable tests — not verified\n\nTests ran against the app's current database.\n</nextbillion-output>`,
       );
       expect(emittedXml(ctx)).not.toContain("Un-skip");
       expect(out).toContain(
@@ -1199,7 +1199,7 @@ describe("runTestsTool", () => {
     // read_file goes through safeJoin and rejects anything escaping the app, so
     // a `../../..` path would guarantee the agent's first step fails.
     const artifact =
-      "/home/u/.config/dyad/test-artifacts/1-2-3/test-results/a/test-failed-1.png";
+      "/home/u/.config/nextbillion/test-artifacts/1-2-3/test-results/a/test-failed-1.png";
     runner.mockResolvedValue(failResult("boom", artifact));
     screenshot.mockResolvedValue("data:image/png;base64,ABC");
     errorContext.mockResolvedValue("- button 'Submit'\n- text 'Oops'");
@@ -1225,7 +1225,7 @@ describe("runTestsTool", () => {
     runner.mockResolvedValue(
       failResult(
         "boom",
-        "/home/u/.config/dyad/test-artifacts/1-2-3/test-results/a/test-failed-1.png",
+        "/home/u/.config/nextbillion/test-artifacts/1-2-3/test-results/a/test-failed-1.png",
       ),
     );
     screenshot.mockResolvedValue(null);

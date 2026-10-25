@@ -40,10 +40,11 @@ import {
   sendTelemetryEventToWindow,
 } from "./ipc/utils/telemetry";
 import { handleSupabaseOAuthReturn } from "./supabase_admin/supabase_return_handler";
-import { handleDyadProReturn } from "./main/pro";
+import { handleNextBillionProReturn } from "./main/pro";
 import { IS_TEST_BUILD } from "./ipc/utils/test_utils";
 import { BackupManager } from "./backup_manager";
 import { db, getDatabasePath, initializeDatabase } from "./db";
+import { runLegacyAppFolderMigration } from "./legacy_app_folder_runner";
 import { apps } from "./db/schema";
 import { eq } from "drizzle-orm";
 import { reconcileOrphanTestBranches } from "./ipc/utils/neon_test_branch";
@@ -107,8 +108,8 @@ import fs from "fs";
 import { gitAddSafeDirectory } from "./ipc/utils/git_utils";
 import { ensureRuntimeGitEnvironment } from "./main/git_path";
 import {
-  getDyadAppsBaseDirectory,
-  getDyadAppPath,
+  getNextBillionAppsBaseDirectory,
+  getNextBillionAppPath,
   getUserDataPath,
 } from "./paths/paths";
 import { createDeepLinkQueue } from "./main/deep_link_queue";
@@ -120,7 +121,7 @@ import {
   shouldRetainClosedWindowForActivation,
   shouldQuitAfterAllWindowsClosed,
 } from "./main/window_lifecycle_policy";
-import { registerDyadProtocolLinux } from "./main/linux_protocol_registration";
+import { registerNextBillionProtocolLinux } from "./main/linux_protocol_registration";
 import {
   applyManagedPnpmToProcessPath,
   getManagedPnpmBinDir,
@@ -131,7 +132,7 @@ import {
   getManagedNodeVersion,
   maybeUpgradeManagedNode,
 } from "./ipc/utils/managed_node";
-import { createDyadMediaProtocolHandler } from "./main/dyad_media_protocol";
+import { createNextBillionMediaProtocolHandler } from "./main/nextbillion_media_protocol";
 import {
   createPlatformThumbnailFromPath,
   getMediaThumbnailCacheRoot,
@@ -164,7 +165,11 @@ import {
   restorableVisibleEntity,
   type WindowSessionDescriptor,
 } from "./window_infrastructure/main/window_session";
-import { DyadError, DyadErrorKind, isDyadError } from "./errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "./errors/nextbillion_error";
 import {
   formatErrorBanner,
   formatExitBanner,
@@ -188,9 +193,21 @@ log.errorHandler.startCatching({
   },
 });
 
+// Installs from before the rebrand keep their data: Electron derives the default
+// userData dir from the app name, so a renamed build would otherwise start empty.
+if (process.env.NODE_ENV !== "development") {
+  const legacyUserData = path.join(app.getPath("appData"), "dyad");
+  if (
+    !fs.existsSync(app.getPath("userData")) &&
+    fs.existsSync(legacyUserData)
+  ) {
+    app.setPath("userData", legacyUserData);
+  }
+}
+
 // In dev, keep minidumps and logs under the project's ./userData, not the OS
 // one. Must run before crashReporter.start and before the first log call, when
-// electron-log caches its dir. macOS logs ignore userData: ~/Library/Logs/dyad.
+// electron-log caches its dir. macOS logs ignore userData: ~/Library/Logs/nextbillion.
 if (process.env.NODE_ENV === "development") {
   const devUserData = getUserDataPath();
   fs.mkdirSync(devUserData, { recursive: true });
@@ -217,7 +234,7 @@ log.info(
 );
 const execFileAsync = promisify(execFile);
 
-// Prefer the Dyad-managed pnpm (if installed) for everything spawned from the
+// Prefer the NextBillion-managed pnpm (if installed) for everything spawned from the
 // main process. Runs after all module imports, so it wins over the shell PATH
 // that fixPath() restores at app_runtime_service load time.
 applyManagedPnpmToProcessPath();
@@ -310,7 +327,10 @@ function processNativeCrashDumps(): void {
   // Where we keep dumps we've already reported, for later examination. Under
   // userData (not inside crashDumpsDir) so it stays separate from Crashpad's
   // own dump dirs and isn't picked up by the scan above.
-  const retainDir = path.join(app.getPath("userData"), "dyad-crash-reports");
+  const retainDir = path.join(
+    app.getPath("userData"),
+    "nextbillion-crash-reports",
+  );
   try {
     fs.mkdirSync(retainDir, { recursive: true });
   } catch (error) {
@@ -398,15 +418,24 @@ ensureRuntimeGitEnvironment({
   resourcesPath: process.resourcesPath,
 });
 
+// "dyad" is the pre-rebrand scheme; external OAuth return pages may still redirect to it.
+const DEEP_LINK_SCHEMES = ["nextbillion", "dyad"] as const;
+const isDeepLinkArg = (arg: string) =>
+  DEEP_LINK_SCHEMES.some((scheme) => arg.startsWith(`${scheme}://`));
+
 // https://www.electronjs.org/docs/latest/tutorial/launch-app-from-url-in-another-app#main-process-mainjs
 if (process.defaultApp) {
   if (process.argv.length >= 2) {
-    app.setAsDefaultProtocolClient("dyad", process.execPath, [
-      path.resolve(process.argv[1]),
-    ]);
+    for (const scheme of DEEP_LINK_SCHEMES) {
+      app.setAsDefaultProtocolClient(scheme, process.execPath, [
+        path.resolve(process.argv[1]),
+      ]);
+    }
   }
 } else {
-  app.setAsDefaultProtocolClient("dyad");
+  for (const scheme of DEEP_LINK_SCHEMES) {
+    app.setAsDefaultProtocolClient(scheme);
+  }
 }
 
 export async function onReady() {
@@ -420,10 +449,10 @@ export async function onReady() {
   // crashed: both populations have to be measured the same way.
   claimPreviousSessionAppSize();
 
-  // Linux: claim the dyad:// scheme for this build (best-effort, see module).
+  // Linux: claim the nextbillion:// scheme for this build (best-effort, see module).
   // setAsDefaultProtocolClient above is unreliable on Linux. Pass this instance's
   // userData so a browser-launched deep link forwards here, not a second window.
-  void registerDyadProtocolLinux(app.getPath("userData"));
+  void registerNextBillionProtocolLinux(app.getPath("userData"));
 
   // React DevTools extension loading is intentionally disabled. In Electron it
   // can spam startup logs with:
@@ -441,12 +470,13 @@ export async function onReady() {
   }
   try {
     initializeDatabase();
+    runLegacyAppFolderMigration((msg) => logger.log(msg));
   } catch (error) {
     logger.error("Failed to initialize database", error);
     const message = error instanceof Error ? error.message : String(error);
     dialog.showErrorBox(
       "Database Migration Failed",
-      `Dyad could not initialize its local database. ${message}`,
+      `NextBillion could not initialize its local database. ${message}`,
     );
     app.quit();
     return;
@@ -501,12 +531,12 @@ export async function onReady() {
 
   const settings = await readEffectiveSettings();
 
-  // Add dyad-apps directory to git safe.directory (required for Windows).
+  // Add nextbillion-apps directory to git safe.directory (required for Windows).
   // The trailing /* allows access to all repositories under the named directory.
   // See: https://git-scm.com/docs/git-config#Documentation/git-config.txt-safedirectory
   // Don't need to await because this only needs to run before
-  // the user starts interacting with Dyad app and uses a git-related feature.
-  gitAddSafeDirectory(`${getDyadAppsBaseDirectory()}/*`);
+  // the user starts interacting with NextBillion app and uses a git-related feature.
+  gitAddSafeDirectory(`${getNextBillionAppsBaseDirectory()}/*`);
 
   // Check if app was force-closed by checking for the crash sentinel file.
   // The sentinel is written at startup and deleted in before-quit on clean exit.
@@ -576,19 +606,19 @@ export async function onReady() {
   // Start performance monitoring
   startPerformanceMonitoring();
 
-  // Handle dyad-media:// requests. Media-library tiles use bounded, cached
+  // Handle nextbillion-media:// requests. Media-library tiles use bounded, cached
   // derivatives while explicit previews continue to receive the source file.
   protocol.handle(
-    "dyad-media",
-    createDyadMediaProtocolHandler({
+    "nextbillion-media",
+    createNextBillionMediaProtocolHandler({
       cacheRoot: getMediaThumbnailCacheRoot(app.getPath("sessionData")),
-      resolveAppPath: getDyadAppPath,
+      resolveAppPath: getNextBillionAppPath,
       resolveAppId: async (appId) => {
         const appRecord = await db.query.apps.findFirst({
           where: eq(apps.id, appId),
           columns: { path: true },
         });
-        return appRecord ? getDyadAppPath(appRecord.path) : null;
+        return appRecord ? getNextBillionAppPath(appRecord.path) : null;
       },
       fetchFile: (url) => net.fetch(url),
       createThumbnailFromPath: (sourcePath, size) =>
@@ -846,7 +876,10 @@ const createWindow = ({
   rendererLoad: Promise<void>;
 } => {
   if (isAppQuitting) {
-    throw new DyadError("Dyad is shutting down", DyadErrorKind.Precondition);
+    throw new NextBillionError(
+      "NextBillion is shutting down",
+      NextBillionErrorKind.Precondition,
+    );
   }
 
   // Create the browser window.
@@ -1188,9 +1221,9 @@ async function createFreshStartupWindow(): Promise<void> {
 configureWindowProductController({
   openEntityInNewWindow: async (entity) => {
     if (productWindows.size >= MAX_PRODUCT_WINDOWS) {
-      throw new DyadError(
-        `Dyad supports up to ${MAX_PRODUCT_WINDOWS} open windows`,
-        DyadErrorKind.Precondition,
+      throw new NextBillionError(
+        `NextBillion supports up to ${MAX_PRODUCT_WINDOWS} open windows`,
+        NextBillionErrorKind.Precondition,
       );
     }
     try {
@@ -1214,11 +1247,11 @@ configureWindowProductController({
         },
       });
     } catch (error) {
-      if (isDyadError(error)) throw error;
+      if (isNextBillionError(error)) throw error;
       const detail = error instanceof Error ? error.message : String(error);
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to open a new window: ${detail}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
         { cause: error },
       );
     }
@@ -1285,11 +1318,11 @@ const createApplicationMenu = () => {
       label: "View",
       submenu: [
         {
-          label: "Reload Dyad",
+          label: "Reload NextBillion",
           click: () => BrowserWindow.getFocusedWindow()?.reload(),
         },
         {
-          label: "Force Reload Dyad",
+          label: "Force Reload NextBillion",
           click: () =>
             BrowserWindow.getFocusedWindow()?.webContents.reloadIgnoringCache(),
         },
@@ -1325,11 +1358,11 @@ const createApplicationMenu = () => {
   Menu.setApplicationMenu(appMenu);
 };
 
-// Register dyad-media:// protocol for serving persistent media attachments.
+// Register nextbillion-media:// protocol for serving persistent media attachments.
 // Must be called before app.whenReady().
 protocol.registerSchemesAsPrivileged([
   {
-    scheme: "dyad-media",
+    scheme: "nextbillion-media",
     privileges: {
       standard: true,
       secure: true,
@@ -1342,7 +1375,7 @@ protocol.registerSchemesAsPrivileged([
 // A cold-start protocol URL arrives in argv before any renderer is ready.
 // Queue it in both production and E2E builds; the latter skips only the
 // singleton lock so parallel test processes can coexist.
-const initialDeepLink = process.argv.find((arg) => arg.startsWith("dyad://"));
+const initialDeepLink = process.argv.find(isDeepLinkArg);
 if (initialDeepLink) {
   deepLinkQueue.handle(initialDeepLink);
 }
@@ -1361,7 +1394,7 @@ if (IS_TEST_BUILD) {
     app.quit();
   } else {
     app.on("second-instance", (_event, commandLine, _workingDirectory) => {
-      const url = commandLine.find((arg) => arg.startsWith("dyad://"));
+      const url = commandLine.find(isDeepLinkArg);
       if (isAppQuitting) {
         requestRelaunchAfterQuit(url);
         return;
@@ -1408,8 +1441,8 @@ function showDeepLinkSettingsError(action: string, error: unknown): void {
 
 /**
  * Surfaces a Neon/Supabase deep-link callback that did not claim an active
- * flow. The proxy's success page keeps an "Open Dyad" link that replays the
- * same callback, so a repeat of one Dyad already accepted is logged and
+ * flow. The proxy's success page keeps an "Open NextBillion" link that replays the
+ * same callback, so a repeat of one NextBillion already accepted is logged and
  * dropped quietly; only unknown, stale, or expired callbacks get the dialog.
  * Neither path writes credentials.
  */
@@ -1430,12 +1463,13 @@ function reportUnclaimedOAuthReturn(
   logger.warn(`Rejected unmatched ${provider} OAuth callback:`, error);
   dialog.showErrorBox(
     "Sign-in Could Not Be Verified",
-    `This ${label} sign-in expired or no longer matches the connection started by Dyad. Please connect again.`,
+    `This ${label} sign-in expired or no longer matches the connection started by NextBillion. Please connect again.`,
   );
 }
 
 async function handleDeepLinkReturn(url: string) {
-  // example url: "dyad://supabase-oauth-return?token=a&refreshToken=b"
+  url = url.replace(/^dyad:\/\//, "nextbillion://");
+  // example url: "nextbillion://supabase-oauth-return?token=a&refreshToken=b"
   let parsed: URL;
   try {
     parsed = new URL(url);
@@ -1451,10 +1485,10 @@ async function handleDeepLinkReturn(url: string) {
     "hostname",
     parsed.hostname,
   );
-  if (parsed.protocol !== "dyad:") {
+  if (parsed.protocol !== "nextbillion:") {
     dialog.showErrorBox(
       "Invalid Protocol",
-      `Expected dyad://, got ${parsed.protocol}. Full URL: ${url}`,
+      `Expected nextbillion://, got ${parsed.protocol}. Full URL: ${url}`,
     );
     return;
   }
@@ -1476,7 +1510,7 @@ async function handleDeepLinkReturn(url: string) {
     if (!expectedInvocationRef) {
       dialog.showErrorBox(
         "Invalid URL",
-        "This Neon sign-in could not be verified. Please connect again from Dyad.",
+        "This Neon sign-in could not be verified. Please connect again from NextBillion.",
       );
       return;
     }
@@ -1522,7 +1556,7 @@ async function handleDeepLinkReturn(url: string) {
     if (!expectedInvocationRef) {
       dialog.showErrorBox(
         "Invalid URL",
-        "This Supabase sign-in could not be verified. Please connect again from Dyad.",
+        "This Supabase sign-in could not be verified. Please connect again from NextBillion.",
       );
       return;
     }
@@ -1550,19 +1584,19 @@ async function handleDeepLinkReturn(url: string) {
     }
     return;
   }
-  // dyad://dyad-pro-return?key=123&budget_reset_at=2025-05-26T16:31:13.492000Z&max_budget=100
-  if (parsed.hostname === "dyad-pro-return") {
+  // nextbillion://nextbillion-pro-return?key=123&budget_reset_at=2025-05-26T16:31:13.492000Z&max_budget=100
+  if (parsed.hostname === "nextbillion-pro-return") {
     const apiKey = parsed.searchParams.get("key");
     if (!apiKey) {
       dialog.showErrorBox("Invalid URL", "Expected key");
       return;
     }
     try {
-      handleDyadProReturn({
+      handleNextBillionProReturn({
         apiKey,
       });
     } catch (error) {
-      showDeepLinkSettingsError("save Dyad Pro settings", error);
+      showDeepLinkSettingsError("save NextBillion Pro settings", error);
       return;
     }
     // Send message to renderer to trigger re-render
@@ -1571,7 +1605,7 @@ async function handleDeepLinkReturn(url: string) {
     });
     return;
   }
-  // Fired by the OAuth callback page to hand focus back to Dyad
+  // Fired by the OAuth callback page to hand focus back to NextBillion
   // after consent. Tokens land via the loopback listener; focusing
   // the window is the only side-effect needed here.
   if (parsed.hostname === "chatgpt-connected") {
@@ -1589,7 +1623,7 @@ async function handleDeepLinkReturn(url: string) {
     }
     return;
   }
-  // dyad://add-mcp-server?name=Chrome%20DevTools&config=eyJjb21tYW5kIjpudWxsLCJ0eXBlIjoic3RkaW8ifQ%3D%3D
+  // nextbillion://add-mcp-server?name=Chrome%20DevTools&config=eyJjb21tYW5kIjpudWxsLCJ0eXBlIjoic3RkaW8ifQ%3D%3D
   if (parsed.hostname === "add-mcp-server") {
     const name = parsed.searchParams.get("name");
     const config = parsed.searchParams.get("config");
@@ -1619,7 +1653,7 @@ async function handleDeepLinkReturn(url: string) {
     }
     return;
   }
-  // dyad://add-prompt?data=<base64-encoded-json>
+  // nextbillion://add-prompt?data=<base64-encoded-json>
   if (parsed.hostname === "add-prompt") {
     const data = parsed.searchParams.get("data");
     if (!data) {

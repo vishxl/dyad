@@ -9,7 +9,10 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import type { ChatMode } from "@/lib/schemas";
-import { isDyadProEnabled, getEffectiveDefaultChatMode } from "@/lib/schemas";
+import {
+  isNextBillionProEnabled,
+  getEffectiveDefaultChatMode,
+} from "@/lib/schemas";
 import { useTranslation } from "react-i18next";
 import { useEffect } from "react";
 import {
@@ -41,9 +44,9 @@ export function DefaultChatModeSelector() {
     return null;
   }
 
-  const isProEnabled = isDyadProEnabled(settings);
+  const isProEnabled = isNextBillionProEnabled(settings);
   const hideLegacyModes = isHostedPreviewDeployment();
-  const isDyadFreeSelected = isFreeProModel(settings.selectedModel);
+  const isNextBillionFreeSelected = isFreeProModel(settings.selectedModel);
   const effectiveDefault = getEffectiveDefaultChatMode(settings, envVars);
 
   const handleDefaultChatModeChange = (value: ChatMode) => {
@@ -101,12 +104,12 @@ export function DefaultChatModeSelector() {
             </div>
           </SelectItem>
           {!hideLegacyModes && (
-            <SelectItem value="build" disabled={isDyadFreeSelected}>
+            <SelectItem value="build" disabled={isNextBillionFreeSelected}>
               <div className="flex flex-col items-start">
                 <span className="font-medium">Build</span>
                 <span className="text-xs text-muted-foreground">
-                  {isDyadFreeSelected
-                    ? "Use Agent with Dyad Free"
+                  {isNextBillionFreeSelected
+                    ? "Use Agent with NextBillion Free"
                     : "Generate and edit code"}
                 </span>
               </div>

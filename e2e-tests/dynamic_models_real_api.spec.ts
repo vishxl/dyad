@@ -3,11 +3,11 @@ import { testWithConfig, Timeout } from "./helpers/test_helper";
 
 const testWithRealCatalog = testWithConfig({
   preLaunchHook: async () => {
-    process.env.DYAD_LANGUAGE_MODEL_CATALOG_URL =
+    process.env.NEXTBILLION_LANGUAGE_MODEL_CATALOG_URL =
       "https://api.dyad.sh/v1/language-model-catalog";
   },
   postLaunchHook: async () => {
-    delete process.env.DYAD_LANGUAGE_MODEL_CATALOG_URL;
+    delete process.env.NEXTBILLION_LANGUAGE_MODEL_CATALOG_URL;
   },
 });
 

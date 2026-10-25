@@ -213,14 +213,14 @@ describe("getChangedFilesForCommit", () => {
     );
   });
 
-  it("excludes Dyad-managed runtime files", async () => {
+  it("excludes NextBillion-managed runtime files", async () => {
     const dir = await setupRepo();
     await write(dir, "app.ts", "v1\n");
     await commitAll(dir, "init");
 
     await write(dir, "app.ts", "v2\n");
     await write(dir, "pnpm-workspace.yaml", 'packages: ["."]\n');
-    await write(dir, ".dyad/screenshot.png", "generated\n");
+    await write(dir, ".nextbillion/screenshot.png", "generated\n");
     const commit = await commitAll(dir, "with runtime files");
 
     const changes = await getChangedFilesForCommit({

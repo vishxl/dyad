@@ -1,7 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 // The mocked class, so the handler recognises what it is handed.
 import { SshError } from "../utils/ssh_client";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   SETUP_MACHINE_REPORTED,
   SetupResultSchema,
@@ -10,7 +13,10 @@ import {
 const h = vi.hoisted(() => ({
   settings: {} as Record<string, unknown>,
   written: [] as Array<Record<string, unknown>>,
-  serverKey: { publicKey: "ssh-ed25519 AAAAPUB dyad", privateKey: "PRIVATE" },
+  serverKey: {
+    publicKey: "ssh-ed25519 AAAAPUB nextbillion",
+    privateKey: "PRIVATE",
+  },
   setupResult: null as unknown,
   setupError: null as unknown,
   lastSetupOptions: null as Record<string, unknown> | null,
@@ -103,7 +109,7 @@ vi.mock("../utils/ssh_client", () => ({
     return (fingerprint: string) => fingerprint === expected;
   },
   // Close enough to the real class for what this file asserts: the failure,
-  // the kind, the errno, and the name `sshFailureOf` matches on. It is not a DyadError,
+  // the kind, the errno, and the name `sshFailureOf` matches on. It is not a NextBillionError,
   // so a case about what survives serialization would need more than this.
   //
   // The failure and the kind are asserted on for opposite reasons. The
@@ -222,12 +228,12 @@ const RESULT = {
   // user to agree to rather than stored, and omitting this reads as that.
   secure: true,
   credentials: {
-    username: "dyad-admin",
+    username: "nextbillion-admin",
     email: "me@gmail.com",
     password: "Abc123@xyz",
   },
   token: "1|abc",
-  // A token comes from a mint, and Dyad opens the API to reach one.
+  // A token comes from a mint, and NextBillion opens the API to reach one.
   apiEnabled: true,
   version: "4.3.2",
 };
@@ -305,7 +311,7 @@ describe("inspect", () => {
       "unreachable",
       "Could not reach the server (ENOTFOUND). Check the address and that " +
         "port 22 is open.",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
       "ENOTFOUND",
     );
 
@@ -348,7 +354,7 @@ describe("inspect", () => {
       call("coolify-setup:inspect", { ...TARGET, host: "203.0.113.5/coolify" }),
     ).rejects.toMatchObject({
       failure: "unreachable",
-      kind: DyadErrorKind.External,
+      kind: NextBillionErrorKind.External,
       // Ends there: the sentence the client wrapped the code in offers a
       // closed port as the other suspect, and keeping it would put a second
       // answer under the one this just gave.
@@ -365,7 +371,7 @@ describe("inspect", () => {
       "timeout",
       "The server did not answer in time. Check the address and that port " +
         "22 is reachable.",
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
 
     await expect(
@@ -418,7 +424,10 @@ describe("run", () => {
     // Its seeder resolves the domain. Finding out afterwards costs the whole
     // install and leaves an instance with no account on it.
     await expect(
-      call("coolify-setup:run", { ...TARGET, adminEmail: "admin@dyad.test" }),
+      call("coolify-setup:run", {
+        ...TARGET,
+        adminEmail: "admin@nextbillion.test",
+      }),
     ).rejects.toMatchObject({ kind: "validation" });
   });
 
@@ -460,7 +469,7 @@ describe("run", () => {
     h.setupError = new SshError(
       "host-key-rejected",
       "The server's identity was not accepted, so nothing was sent to it.",
-      DyadErrorKind.UserCancelled,
+      NextBillionErrorKind.UserCancelled,
     );
 
     await expect(checkThenRun()).rejects.toThrow(/identity has changed/);
@@ -469,7 +478,7 @@ describe("run", () => {
   it("does not start an install it cannot record the password for", async () => {
     // Before the installer, so nothing has been done to the server and this
     // costs a retry. Carrying on would put an account on a machine whose
-    // password Dyad never managed to keep — and preflight then refuses to
+    // password NextBillion never managed to keep — and preflight then refuses to
     // install again, so there is no way back to it.
     h.writeThrows = true;
 
@@ -489,7 +498,7 @@ describe("run", () => {
   it("finishes when the account cannot be written down", async () => {
     // The account is on the server either way, and a retry is refused because
     // Coolify is installed now — so ending the run here would lose the only
-    // copy of a password Dyad invented. The record on the way in lands: that
+    // copy of a password NextBillion invented. The record on the way in lands: that
     // one failing refuses the run instead, before anything is installed.
     h.writeOkFirst = 1;
     h.writeThrows = true;
@@ -608,7 +617,10 @@ describe("run", () => {
     h.writeOkFirst = 1;
     h.writeFailures = 1;
     h.reportsAccount = true;
-    h.setupError = new DyadError("exit 1", DyadErrorKind.External);
+    h.setupError = new NextBillionError(
+      "exit 1",
+      NextBillionErrorKind.External,
+    );
 
     await expect(checkThenRun()).rejects.toThrow("exit 1");
 
@@ -628,7 +640,10 @@ describe("run", () => {
     h.writeFailures = 1;
     h.reportsAccount = true;
     h.reportsAccountTwice = true;
-    h.setupError = new DyadError("exit 1", DyadErrorKind.External);
+    h.setupError = new NextBillionError(
+      "exit 1",
+      NextBillionErrorKind.External,
+    );
 
     await expect(checkThenRun()).rejects.toThrow("exit 1");
 
@@ -647,7 +662,10 @@ describe("run", () => {
     h.writeOkFirst = 1;
     h.writeThrows = true;
     h.reportsAccount = true;
-    h.setupError = new DyadError("exit 1", DyadErrorKind.External);
+    h.setupError = new NextBillionError(
+      "exit 1",
+      NextBillionErrorKind.External,
+    );
 
     await expect(checkThenRun()).rejects.toThrow("exit 1");
   });
@@ -655,7 +673,10 @@ describe("run", () => {
   it("marks a failure the machine already put on screen", async () => {
     // The panel suppresses what carries this and shows everything else, so
     // the mark is what stops one failure being reported twice.
-    h.setupError = new DyadError("exit 1", DyadErrorKind.External);
+    h.setupError = new NextBillionError(
+      "exit 1",
+      NextBillionErrorKind.External,
+    );
 
     await expect(checkThenRun()).rejects.toMatchObject({
       code: SETUP_MACHINE_REPORTED,
@@ -680,7 +701,7 @@ describe("run", () => {
   });
 
   it("stores the admin password, so the user is not locked out later", async () => {
-    // Dyad invented this password for a machine the user owns. Storing the
+    // NextBillion invented this password for a machine the user owns. Storing the
     // token but not this leaves them unable to sign in to their own server.
     await checkThenRun();
     const saved = h.written.at(-1) as {
@@ -691,7 +712,7 @@ describe("run", () => {
   });
 
   it("records which instance the account is on", async () => {
-    // Connecting Dyad to a different Coolify later has to know this account
+    // Connecting NextBillion to a different Coolify later has to know this account
     // does not come along.
     await checkThenRun();
     const saved = h.written.at(-1) as {
@@ -739,13 +760,13 @@ describe("run", () => {
       };
     };
     expect(saved.coolify.admin?.password.value).toBe("Abc123@xyz");
-    // No token and no address, because there is no instance Dyad can talk to.
+    // No token and no address, because there is no instance NextBillion can talk to.
     expect(saved.coolify.accessToken).toBeUndefined();
     expect(saved.coolify.instanceUrl).toBeUndefined();
   });
 
   it("keeps the password when the install fails after the account exists", async () => {
-    // The dashboard never answering does not un-create the account. Dyad is
+    // The dashboard never answering does not un-create the account. NextBillion is
     // the only thing that knows the password it invented, so failing here
     // without storing it locks the user out of a server that is running.
     h.setupError = new Error(
@@ -922,7 +943,7 @@ describe("run", () => {
     ).toBe("idle");
   });
 
-  it("refuses to install over an account Dyad is holding", async () => {
+  it("refuses to install over an account NextBillion is holding", async () => {
     // The screen that offers this stands aside while a failure is being
     // reported, so its message and log stay reachable — and the form comes
     // with it. Retrying that same server is refused by preflight once Coolify
@@ -955,7 +976,7 @@ describe("run", () => {
 
 describe("a token for an unencrypted address", () => {
   it("is not stored by the run that made it", async () => {
-    // Held instead, so closing the screen, quitting or crashing leaves Dyad
+    // Held instead, so closing the screen, quitting or crashing leaves NextBillion
     // unconnected rather than connected to something nobody agreed to.
     h.setupResult = { ...(RESULT as object), secure: false, token: "1|abc" };
     await checkThenRun();
@@ -1135,7 +1156,7 @@ describe("revealCredentials", () => {
     instanceUrl: "http://203.0.113.5:8000",
   };
 
-  it("hands back what Dyad knows about getting in", async () => {
+  it("hands back what NextBillion knows about getting in", async () => {
     h.settings = {
       coolify: {
         instanceUrl: "http://203.0.113.5:8000",
@@ -1159,7 +1180,7 @@ describe("revealCredentials", () => {
 
   it("describes a server installed before any token as a server alone", async () => {
     // Nothing was ever connected, so there is no instance — but the machine
-    // Dyad built is still named by the account it made on it.
+    // NextBillion built is still named by the account it made on it.
     h.settings = { coolify: { admin: ADMIN } };
     const result = (await call("coolify-setup:reveal-credentials")) as Record<
       string,
@@ -1216,8 +1237,8 @@ describe("revealCredentials", () => {
     expect(result).toEqual({ instance: null, server: null });
   });
 
-  it("answers a null server for an instance Dyad did not set up", async () => {
-    // Connected by pasting a token, so there is no account Dyad created.
+  it("answers a null server for an instance NextBillion did not set up", async () => {
+    // Connected by pasting a token, so there is no account NextBillion created.
     h.settings = {
       coolify: {
         instanceUrl: "https://coolify.example.com",

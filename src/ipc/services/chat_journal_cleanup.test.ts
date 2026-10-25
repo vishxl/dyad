@@ -19,7 +19,7 @@ import {
 } from "@/user_input/questionnaire_journal";
 beforeEach(async () => {
   config.directory = await mkdtemp(
-    path.join(tmpdir(), "dyad-journal-cleanup-"),
+    path.join(tmpdir(), "nextbillion-journal-cleanup-"),
   );
 });
 afterEach(async () => {

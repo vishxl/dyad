@@ -1,4 +1,4 @@
-# Deploy Dyad + OpenViking + Langfuse on Oracle — step by step
+# Deploy NextBillion + OpenViking + Langfuse on Oracle — step by step
 
 Follow top to bottom. Copy-paste the commands. Replace these two things whenever you see them:
 
@@ -33,7 +33,7 @@ Get from your Mac: your OpenRouter key (openrouter.ai/keys). That's the only cre
 
 ---
 
-## PART B — One script installs Dyad + Caddy + auth (VM, ~20 min, mostly waiting)
+## PART B — One script installs NextBillion + Caddy + auth (VM, ~20 min, mostly waiting)
 
 6. You're SSH'd in as `ubuntu`. Become root:
 
@@ -166,8 +166,8 @@ curl -s "http://127.0.0.1:1933/api/v1/content/read?uri=viking://resources/nextbi
 ## PART H — Verify and hand out the URL
 
 21. On your Mac (browser): open `https://123-45-67-89.sslip.io`
-    - First load: a Google sign-in appears → sign in with an `@nextbillion.ai` account → Dyad UI loads.
-22. In Dyad: **Settings → Providers → add your OpenRouter (or other) API key** — one time, shared by everyone.
+    - First load: a Google sign-in appears → sign in with an `@nextbillion.ai` account → NextBillion UI loads.
+22. In NextBillion: **Settings → Providers → add your OpenRouter (or other) API key** — one time, shared by everyone.
 23. Create a test app → prompt it → confirm the preview shows and its iframe URL starts with `https://123-45-67-89.sslip.io/preview/` **and ends with `/`** (Caddy 308-redirects the slash-less form automatically — don't "fix" that redirect away).
 24. Langfuse check: make one chat → open https://cloud.langfuse.com → your trace appears in the project.
 25. Share with teammates: **just the URL** `https://123-45-67-89.sslip.io`. They sign in with Google (`@nextbillion.ai` only), nothing else to set up.

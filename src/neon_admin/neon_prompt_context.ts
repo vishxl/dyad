@@ -1,7 +1,7 @@
 import { getNeonAvailableSystemPrompt } from "../prompts/neon_prompt";
 import { getCachedEmailPasswordConfig } from "./neon_management_client";
 import { getNeonClientCode, getNeonContext } from "./neon_context";
-import { getDyadAppPath } from "../paths/paths";
+import { getNextBillionAppPath } from "../paths/paths";
 import {
   detectFrameworkType,
   detectNextJsMajorVersion,
@@ -101,7 +101,7 @@ export async function buildNeonPromptForApp({
   neonDevelopmentBranchId?: string | null;
   selectedChatMode: ChatMode;
 }): Promise<string> {
-  const resolvedPath = getDyadAppPath(appPath);
+  const resolvedPath = getNextBillionAppPath(appPath);
   const frameworkType = detectFrameworkType(resolvedPath);
   const nextjsMajorVersion =
     frameworkType === "nextjs" ? detectNextJsMajorVersion(resolvedPath) : null;

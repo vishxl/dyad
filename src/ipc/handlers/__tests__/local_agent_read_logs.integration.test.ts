@@ -6,12 +6,12 @@
 // read_logs tool calls with different filters (all, level=error + limit,
 // type=client). The real tool executes against the central log store (empty —
 // same as the e2e, where no preview app was running) and the completed
-// <dyad-read-logs> XML lands in the assistant message. The e2e asserted the
-// rendered "Reading N logs" cards; the hybrid harness renders the same DyadLogs
+// <nextbillion-read-logs> XML lands in the assistant message. The e2e asserted the
+// rendered "Reading N logs" cards; the hybrid harness renders the same NextBillionLogs
 // cards in the DOM (asserted below), and the tool XML + narration text is also
 // asserted from the persisted message content, as in the node version.
 //
-// Dyad Pro engine/gateway calls are routed to the harness fake server via
+// NextBillion Pro engine/gateway calls are routed to the harness fake server via
 // `engine: true`.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -33,8 +33,8 @@ describe("local-agent read_logs (integration)", () => {
       chatMode: "local-agent",
       settings: {
         isTestMode: true,
-        enableDyadPro: true,
-        providerSettings: { auto: { apiKey: { value: "testdyadkey" } } },
+        enableNextBillionPro: true,
+        providerSettings: { auto: { apiKey: { value: "testnextbillionkey" } } },
         enableCodeExplorer: false,
       },
     });
@@ -57,7 +57,7 @@ describe("local-agent read_logs (integration)", () => {
     const { send } = await harness.typeInChat("tc=local-agent/read-logs");
     send();
 
-    // The three DyadLogs cards render in the DOM — the same "Reading N logs"
+    // The three NextBillionLogs cards render in the DOM — the same "Reading N logs"
     // surface the e2e asserted. count="0" for each (no preview app running),
     // with the filter summary in the card header.
     await waitFor(
@@ -109,9 +109,9 @@ describe("local-agent read_logs (integration)", () => {
     // Completed read_logs tool XML for each filter combination. No app is
     // running, so the store is empty (count="0"), matching the e2e which only
     // asserted "Reading \d+ logs".
-    expect(content).toMatch(/<dyad-read-logs {2}count="0">/); // type=all, level=all
-    expect(content).toMatch(/<dyad-read-logs level="error" count="0">/);
-    expect(content).toMatch(/<dyad-read-logs type="client" count="0">/);
+    expect(content).toMatch(/<nextbillion-read-logs {2}count="0">/); // type=all, level=all
+    expect(content).toMatch(/<nextbillion-read-logs level="error" count="0">/);
+    expect(content).toMatch(/<nextbillion-read-logs type="client" count="0">/);
 
     // Filter summaries rendered inside the tags.
     expect(content).toContain(

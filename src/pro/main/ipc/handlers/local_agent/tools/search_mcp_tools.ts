@@ -84,13 +84,13 @@ export const searchMcpToolsTool: ToolDefinition<SearchMcpToolsArgs> = {
   buildXml: (args, isComplete) => {
     if (!args.query) return undefined;
     if (isComplete) return undefined;
-    return `<dyad-mcp-tool-search${buildSearchAttributes(args)}>Searching...`;
+    return `<nextbillion-mcp-tool-search${buildSearchAttributes(args)}>Searching...`;
   },
 
   execute: async (args: SearchMcpToolsArgs, ctx: AgentContext) => {
     const finish = (result: string) => {
       ctx.onXmlComplete(
-        `<dyad-mcp-tool-search${buildSearchAttributes(args)}>${escapeXmlContent(result)}</dyad-mcp-tool-search>`,
+        `<nextbillion-mcp-tool-search${buildSearchAttributes(args)}>${escapeXmlContent(result)}</nextbillion-mcp-tool-search>`,
       );
       return result;
     };

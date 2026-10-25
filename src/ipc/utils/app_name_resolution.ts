@@ -1,8 +1,11 @@
 import fs from "node:fs";
 
 import { db } from "@/db";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
-import { getDyadAppPath } from "@/paths/paths";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
+import { getNextBillionAppPath } from "@/paths/paths";
 import { appFolderNameWithSuffix } from "@/shared/app_names";
 
 // Bound collision probing so a pathological database/filesystem state cannot
@@ -35,9 +38,9 @@ export async function resolveUniqueAppName(
       return candidate;
     }
   }
-  throw new DyadError(
+  throw new NextBillionError(
     `Could not find an available app name for "${desiredName}" after ${MAX_COLLISION_SUFFIX_ATTEMPTS} attempts.`,
-    DyadErrorKind.Conflict,
+    NextBillionErrorKind.Conflict,
   );
 }
 
@@ -59,12 +62,12 @@ export async function resolveUniqueFolderName(
     resolveCandidate?: (folderName: string) => string;
   },
 ): Promise<string> {
-  const resolveCandidate = options?.resolveCandidate ?? getDyadAppPath;
+  const resolveCandidate = options?.resolveCandidate ?? getNextBillionAppPath;
   const allApps = await db.query.apps.findMany();
   const takenPaths = new Set<string>();
   let ownPath: string | undefined;
   for (const app of allApps) {
-    const resolved = getDyadAppPath(app.path).toLowerCase();
+    const resolved = getNextBillionAppPath(app.path).toLowerCase();
     if (app.id === options?.excludeAppId) {
       ownPath = resolved;
     } else {
@@ -84,8 +87,8 @@ export async function resolveUniqueFolderName(
     }
     return candidate;
   }
-  throw new DyadError(
+  throw new NextBillionError(
     `Could not find an available app folder for "${baseFolderName}" after ${MAX_COLLISION_SUFFIX_ATTEMPTS} attempts.`,
-    DyadErrorKind.Conflict,
+    NextBillionErrorKind.Conflict,
   );
 }

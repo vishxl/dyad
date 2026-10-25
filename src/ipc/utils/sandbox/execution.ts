@@ -2,8 +2,11 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import path from "node:path";
 import type { Capability, StructuredValue } from "mustardscript";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
-import { getDyadMediaDir } from "@/ipc/utils/media_path_utils";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
+import { getNextBillionMediaDir } from "@/ipc/utils/media_path_utils";
 import {
   buildSandboxCapabilitiesWithObserver,
   type SandboxHostCallObserver,
@@ -62,9 +65,9 @@ export function isSandboxSupportedPlatform(): boolean {
 
 async function loadMustard(): Promise<MustardModule> {
   if (!isSandboxSupportedPlatform()) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Sandbox scripting is unavailable on this platform.",
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   mustardModulePromise ??= import("mustardscript").catch((error) => {
@@ -124,7 +127,7 @@ async function spillOutput(params: {
     .slice(0, 16);
   const capped = truncateUtf8(params.output, SANDBOX_UI_OUTPUT_LIMIT_BYTES);
   const outputPath = path.join(
-    getDyadMediaDir(params.appPath),
+    getNextBillionMediaDir(params.appPath),
     `script-output-${hash}.txt`,
   );
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
@@ -250,9 +253,9 @@ function wrapCapabilitiesWithVmBudget(
         if (budget.signal.aborted) {
           hooks.onVmBudgetResume?.();
           budget.resume();
-          throw new DyadError(
+          throw new NextBillionError(
             "Sandbox script timed out before host call execution.",
-            DyadErrorKind.External,
+            NextBillionErrorKind.External,
           );
         }
         try {
@@ -287,9 +290,9 @@ export async function executeSandboxScriptInProcess(
   if (
     Buffer.byteLength(params.script, "utf8") > SANDBOX_SCRIPT_SOURCE_LIMIT_BYTES
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Sandbox script is too large.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
@@ -300,7 +303,7 @@ export async function executeSandboxScriptInProcess(
   const { Mustard, ExecutionContext } = await loadMustard();
   const vmBudget = createVmRuntimeBudget(timeoutMs);
   let wallClockTimeout: NodeJS.Timeout | undefined;
-  let wallClockTimeoutError: DyadError | undefined;
+  let wallClockTimeoutError: NextBillionError | undefined;
 
   try {
     const program = new Mustard(params.script);
@@ -321,7 +324,7 @@ export async function executeSandboxScriptInProcess(
         callDepthLimit: SANDBOX_CALL_DEPTH_LIMIT,
         maxOutstandingHostCalls: SANDBOX_MAX_OUTSTANDING_HOST_CALLS,
       },
-      snapshotKey: `dyad-sandbox:${params.appPath}`,
+      snapshotKey: `nextbillion-sandbox:${params.appPath}`,
     });
 
     vmBudget.start();
@@ -333,9 +336,9 @@ export async function executeSandboxScriptInProcess(
       }),
       new Promise<never>((_, reject) => {
         wallClockTimeout = setTimeout(() => {
-          wallClockTimeoutError = new DyadError(
+          wallClockTimeoutError = new NextBillionError(
             `Sandbox host execution timed out after ${wallClockTimeoutMs}ms.`,
-            DyadErrorKind.External,
+            NextBillionErrorKind.External,
           );
           vmBudget.abort();
           reject(wallClockTimeoutError);
@@ -370,9 +373,9 @@ export async function executeSandboxScriptInProcess(
       throw error === wallClockTimeoutError ? error : wallClockTimeoutError;
     }
     if (vmBudget.signal.aborted) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Sandbox script timed out after ${timeoutMs}ms of VM execution.`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
     throw error;

@@ -4,10 +4,13 @@ import { createMCPClient, type MCPClient } from "@ai-sdk/mcp";
 import { eq } from "drizzle-orm";
 
 import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   captureMcpOAuthWriteAuthority,
-  DyadOAuthClientProvider,
+  NextBillionOAuthClientProvider,
 } from "./mcp_oauth_provider";
 import {
   decryptFromString,
@@ -24,9 +27,9 @@ function requireReadableSecret(
   label: string,
 ): Record<string, string> | null {
   if (read.status === "unreadable") {
-    throw new DyadError(
+    throw new NextBillionError(
       `Could not decrypt the ${label} for "${serverName}". This usually means the OS keyring is unavailable. Fix the keyring and try again, or re-enter the values.`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   }
   return read.value;
@@ -44,11 +47,11 @@ const MCP_CLIENT_DISPOSAL_TIMEOUT_MS = 1_500;
 /** Default cap on connecting to one MCP server and listing its tools. */
 export const MCP_LIST_TOOLS_TIMEOUT_MS = 10_000;
 
-export class McpListToolsTimeoutError extends DyadError {
+export class McpListToolsTimeoutError extends NextBillionError {
   constructor(serverId: number, timeoutMs: number) {
     super(
       `Timed out after ${timeoutMs / 1000}s waiting for tools from server ${serverId}.`,
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
     this.name = "McpListToolsTimeoutError";
   }
@@ -85,9 +88,9 @@ export class McpManager {
       .then(async (client) => {
         if (initialization.cancelled) {
           await Promise.allSettled([this.closeClient(client)]);
-          throw new DyadError(
+          throw new NextBillionError(
             `MCP client initialization cancelled for server ${serverId}`,
-            DyadErrorKind.Precondition,
+            NextBillionErrorKind.Precondition,
           );
         }
 
@@ -186,7 +189,7 @@ export class McpManager {
     } else if (s.transport === "http") {
       if (!s.url) throw new Error(`http MCP requires url`);
       const authProvider = s.oauthEnabled
-        ? new DyadOAuthClientProvider({
+        ? new NextBillionOAuthClientProvider({
             serverId: s.id,
             callbackPort: s.oauthCallbackPort ?? undefined,
             scope: s.oauthScope ?? undefined,
@@ -211,9 +214,9 @@ export class McpManager {
         },
       });
     } else {
-      throw new DyadError(
+      throw new NextBillionError(
         `Unsupported MCP transport: ${s.transport}`,
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
 

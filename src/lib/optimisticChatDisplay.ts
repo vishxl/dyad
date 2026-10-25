@@ -1,4 +1,4 @@
-import { buildDyadAttachmentTag } from "../../shared/dyadAttachment";
+import { buildNextBillionAttachmentTag } from "../../shared/nextBillionAttachment";
 import {
   parseMediaMentions,
   stripResolvedMediaMentions,
@@ -20,12 +20,12 @@ export function buildOptimisticChatDisplay(
         name = ref;
       }
       const file = files.find((candidate) => candidate.fileName === name);
-      return buildDyadAttachmentTag({
+      return buildNextBillionAttachmentTag({
         name,
         type: file?.mimeType ?? "application/octet-stream",
         url:
           appPath && file
-            ? `dyad-media://media/${encodeURIComponent(appPath)}/.dyad/media/${encodeURIComponent(name)}`
+            ? `nextbillion-media://media/${encodeURIComponent(appPath)}/.nextbillion/media/${encodeURIComponent(name)}`
             : "",
         path: "",
         attachmentType: "chat-context",

@@ -33,7 +33,7 @@ const { values } = parseArgs({
     timeout: { type: "string", default: "600000" },
     concurrency: { type: "string", default: "1" },
     "allow-stale-package": { type: "boolean", default: false },
-    auth: { type: "string", default: "dyad-pro" },
+    auth: { type: "string", default: "nextbillion-pro" },
     "codex-auth-path": { type: "string" },
     "codex-model": { type: "string", default: "gpt-5.5" },
     "retry-from": { type: "string" },
@@ -61,8 +61,8 @@ if (!Number.isInteger(repeats) || repeats < 1) {
 if (!Number.isInteger(concurrency) || concurrency < 1) {
   throw new Error("--concurrency must be a positive integer");
 }
-if (!["dyad-pro", "codex"].includes(authMode)) {
-  throw new Error("--auth must be one of: dyad-pro, codex");
+if (!["nextbillion-pro", "codex"].includes(authMode)) {
+  throw new Error("--auth must be one of: nextbillion-pro, codex");
 }
 validateArms(selectedArms);
 const primaryCompareArm = resolvePrimaryCompareArm(
@@ -135,9 +135,13 @@ if (values["dry-run"]) {
   process.exit(0);
 }
 
-if (matrix.length > 0 && authMode === "dyad-pro" && !process.env.DYAD_PRO_KEY) {
+if (
+  matrix.length > 0 &&
+  authMode === "nextbillion-pro" &&
+  !process.env.NEXTBILLION_PRO_KEY
+) {
   throw new Error(
-    "DYAD_PRO_KEY must be set in .env for Dyad Engine benchmark runs",
+    "NEXTBILLION_PRO_KEY must be set in .env for NextBillion Engine benchmark runs",
   );
 }
 
@@ -554,10 +558,10 @@ function reportModeForArm(arm) {
 }
 
 async function setupBenchmarkAuth() {
-  if (authMode === "dyad-pro") {
+  if (authMode === "nextbillion-pro") {
     return {
-      mode: "dyad-pro",
-      apiKey: process.env.DYAD_PRO_KEY,
+      mode: "nextbillion-pro",
+      apiKey: process.env.NEXTBILLION_PRO_KEY,
       model: values.model,
     };
   }
@@ -758,7 +762,7 @@ function fetchCodexResponses({ accessToken, accountId, outgoing }) {
     headers: {
       Authorization: `Bearer ${accessToken}`,
       "chatgpt-account-id": accountId,
-      originator: "dyad-code-explorer-benchmark",
+      originator: "nextbillion-code-explorer-benchmark",
       "OpenAI-Beta": "responses=experimental",
       accept: "text/event-stream",
       "content-type": "application/json",
@@ -808,7 +812,9 @@ function extractInstructions(input) {
         .join("\n\n")
         .trim()
     : "";
-  return extracted || "You are Dyad's local agent running a benchmark task.";
+  return (
+    extracted || "You are NextBillion's local agent running a benchmark task."
+  );
 }
 
 function extractContentText(content) {
@@ -834,7 +840,9 @@ function extractInstructionsFromMessages(messages) {
         .join("\n\n")
         .trim()
     : "";
-  return extracted || "You are Dyad's local agent running a benchmark task.";
+  return (
+    extracted || "You are NextBillion's local agent running a benchmark task."
+  );
 }
 
 function chatMessagesToResponsesInput(messages) {
@@ -1211,7 +1219,7 @@ async function runTrial(trial, benchmarkAuth) {
 
   const benchmarkRunId = `${runId}-${trial.repo.name}-${trial.task.id}-${trial.arm}-${trial.repeat}`;
   const userDataDir = fs.mkdtempSync(
-    path.join(os.tmpdir(), "dyad-code-bench-"),
+    path.join(os.tmpdir(), "nextbillion-code-bench-"),
   );
   const xdgConfigHome = path.join(userDataDir, "xdg-config");
   fs.mkdirSync(xdgConfigHome, { recursive: true });
@@ -1221,20 +1229,20 @@ async function runTrial(trial, benchmarkAuth) {
   let contextPaths = [];
   const env = {
     ...process.env,
-    DYAD_BENCHMARK_RUN_ID: benchmarkRunId,
-    DYAD_PRO_KEY: benchmarkAuth.apiKey,
+    NEXTBILLION_BENCHMARK_RUN_ID: benchmarkRunId,
+    NEXTBILLION_PRO_KEY: benchmarkAuth.apiKey,
     XDG_CONFIG_HOME: xdgConfigHome,
     GIT_CONFIG_GLOBAL: path.join(userDataDir, ".gitconfig"),
     E2E_TEST_BUILD: "true",
     OPENAI_API_KEY: process.env.OPENAI_API_KEY ?? "benchmark-placeholder",
     ...(benchmarkAuth.engineUrl && {
-      DYAD_ENGINE_URL: benchmarkAuth.engineUrl,
+      NEXTBILLION_ENGINE_URL: benchmarkAuth.engineUrl,
     }),
   };
 
   let electronApp;
   try {
-    logTrial(trial, "launching packaged Dyad");
+    logTrial(trial, "launching packaged NextBillion");
     electronApp = await withTimeout(
       electron.launch({
         args: [
@@ -1246,7 +1254,7 @@ async function runTrial(trial, benchmarkAuth) {
         env,
       }),
       60_000,
-      "launching packaged Dyad",
+      "launching packaged NextBillion",
     );
     electronApp.process().stdout?.on("data", (data) => {
       console.log(`[electron stdout] ${data.toString().trim()}`);
@@ -1276,7 +1284,7 @@ async function runTrial(trial, benchmarkAuth) {
           enableCodeExplorer,
         }) => {
           await window.electron.ipcRenderer.invoke("set-user-settings", {
-            enableDyadPro: true,
+            enableNextBillionPro: true,
             enableCodeExplorer,
             selectedChatMode: "local-agent",
             selectedModel,
@@ -3414,8 +3422,8 @@ function scoreFinalText(finalText, expectedTerms) {
 function visibleAnswerText(finalText) {
   return finalText
     .replace(/<think(?:ing)?>[\s\S]*?<\/think(?:ing)?>/gi, "")
-    .replace(/<dyad-[\s\S]*?<\/dyad-[^>]+>/g, "")
-    .replace(/<dyad-[^>]+\/>/g, "")
+    .replace(/<nextbillion-[\s\S]*?<\/nextbillion-[^>]+>/g, "")
+    .replace(/<nextbillion-[^>]+\/>/g, "")
     .trim();
 }
 

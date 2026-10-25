@@ -2,7 +2,10 @@ import fs from "node:fs";
 import path from "node:path";
 import log from "electron-log";
 
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
 import { getFileWriteKey, withLock } from "@/ipc/utils/lock_utils";
 import { assertMutationPathAllowed, safeJoin } from "@/ipc/utils/path_utils";
@@ -254,7 +257,7 @@ function readAppKey(clientFilePath: string): string | undefined {
  *
  * The key is written into the app's source once, at generation time, and never
  * refreshed — the prompt tells the AI to create that file only if it doesn't
- * already exist. So the key outlives the format Dyad writes today, and keeps
+ * already exist. So the key outlives the format NextBillion writes today, and keeps
  * working right up until the project disables legacy keys, at which point every
  * request the app makes fails with "Legacy API keys are disabled".
  *
@@ -369,17 +372,17 @@ export async function detectLegacyAppKey(params: {
  * Detection tolerates an unreadable client (see `readAppKey`), but the switch
  * runs because the user pressed a button: if the file was deleted, made
  * unreadable, or is read-only between detection and the locked rewrite, that
- * has to reach the renderer as a `DyadError` with a kind, not as a raw `ENOENT`
+ * has to reach the renderer as a `NextBillionError` with a kind, not as a raw `ENOENT`
  * that PostHog then files as an unclassified product exception
- * (`rules/dyad-errors.md`).
+ * (`rules/nextbillion-errors.md`).
  */
 async function readClientFile(clientFilePath: string): Promise<string> {
   try {
     return await fs.promises.readFile(clientFilePath, "utf8");
   } catch (error) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Couldn't read the app's Supabase client at ${clientFilePath}: ${error instanceof Error ? error.message : error}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 }
@@ -391,18 +394,18 @@ async function writeClientFile(
   try {
     await fs.promises.writeFile(clientFilePath, contents);
   } catch (error) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Couldn't update the app's Supabase client at ${clientFilePath}: ${error instanceof Error ? error.message : error}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 }
 
 /**
- * Was the client file untouched before Dyad rewrote it?
+ * Was the client file untouched before NextBillion rewrote it?
  *
  * Decides whether the rewrite may be auto-committed. `git commit -- <path>`
- * records the whole working-tree version of that path, not the single hunk Dyad
+ * records the whole working-tree version of that path, not the single hunk NextBillion
  * changed, so committing a file the user was already editing would fold their
  * in-progress work into a commit labelled as a key swap. It answers false on
  * any failure (not a repo, git unavailable): "can't prove it was clean" has to
@@ -428,7 +431,7 @@ async function wasClientFileClean({
 /**
  * Commit the rewritten client on the app's behalf.
  *
- * Dyad's own edit is not something the user needs to review: leaving it in the
+ * NextBillion's own edit is not something the user needs to review: leaving it in the
  * working tree only greets them with the "uncommitted changes" banner over a
  * one-line key swap they didn't type and can't meaningfully judge. Committing
  * it also gives the change a version to revert to, which an unstaged edit has.

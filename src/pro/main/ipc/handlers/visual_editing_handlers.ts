@@ -4,7 +4,7 @@ import path from "path";
 import { db } from "../../../../db";
 import { apps } from "../../../../db/schema";
 import { eq } from "drizzle-orm";
-import { getDyadAppPath } from "../../../../paths/paths";
+import { getNextBillionAppPath } from "../../../../paths/paths";
 import {
   stylesToTailwind,
   extractClassPrefixes,
@@ -20,14 +20,17 @@ import {
   ApplyVisualEditingChangesParams,
 } from "@/ipc/types";
 import { VALID_IMAGE_MIME_TYPES } from "@/ipc/types/visual-editing";
-import { DYAD_MEDIA_DIR_NAME } from "@/ipc/utils/media_path_utils";
-import { ensureDyadGitignored } from "@/ipc/handlers/gitignoreUtils";
+import { NEXTBILLION_MEDIA_DIR_NAME } from "@/ipc/utils/media_path_utils";
+import { ensureNextBillionGitignored } from "@/ipc/handlers/gitignoreUtils";
 import {
   transformContent,
   analyzeComponent,
 } from "../../utils/visual_editing_utils";
 import { normalizePath } from "../../../../../shared/normalizePath";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { queueCloudSandboxSnapshotSync } from "@/ipc/utils/cloud_sandbox_provider";
 import { registerTrustedIpcHandler } from "@/ipc/handlers/trusted_handle";
 
@@ -51,13 +54,13 @@ export function registerVisualEditingHandlers() {
         });
 
         if (!app) {
-          throw new DyadError(
+          throw new NextBillionError(
             `App not found: ${appId}`,
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
 
-        const appPath = getDyadAppPath(app.path);
+        const appPath = getNextBillionAppPath(app.path);
 
         // Validate all image uploads upfront before making any changes
         const imageValidationErrors: string[] = [];
@@ -103,14 +106,14 @@ export function registerVisualEditingHandlers() {
               "base64",
             );
 
-            // Save to .dyad/media as a staging copy
-            const mediaDir = path.join(appPath, DYAD_MEDIA_DIR_NAME);
+            // Save to .nextbillion/media as a staging copy
+            const mediaDir = path.join(appPath, NEXTBILLION_MEDIA_DIR_NAME);
             await fsPromises.mkdir(mediaDir, { recursive: true });
             await fsPromises.writeFile(
               path.join(mediaDir, finalFileName),
               buffer,
             );
-            await ensureDyadGitignored(appPath);
+            await ensureNextBillionGitignored(appPath);
 
             // Save to public/images for the app to serve
             const publicImagesDir = path.join(appPath, "public", "images");
@@ -243,13 +246,13 @@ export function registerVisualEditingHandlers() {
         });
 
         if (!app) {
-          throw new DyadError(
+          throw new NextBillionError(
             `App not found: ${appId}`,
-            DyadErrorKind.NotFound,
+            NextBillionErrorKind.NotFound,
           );
         }
 
-        const appPath = getDyadAppPath(app.path);
+        const appPath = getNextBillionAppPath(app.path);
         const fullPath = safeJoin(appPath, filePath);
         const content = await fsPromises.readFile(fullPath, "utf-8");
         return analyzeComponent(content, line);

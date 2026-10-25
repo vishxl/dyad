@@ -32,8 +32,8 @@ describe("withoutInheritedDatabaseEnv", () => {
     expect(
       withoutInheritedDatabaseEnv({
         PGDATA: "/var/lib/pg",
-        HOME: "/home/dyad",
+        HOME: "/home/nextbillion",
       }),
-    ).toEqual({ PGDATA: "/var/lib/pg", HOME: "/home/dyad" });
+    ).toEqual({ PGDATA: "/var/lib/pg", HOME: "/home/nextbillion" });
   });
 });

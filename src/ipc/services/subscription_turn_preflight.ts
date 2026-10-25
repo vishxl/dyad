@@ -1,5 +1,5 @@
 import {
-  isDyadProEnabled,
+  isNextBillionProEnabled,
   type ModelSelection,
   type UserSettings,
 } from "@/lib/schemas";
@@ -9,12 +9,15 @@ import {
   checkExternalModelAdmission,
   type ExternalModelAdmission,
 } from "./external_model_admission";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { getAutoSidekickRuntimeModel } from "@/lib/autoSidekick";
 import { shouldBillChatGPTSubscription } from "./subscription_billing";
 import {
   AUTO_BALANCED_ALIAS,
-  AUTO_DYAD_PRO_MODEL_ALIASES,
+  AUTO_NEXTBILLION_PRO_MODEL_ALIASES,
   resolveAutoModelCandidate,
   type AutoModelCandidates,
 } from "./auto_model_candidates";
@@ -34,9 +37,9 @@ export async function preflightSubscriptionTurn(
     model.provider === "claude-code" &&
     !settings.enableClaudeCodeSubscription
   )
-    throw new DyadError(
+    throw new NextBillionError(
       'Turn on "Enable Claude Code subscription" in Settings → Experiments before using this chat.',
-      DyadErrorKind.Precondition,
+      NextBillionErrorKind.Precondition,
     );
   const resolved = await resolveSubscriptionModel(model, settings);
   const selections = [resolved];
@@ -46,7 +49,7 @@ export async function preflightSubscriptionTurn(
       runtimeModel.name === "balanced"
         ? [AUTO_BALANCED_ALIAS]
         : runtimeModel.name === "auto"
-          ? AUTO_DYAD_PRO_MODEL_ALIASES
+          ? AUTO_NEXTBILLION_PRO_MODEL_ALIASES
           : [];
     for (const alias of aliases) {
       const candidate = await resolveAutoModelCandidate(alias, settings);
@@ -66,7 +69,7 @@ export async function preflightSubscriptionTurn(
     await getCodexSubscriptionCredentials();
   let externalModelAdmission: ExternalModelAdmission | undefined;
   if (
-    isDyadProEnabled(settings) &&
+    isNextBillionProEnabled(settings) &&
     selections.some(
       (selection) =>
         (selection.connection === "subscription" &&
@@ -76,9 +79,9 @@ export async function preflightSubscriptionTurn(
   ) {
     const apiKey = settings.providerSettings?.auto?.apiKey?.value;
     if (!apiKey)
-      throw new DyadError(
-        "Connect Dyad Pro before using an external model.",
-        DyadErrorKind.Auth,
+      throw new NextBillionError(
+        "Connect NextBillion Pro before using an external model.",
+        NextBillionErrorKind.Auth,
       );
     externalModelAdmission = await checkExternalModelAdmission(apiKey, signal);
   }

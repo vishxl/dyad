@@ -3,7 +3,7 @@ const MEBIBYTE = 1024 * 1024;
 export const MAX_CHAT_ATTACHMENTS = 10;
 export const MAX_CHAT_ATTACHMENT_BYTES = 10 * MEBIBYTE;
 // PDFs are sent inline and replayed on later turns, so they get a lower cap to
-// keep several PDF turns under the Dyad Engine's 30 MB request limit.
+// keep several PDF turns under the NextBillion Engine's 30 MB request limit.
 export const MAX_CHAT_PDF_ATTACHMENT_BYTES = 5 * MEBIBYTE;
 export const MAX_CHAT_ATTACHMENTS_TOTAL_BYTES = 25 * MEBIBYTE;
 export const MAX_CHAT_PROMPT_CHARS = MEBIBYTE;

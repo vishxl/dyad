@@ -1,5 +1,8 @@
 import log from "electron-log";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { createInvocationRef } from "@/state_machines/invocation_ref";
 import type { IdSource } from "@/state_machines/clock";
 import type {
@@ -99,17 +102,17 @@ export class CoolifySetupController {
     if (this.store.getSnapshot() === before) {
       // Nothing launched: the machine refused. Named for the user rather than
       // for the log, because this is what the panel shows.
-      throw new DyadError(
+      throw new NextBillionError(
         "A server is already being set up. Wait for it to finish, or cancel it.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     const result = this.runs.get(invocationRef.operationId);
     if (!result) {
       // Unreachable: a launch command is emitted with the state change.
-      throw new DyadError(
+      throw new NextBillionError(
         "The setup did not start.",
-        DyadErrorKind.Precondition,
+        NextBillionErrorKind.Precondition,
       );
     }
     return { result, invocationRef };
@@ -188,7 +191,8 @@ export class CoolifySetupController {
       })
       .catch((error: unknown) => {
         const cancelled =
-          (error as { kind?: string }).kind === DyadErrorKind.UserCancelled;
+          (error as { kind?: string }).kind ===
+          NextBillionErrorKind.UserCancelled;
         this.dispatch({
           type: "failed",
           invocationRef,

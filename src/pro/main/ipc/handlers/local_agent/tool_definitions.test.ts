@@ -53,7 +53,7 @@ describe("Build mode tool profile", () => {
   it("accounts for serialized Build tool declarations", async () => {
     const baseOptions = {
       enableAppBlueprint: false,
-      isDyadPro: false,
+      isNextBillionPro: false,
       frameworkType: "vite" as const,
       supabaseProjectId: null,
       neonProjectId: null,
@@ -73,7 +73,7 @@ describe("Build mode tool profile", () => {
   it("accounts for tool declarations in every agent-backed mode", async () => {
     const baseOptions = {
       enableAppBlueprint: false,
-      isDyadPro: false,
+      isNextBillionPro: false,
       frameworkType: "vite" as const,
       supabaseProjectId: null,
       neonProjectId: null,
@@ -94,7 +94,7 @@ describe("Build mode tool profile", () => {
   it("accounts for connected MCP tool declarations in Agent mode", async () => {
     const baseOptions = {
       enableAppBlueprint: false,
-      isDyadPro: false,
+      isNextBillionPro: false,
       frameworkType: "vite" as const,
       supabaseProjectId: null,
       neonProjectId: null,
@@ -128,7 +128,7 @@ describe("Build mode tool profile", () => {
   it("uses runtime provider-tool availability when estimating declarations", async () => {
     const baseOptions = {
       enableAppBlueprint: false,
-      isDyadPro: false,
+      isNextBillionPro: false,
       frameworkType: "vite" as const,
       supabaseProjectId: "supabase-project",
       supabaseProviderToolsAvailable: true,
@@ -156,7 +156,7 @@ describe("discovery versus invocation availability", () => {
     )!;
     const ctx = {
       preCommitHookAvailable: false,
-      isDyadPro: true,
+      isNextBillionPro: true,
     } as import("./tools/types").AgentContext;
     expect(shouldIncludeTool(tool, ctx)).toBe(false);
     expect(shouldIncludeTool(tool, ctx, {}, "invocation")).toBe(true);
@@ -169,7 +169,7 @@ describe("discovery versus invocation availability", () => {
       appId: 987656,
       appPath: "/tmp/unused-pre-commit",
       chatId: 1,
-      isDyadPro: false,
+      isNextBillionPro: false,
       preCommitHookAvailable: true,
       preCommitRunCount: 100,
       onXmlComplete: vi.fn(),
@@ -189,12 +189,17 @@ describe("discovery versus invocation availability", () => {
     const tool = TOOL_DEFINITIONS.find((tool) => tool.name === "code_search")!;
     const ctx = {
       canUseExplorerSubagent: true,
-      isDyadPro: true,
+      isNextBillionPro: true,
     } as import("./tools/types").AgentContext;
     expect(shouldIncludeTool(tool, ctx)).toBe(false);
     expect(shouldIncludeTool(tool, ctx, {}, "invocation")).toBe(true);
     expect(
-      shouldIncludeTool(tool, { ...ctx, isDyadPro: false }, {}, "invocation"),
+      shouldIncludeTool(
+        tool,
+        { ...ctx, isNextBillionPro: false },
+        {},
+        "invocation",
+      ),
     ).toBe(false);
   });
 });
@@ -204,7 +209,7 @@ describe("shell tool registration", () => {
     const { shouldIncludeTool } = await import("./tool_definitions");
     const tool = TOOL_DEFINITIONS.find((entry) => entry.name === "run_shell")!;
     const ctx = {
-      isDyadPro: true,
+      isNextBillionPro: true,
       inferenceSettings: { enableShellTool: true },
     } as import("./tools/types").AgentContext;
     expect(shouldIncludeTool(tool, ctx)).toBe(true);
@@ -234,7 +239,7 @@ describe("shell tool registration", () => {
 import { refreshShellReviewToolInventory } from "./tool_definitions";
 it("refreshes reviewer availability from registration and invocation guards", () => {
   const ctx = {
-    isDyadPro: true,
+    isNextBillionPro: true,
     preCommitHookAvailable: false,
     shellReviewContext: {
       tools: [

@@ -214,7 +214,7 @@ export function useNotificationHandler() {
             ? ` from "${params.sourceLabel}"`
             : "";
           showWarning(
-            `"${params.toolName}"${target} needs your approval. Enable notifications for Dyad in your operating system's notification settings.`,
+            `"${params.toolName}"${target} needs your approval. Enable notifications for NextBillion in your operating system's notification settings.`,
           );
         }
         return;
@@ -235,7 +235,7 @@ export function useNotificationHandler() {
       // get app name so user knows which app is making the request
       const appName = chatSummary?.appId
         ? await resolveAppNameForAppId(chatSummary.appId, queryClient)
-        : "Dyad";
+        : "NextBillion";
       const title = appName;
 
       // A terminal event can arrive while permission or chat/app metadata is
@@ -315,7 +315,7 @@ export function useNotificationHandler() {
           toolName: descriptor.toolName,
           requestId,
           sourceLabel: descriptor.serverName || "an MCP server",
-          tagPrefix: "dyad-mcp-consent",
+          tagPrefix: "nextbillion-mcp-consent",
         });
       }
     }
@@ -340,7 +340,7 @@ export function useNotificationHandler() {
         const chatSummary = await resolveChatSummary(chatId, queryClient);
         const appName = chatSummary?.appId
           ? await resolveAppNameForAppId(chatSummary.appId, queryClient)
-          : "Dyad";
+          : "NextBillion";
         const chatTitle = chatSummary?.title ?? null;
 
         const bodyContext = summary || chatTitle || "Chat response completed";
@@ -350,7 +350,7 @@ export function useNotificationHandler() {
           chatId,
           title: appName,
           body: trimmed,
-          tag: `dyad-chat-complete-${chatId}`,
+          tag: `nextbillion-chat-complete-${chatId}`,
           autoClose: true,
         });
         return;
@@ -360,7 +360,7 @@ export function useNotificationHandler() {
         if (!completionDeniedWarningShownRef.current) {
           completionDeniedWarningShownRef.current = true;
           showWarning(
-            "Enable notifications for Dyad in your operating system's notification settings to receive chat completion alerts.",
+            "Enable notifications for NextBillion in your operating system's notification settings to receive chat completion alerts.",
           );
         }
         return;
@@ -377,7 +377,7 @@ export function useNotificationHandler() {
           if (permission === "denied") {
             completionDeniedWarningShownRef.current = true;
             showWarning(
-              "Enable notifications for Dyad in your operating system's notification settings to receive chat completion alerts.",
+              "Enable notifications for NextBillion in your operating system's notification settings to receive chat completion alerts.",
             );
           }
           return;
@@ -396,7 +396,7 @@ export function useNotificationHandler() {
             const chatSummary = await resolveChatSummary(chatId, queryClient);
             const appName = chatSummary?.appId
               ? await resolveAppNameForAppId(chatSummary.appId, queryClient)
-              : "Dyad";
+              : "NextBillion";
             const chatTitle = chatSummary?.title ?? null;
 
             const bodyContext =
@@ -407,7 +407,7 @@ export function useNotificationHandler() {
               chatId,
               title: appName,
               body: trimmed,
-              tag: `dyad-chat-complete-${chatId}`,
+              tag: `nextbillion-chat-complete-${chatId}`,
               autoClose: true,
             });
           }
@@ -437,7 +437,7 @@ export function useNotificationHandler() {
           chatId: descriptor.chatId,
           toolName: descriptor.toolName,
           requestId: descriptor.requestId,
-          tagPrefix: "dyad-agent-consent",
+          tagPrefix: "nextbillion-agent-consent",
         });
       } else if (descriptor.kind === "questionnaire") {
         startConsentNotification({
@@ -445,7 +445,7 @@ export function useNotificationHandler() {
           toolName: "Planning Questions",
           requestId: descriptor.requestId,
           sourceLabel: `${descriptor.questions.length} questions`,
-          tagPrefix: "dyad-plan-questionnaire",
+          tagPrefix: "nextbillion-plan-questionnaire",
         });
       } else if (descriptor.kind === "plugin-suggestion") {
         // Agent-initiated and turn-blocking, like a consent request, so a
@@ -454,8 +454,8 @@ export function useNotificationHandler() {
           chatId: descriptor.chatId,
           toolName: `Connect ${descriptor.serverName}`,
           requestId: descriptor.requestId,
-          tagPrefix: "dyad-plugin-suggestion",
-          body: `Dyad wants to connect the ${descriptor.serverName} plugin. Click to review.`,
+          tagPrefix: "nextbillion-plugin-suggestion",
+          body: `NextBillion wants to connect the ${descriptor.serverName} plugin. Click to review.`,
         });
       } else if (descriptor.classifier !== "racing") {
         startConsentNotification({
@@ -463,7 +463,7 @@ export function useNotificationHandler() {
           toolName: descriptor.toolName,
           requestId: descriptor.requestId,
           sourceLabel: descriptor.serverName || "an MCP server",
-          tagPrefix: "dyad-mcp-consent",
+          tagPrefix: "nextbillion-mcp-consent",
         });
       }
     });
@@ -484,7 +484,7 @@ export function useNotificationHandler() {
         toolName: descriptor.toolName,
         requestId,
         sourceLabel: descriptor.serverName || "an MCP server",
-        tagPrefix: "dyad-mcp-consent",
+        tagPrefix: "nextbillion-mcp-consent",
       });
     });
     return () => unsubscribe();
@@ -499,12 +499,12 @@ export function useNotificationHandler() {
       userInputNotificationDescriptorsRef.current.delete(requestId);
       resolveConsentNotification(
         descriptor.kind === "agent-consent"
-          ? "dyad-agent-consent"
+          ? "nextbillion-agent-consent"
           : descriptor.kind === "mcp-consent"
-            ? "dyad-mcp-consent"
+            ? "nextbillion-mcp-consent"
             : descriptor.kind === "plugin-suggestion"
-              ? "dyad-plugin-suggestion"
-              : "dyad-plan-questionnaire",
+              ? "nextbillion-plugin-suggestion"
+              : "nextbillion-plan-questionnaire",
         requestId,
       );
     });
@@ -518,7 +518,7 @@ export function useNotificationHandler() {
 
       for (const [tag, notification] of notificationsRef.current.entries()) {
         // Close completion notifications (informational, in-app handles it)
-        if (tag.startsWith("dyad-chat-complete-")) {
+        if (tag.startsWith("nextbillion-chat-complete-")) {
           notification.close();
           const timer = autoCloseTimersRef.current.get(tag);
           if (timer) clearTimeout(timer);
@@ -528,10 +528,10 @@ export function useNotificationHandler() {
         // Close consent notifications for the currently focused chat (in-app banner shows it)
         // to avoid OS + in-app UI duplication
         else if (
-          (tag.startsWith("dyad-agent-consent-") ||
-            tag.startsWith("dyad-mcp-consent-") ||
-            tag.startsWith("dyad-plugin-suggestion-") ||
-            tag.startsWith("dyad-plan-questionnaire-")) &&
+          (tag.startsWith("nextbillion-agent-consent-") ||
+            tag.startsWith("nextbillion-mcp-consent-") ||
+            tag.startsWith("nextbillion-plugin-suggestion-") ||
+            tag.startsWith("nextbillion-plan-questionnaire-")) &&
           currentChatId
         ) {
           const chatIdInTag = notificationChatIdByTagRef.current.get(tag);

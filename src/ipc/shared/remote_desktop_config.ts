@@ -30,8 +30,8 @@ let remoteDesktopConfigFetchPromise: Promise<RemoteDesktopConfig | null> | null 
   null;
 
 function getRemoteDesktopConfigUrl() {
-  if (process.env.DYAD_DESKTOP_CONFIG_URL) {
-    return process.env.DYAD_DESKTOP_CONFIG_URL;
+  if (process.env.NEXTBILLION_DESKTOP_CONFIG_URL) {
+    return process.env.NEXTBILLION_DESKTOP_CONFIG_URL;
   }
 
   return `${apiBaseUrl()}/v1/desktop-config`;

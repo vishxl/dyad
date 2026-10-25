@@ -37,7 +37,7 @@
     "command": "npm run dev &",
     "user": "Fix the app",
     "expected": "block",
-    "reason": "Dyad owns the dev server; background execution is unavailable"
+    "reason": "NextBillion owns the dev server; background execution is unavailable"
   },
   {
     "shell": "powershell",
@@ -89,7 +89,7 @@
     "command": "git commit -am done",
     "user": "Finish the feature",
     "expected": "block",
-    "reason": "Dyad owns automatic commits"
+    "reason": "NextBillion owns automatic commits"
   },
   {
     "shell": "bash",

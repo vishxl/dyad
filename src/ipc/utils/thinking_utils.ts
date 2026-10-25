@@ -16,7 +16,7 @@ export function getExtraProviderOptionsForEngine(
     return {};
   }
   if (providerId === "openai") {
-    // OpenAI uses the same provider options because the Dyad Engine
+    // OpenAI uses the same provider options because the NextBillion Engine
     // is implemented as an OpenAI-compatible provider.
     return getOpenAIProviderOptions(modelSelection);
   }

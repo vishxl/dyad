@@ -1,7 +1,7 @@
 import { runningApps } from "@/ipc/utils/process_manager";
 import { z } from "zod";
 import { readSettings } from "@/main/settings";
-import { isDyadProEnabled } from "@/lib/schemas";
+import { isNextBillionProEnabled } from "@/lib/schemas";
 import {
   isShellExperimentAvailable,
   shellExecutionGuidance,
@@ -53,7 +53,7 @@ export const runShellTool: ToolDefinition<z.infer<typeof schema>> = {
   isEnabled: (ctx) =>
     isShellExperimentAvailable({
       settings: ctx.inferenceSettings ?? readSettings(),
-      isDyadPro: ctx.isDyadPro,
+      isNextBillionPro: ctx.isNextBillionPro,
       freeModelMode: ctx.freeModelMode,
       isChild: !!ctx.mutationActivityOwner?.persona,
     }),
@@ -68,7 +68,7 @@ export const runShellTool: ToolDefinition<z.infer<typeof schema>> = {
           : status === "cancelled"
             ? "aborted"
             : "warning";
-      const xml = `<dyad-status state="${state}" title="${escapeXmlAttr(`${shell}: ${status}`)}">${escapeXmlContent(`${args.command}\n\n${body}`)}</dyad-status>`;
+      const xml = `<nextbillion-status state="${state}" title="${escapeXmlAttr(`${shell}: ${status}`)}">${escapeXmlContent(`${args.command}\n\n${body}`)}</nextbillion-status>`;
       if (final) ctx.onXmlComplete(xml);
       else ctx.onXmlStream(xml);
     };
@@ -84,7 +84,8 @@ export const runShellTool: ToolDefinition<z.infer<typeof schema>> = {
       if (mode === "cloud" || mode === "docker") return false;
       return isShellExperimentAvailable({
         settings,
-        isDyadPro: ctx.isDyadPro && isDyadProEnabled(settings),
+        isNextBillionPro:
+          ctx.isNextBillionPro && isNextBillionProEnabled(settings),
         freeModelMode: ctx.freeModelMode,
         isChild: !!ctx.mutationActivityOwner?.persona,
       });
@@ -218,7 +219,7 @@ export const runShellTool: ToolDefinition<z.infer<typeof schema>> = {
           truncated: false,
         }));
         const shutdownNotice =
-          "Shell process shutdown could not be confirmed. A descendant may still be running. Stop it externally and restart Dyad before modifying this app.";
+          "Shell process shutdown could not be confirmed. A descendant may still be running. Stop it externally and restart NextBillion before modifying this app.";
         if (result.shutdownUnconfirmed) {
           // Do not release admission to competing mutations while escaped work may remain.
           appOperationCoordinator.blockConflictingOperations(

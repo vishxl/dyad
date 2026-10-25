@@ -18,7 +18,10 @@ import {
 } from "../../connection_flow/state";
 import { safeSend } from "../utils/safe_sender";
 import { publishQueryInvalidations } from "../utils/query_invalidation_delivery";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const logger = log.scope("connection_flow");
 
@@ -177,9 +180,9 @@ export async function runOAuthReturnExchange(
     return {
       ok: false,
       claimed: false,
-      error: new DyadError(
+      error: new NextBillionError(
         `The ${provider} OAuth return did not match an active connection flow.`,
-        DyadErrorKind.Auth,
+        NextBillionErrorKind.Auth,
       ),
     };
   }
@@ -241,9 +244,9 @@ export function registerConnectionFlowHandlers(): void {
       params.expectedRevision,
     );
     if (!result.admitted) {
-      throw new DyadError(
+      throw new NextBillionError(
         `Connection flow changed before ${params.provider} start was admitted.`,
-        DyadErrorKind.Conflict,
+        NextBillionErrorKind.Conflict,
       );
     }
     if (result.started) {
@@ -258,7 +261,7 @@ export function registerConnectionFlowHandlers(): void {
         });
       } else {
         // Deep-link providers (Supabase/Neon) have no async preparation:
-        // the flow goes straight to awaiting the dyad:// return.
+        // the flow goes straight to awaiting the nextbillion:// return.
         connectionFlowRegistry.markPrepared(
           params.provider,
           result.invocationRef,
@@ -287,9 +290,9 @@ export function registerConnectionFlowHandlers(): void {
         params.expectedRevision,
       );
       if (!result.admitted) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Connection flow changed before ${params.provider} acknowledgement was admitted.`,
-          DyadErrorKind.Conflict,
+          NextBillionErrorKind.Conflict,
         );
       }
     },

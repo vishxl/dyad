@@ -20,9 +20,12 @@ import {
   MAX_AUDIO_REQUEST_ID_LENGTH,
 } from "../types/audio";
 import type { TranscribeAudioParams } from "../types/audio";
-import { transcribeWithDyadEngine } from "../utils/llm_engine_provider";
-import { getDyadEngineBaseUrl } from "../utils/dyad_engine_url";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import { transcribeWithNextBillionEngine } from "../utils/llm_engine_provider";
+import { getNextBillionEngineBaseUrl } from "../utils/nextbillion_engine_url";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 import { fetchUserInfo } from "../services/user_budget_service";
 export {
@@ -39,9 +42,9 @@ function validateAudioTranscriptionRequest(input: TranscribeAudioParams) {
     input.audioData.byteLength === 0 ||
     input.audioData.byteLength > MAX_AUDIO_RECORDING_BYTES
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       `Audio data must be between 1 and ${MAX_AUDIO_RECORDING_BYTES} bytes`,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
@@ -54,7 +57,10 @@ function validateAudioTranscriptionRequest(input: TranscribeAudioParams) {
     trimmedFilename === "." ||
     trimmedFilename === ".."
   ) {
-    throw new DyadError("Invalid audio filename", DyadErrorKind.Validation);
+    throw new NextBillionError(
+      "Invalid audio filename",
+      NextBillionErrorKind.Validation,
+    );
   }
 
   if (
@@ -62,23 +68,24 @@ function validateAudioTranscriptionRequest(input: TranscribeAudioParams) {
     input.requestId.length > MAX_AUDIO_REQUEST_ID_LENGTH ||
     !AUDIO_REQUEST_ID_PATTERN.test(input.requestId)
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Invalid transcription request ID",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 }
 
 function getSubscriptionStatusUrl() {
   return (
-    process.env.DYAD_SUBSCRIPTION_STATUS_URL ??
+    process.env.NEXTBILLION_SUBSCRIPTION_STATUS_URL ??
     `${academyBaseUrl()}/api/desktop/subscription-status`
   );
 }
 
 function getSubscriptionStatusApiKey() {
   const url = getSubscriptionStatusUrl();
-  const fixtureApiKey = process.env.DYAD_SUBSCRIPTION_STATUS_FIXTURE_API_KEY;
+  const fixtureApiKey =
+    process.env.NEXTBILLION_SUBSCRIPTION_STATUS_FIXTURE_API_KEY;
   if (fixtureApiKey) {
     try {
       const hostname = new URL(url).hostname;
@@ -101,7 +108,10 @@ export function parseBillingActionUrl(value: string) {
   try {
     url = new URL(value);
   } catch {
-    throw new DyadError("Invalid billing action URL", DyadErrorKind.Validation);
+    throw new NextBillionError(
+      "Invalid billing action URL",
+      NextBillionErrorKind.Validation,
+    );
   }
   if (
     url.protocol !== "https:" ||
@@ -110,7 +120,10 @@ export function parseBillingActionUrl(value: string) {
     url.password !== "" ||
     url.port !== ""
   ) {
-    throw new DyadError("Invalid billing action URL", DyadErrorKind.Validation);
+    throw new NextBillionError(
+      "Invalid billing action URL",
+      NextBillionErrorKind.Validation,
+    );
   }
   return url.toString();
 }
@@ -139,7 +152,7 @@ export function registerProHandlers() {
 
     if (!apiKey) {
       // Expected state for non-Pro users; not an error.
-      logger.debug("LLM Gateway API key (Dyad Pro) is not configured.");
+      logger.debug("LLM Gateway API key (NextBillion Pro) is not configured.");
       return null;
     }
 
@@ -175,7 +188,7 @@ export function registerProHandlers() {
     if (!apiKey) {
       return null;
     }
-    if (IS_TEST_BUILD && !process.env.DYAD_SUBSCRIPTION_STATUS_URL) {
+    if (IS_TEST_BUILD && !process.env.NEXTBILLION_SUBSCRIPTION_STATUS_URL) {
       return null;
     }
 
@@ -214,10 +227,10 @@ export function registerProHandlers() {
       const settings = readSettings();
       const apiKey = settings.providerSettings?.auto?.apiKey?.value;
 
-      if (!apiKey || !settings.enableDyadPro) {
-        throw new DyadError(
-          "Dyad Pro is not enabled. Voice-to-text requires a Pro subscription.",
-          DyadErrorKind.Auth,
+      if (!apiKey || !settings.enableNextBillionPro) {
+        throw new NextBillionError(
+          "NextBillion Pro is not enabled. Voice-to-text requires a Pro subscription.",
+          NextBillionErrorKind.Auth,
         );
       }
 
@@ -229,14 +242,14 @@ export function registerProHandlers() {
         input.audioData.byteLength,
       );
 
-      const text = await transcribeWithDyadEngine(
+      const text = await transcribeWithNextBillionEngine(
         audioBuffer,
         input.filename,
         input.requestId,
         {
           apiKey,
-          baseURL: getDyadEngineBaseUrl(),
-          dyadOptions: {},
+          baseURL: getNextBillionEngineBaseUrl(),
+          nextBillionOptions: {},
           settings,
         },
       );

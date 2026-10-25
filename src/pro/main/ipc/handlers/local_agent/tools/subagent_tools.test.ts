@@ -1,5 +1,8 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 const subagentManagerMocks = vi.hoisted(() => ({
   cancelSubagent: vi.fn(async () => {}),
@@ -278,7 +281,7 @@ describe("spawn_agent schema", () => {
       "implementer-1",
     );
     subagentManagerMocks.waitForSubagents.mockRejectedValueOnce(
-      new DyadError("wait failed", DyadErrorKind.UserCancelled),
+      new NextBillionError("wait failed", NextBillionErrorKind.UserCancelled),
     );
     subagentManagerMocks.cancelSubagent.mockRejectedValueOnce(
       new Error("cancel failed"),
@@ -301,7 +304,7 @@ describe("spawn_agent schema", () => {
       ctx,
     );
     await expect(result).rejects.toMatchObject({
-      kind: DyadErrorKind.UserCancelled,
+      kind: NextBillionErrorKind.UserCancelled,
       message:
         "The sub-agent wait failed: wait failed Cancellation also failed: cancel failed",
     });
@@ -338,7 +341,7 @@ describe("spawn_agent schema", () => {
   it("hides advanced tools by default and when explicitly disabled", () => {
     for (const canUseAdvancedSubagentTools of [undefined, false]) {
       const ctx = {
-        isDyadPro: true,
+        isNextBillionPro: true,
         canUseAdvancedSubagentTools,
       } as AgentContext;
 
@@ -350,7 +353,7 @@ describe("spawn_agent schema", () => {
 
   it("exposes advanced tools to enabled root turns", () => {
     const ctx = {
-      isDyadPro: true,
+      isNextBillionPro: true,
       canUseAdvancedSubagentTools: true,
     } as AgentContext;
 
@@ -361,7 +364,7 @@ describe("spawn_agent schema", () => {
 
   it("keeps advanced tools hidden from child agents when enabled for root", () => {
     const root = {
-      isDyadPro: true,
+      isNextBillionPro: true,
       canUseAdvancedSubagentTools: true,
       sharedServerModulePaths: [],
       pendingFunctionDeploys: [],

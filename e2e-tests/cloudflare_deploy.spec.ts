@@ -26,7 +26,7 @@ const electronConfig: ElectronConfig = {
   // Cloudflare deployment is off by default, so every spec here opts in.
   preLaunchHook: async ({ userDataDir }) => {
     // Set here because the fixture clears it before each launch.
-    process.env.DYAD_TEST_PNPM_VERSION = TEST_PNPM_VERSION;
+    process.env.NEXTBILLION_TEST_PNPM_VERSION = TEST_PNPM_VERSION;
     await fs.mkdir(userDataDir, { recursive: true });
     await fs.writeFile(
       path.join(userDataDir, "user-settings.json"),
@@ -40,7 +40,7 @@ const test = testWithConfig(electronConfig);
 
 // Later spec files in this worker read the variable when they load.
 test.afterAll(() => {
-  delete process.env.DYAD_TEST_PNPM_VERSION;
+  delete process.env.NEXTBILLION_TEST_PNPM_VERSION;
 });
 
 /** Fails here, by name, rather than later as a puzzling assertion. */
@@ -146,7 +146,7 @@ test("waits for Cloudflare to get access to the repository, then continues", asy
   });
   await expect(po.page.getByTestId("cloudflare-worker-form")).toBeHidden();
 
-  // The user grants access in a browser; Dyad notices without being told.
+  // The user grants access in a browser; NextBillion notices without being told.
   await fakeCloudflare(fakeLlmPort, "grant-github-access", { method: "POST" });
 
   await expect(po.page.getByTestId("cloudflare-worker-form")).toBeVisible({

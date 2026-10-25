@@ -4,7 +4,10 @@ import type {
   LanguageModelV3StreamPart,
   LanguageModelV3StreamResult,
 } from "@ai-sdk/provider";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 /** Adapt a streaming-only provider for auxiliary generateText/generateObject calls. */
 export async function collectModelStream(
@@ -79,9 +82,9 @@ export async function collectModelStream(
       }
     }
     if (!finish)
-      throw new DyadError(
+      throw new NextBillionError(
         "Model stream ended without a completion result.",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     return {
       content,

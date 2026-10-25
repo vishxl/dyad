@@ -7,7 +7,10 @@ import {
   type ChatMode,
   type UserSettings,
 } from "@/lib/schemas";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { MAX_AI_MESSAGES_SIZE } from "@/ipc/utils/ai_messages_utils";
 import { isSandboxSupportedPlatform } from "@/ipc/utils/sandbox/runner";
 import { isSandboxScriptExecutionEnabled } from "@/pro/main/ipc/handlers/local_agent/tools/execute_sandbox_script";
@@ -158,9 +161,9 @@ export function assertInlineAttachmentsFit(
     encodedChars + promptChars + AI_MESSAGE_JSON_HEADROOM_CHARS >
     MAX_AI_MESSAGES_SIZE
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       INLINE_ATTACHMENTS_TOO_LARGE_MESSAGE,
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 }

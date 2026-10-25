@@ -163,7 +163,7 @@ export async function startHeadlessAppPreview({
       type: "server",
       appId,
       timestamp: Date.now(),
-      message: `[dyad-harness] dev server failed to become ready: ${message}`,
+      message: `[nextbillion-harness] dev server failed to become ready: ${message}`,
     });
     return { ok: false, port, error: message };
   }

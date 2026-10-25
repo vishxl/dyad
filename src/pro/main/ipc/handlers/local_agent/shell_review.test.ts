@@ -10,7 +10,9 @@ afterEach(async () => {
   );
 });
 async function setup() {
-  const root = await mkdtemp(path.join(os.tmpdir(), "dyad-shell-evidence-"));
+  const root = await mkdtemp(
+    path.join(os.tmpdir(), "nextbillion-shell-evidence-"),
+  );
   dirs.push(root);
   const tool = buildShellInspectionTool(root, new AbortController().signal);
   return {

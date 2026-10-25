@@ -184,7 +184,10 @@ import {
   uploadCloudSandboxFiles,
 } from "@/ipc/utils/cloud_sandbox_provider";
 import { processCounter, runningApps } from "@/ipc/utils/process_manager";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 class FakeChildProcess extends EventEmitter {
   pid: number;
@@ -229,7 +232,7 @@ function createOutput(
 }
 
 async function createTempAppDir(): Promise<string> {
-  return mkdtemp(path.join(os.tmpdir(), "dyad-runtime-pm-"));
+  return mkdtemp(path.join(os.tmpdir(), "nextbillion-runtime-pm-"));
 }
 
 async function writePackageJson(
@@ -1765,7 +1768,9 @@ describe("executeApp", () => {
   it("surfaces a proxy port-exhaustion error to the renderer", async () => {
     const terminate = vi.fn();
     startProxyMock.mockImplementation(async (_originalUrl, opts) => {
-      opts.onError?.(new DyadError("all ports in use", DyadErrorKind.Conflict));
+      opts.onError?.(
+        new NextBillionError("all ports in use", NextBillionErrorKind.Conflict),
+      );
       return { terminate };
     });
     runningApps.set(42, {

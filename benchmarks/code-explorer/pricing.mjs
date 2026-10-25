@@ -8,7 +8,7 @@ export const MODEL_PRICING = {
   },
   value: {
     model: "gpt-5.4-mini",
-    label: "Value dyad/value as GPT-5.4 mini",
+    label: "Value nextbillion/value as GPT-5.4 mini",
     inputPerMillion: 0.75,
     cachedInputPerMillion: 0.075,
     outputPerMillion: 4.5,

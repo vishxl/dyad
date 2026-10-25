@@ -6,7 +6,7 @@ vi.mock("@/hooks/useSettings", () => ({
   useSettings: () => ({
     settings: {
       enableShellTool: false,
-      enableDyadPro: mocks.pro,
+      enableNextBillionPro: mocks.pro,
       providerSettings: { auto: { apiKey: { value: "test" } } },
     },
     updateSettings: mocks.updateSettings,

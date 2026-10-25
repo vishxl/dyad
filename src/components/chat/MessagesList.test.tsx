@@ -29,7 +29,7 @@ vi.mock("@/hooks/useSettings", () => ({
 }));
 vi.mock("@/hooks/useChatMode", () => ({
   useChatMode: (chatId: number) => ({
-    chat: { executionBackend: chatId === 2 ? "claude-code" : "dyad" },
+    chat: { executionBackend: chatId === 2 ? "claude-code" : "nextbillion" },
   }),
 }));
 vi.mock("@/hooks/useLanguageModelProviders", () => ({

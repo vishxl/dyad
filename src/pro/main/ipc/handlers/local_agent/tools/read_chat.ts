@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { db } from "@/db";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { projectChatMessageForSearch } from "./chat_search_text";
 import {
   AgentContext,
@@ -127,10 +130,13 @@ function toIso(unixSeconds: number): string {
   return new Date(unixSeconds * 1000).toISOString();
 }
 
-function notFound(): DyadError {
+function notFound(): NextBillionError {
   // Missing and cross-app IDs are indistinguishable by design — no
   // cross-app existence disclosure.
-  return new DyadError("Chat or message not found", DyadErrorKind.NotFound);
+  return new NextBillionError(
+    "Chat or message not found",
+    NextBillionErrorKind.NotFound,
+  );
 }
 
 function buildReadChatXml(params: {
@@ -150,9 +156,9 @@ function buildReadChatXml(params: {
   if (!params.complete) {
     attrs.push(`state="pending"`);
   }
-  return `<dyad-read-chat ${attrs.join(" ")}>${
+  return `<nextbillion-read-chat ${attrs.join(" ")}>${
     params.content ? escapeXmlContent(params.content) : ""
-  }</dyad-read-chat>`;
+  }</nextbillion-read-chat>`;
 }
 
 export const readChatTool: ToolDefinition<ReadChatArgs> = {

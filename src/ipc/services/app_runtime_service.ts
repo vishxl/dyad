@@ -41,9 +41,12 @@ import {
   invocationRegistryKey,
   sameInvocationRef,
 } from "@/state_machines/invocation_ref";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { addLog, clearLogs } from "@/lib/log_store";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 import { startProxy } from "@/ipc/utils/start_proxy_server";
 import {
   buildCloudSandboxFileMap,
@@ -117,11 +120,11 @@ export function formatCloudSandboxError(error: unknown) {
 
   switch (error.code) {
     case "sandbox_pro_required":
-      return "Dyad Pro is required to use cloud sandboxes.";
+      return "NextBillion Pro is required to use cloud sandboxes.";
     case "sandbox_insufficient_credits":
       return "You need at least 1 credit available to start a cloud sandbox.";
     case "sandbox_billing_unavailable":
-      return "Dyad couldn’t verify sandbox billing right now. Please try again.";
+      return "NextBillion couldn’t verify sandbox billing right now. Please try again.";
     case "sandbox_credits_exhausted":
       return "This cloud sandbox stopped because your credits ran out.";
     default:
@@ -129,13 +132,13 @@ export function formatCloudSandboxError(error: unknown) {
         return "This cloud sandbox is no longer available.";
       }
       if (error.status === 401 || error.status === 403) {
-        return "Dyad couldn’t authorize the cloud sandbox request. Please try again.";
+        return "NextBillion couldn’t authorize the cloud sandbox request. Please try again.";
       }
       if (error.status === 429) {
-        return "Dyad is rate limiting cloud sandbox requests right now. Please try again.";
+        return "NextBillion is rate limiting cloud sandbox requests right now. Please try again.";
       }
       if (typeof error.status === "number" && error.status >= 500) {
-        return "Dyad’s cloud sandbox service is temporarily unavailable. Please try again.";
+        return "NextBillion’s cloud sandbox service is temporarily unavailable. Please try again.";
       }
       return error.message;
   }
@@ -169,14 +172,14 @@ function getNpmInstallCommand(): string {
 
 /* Hosted mode: Vite dev servers emit root-absolute module URLs ("/src/App.tsx",
  * "/node_modules/.vite/deps/...") that resolve against the origin root. Behind
- * the /preview/<port> path prefix those route to the Dyad UI instead of the
+ * the /preview/<port> path prefix those route to the NextBillion UI instead of the
  * app, silently killing the module graph — the preview loads blank. Vite's
  * native --base fixes HTML assets, JS imports, and HMR at once, so it's only
  * passed to Vite apps (other dev servers reject the unknown flag).
  * ponytail: JS fetch("/api/...") in app code still resolves root-absolute;
  * if apps need backend calls, that wants the phase-2 per-preview subdomains. */
 function getViteBaseArg(appPath: string, appId: number): string {
-  if (!process.env.DYAD_PREVIEW_PUBLIC_URL_BASE) return "";
+  if (!process.env.NEXTBILLION_PREVIEW_PUBLIC_URL_BASE) return "";
   const hasVite =
     fs.existsSync(path.join(appPath, "vite.config.ts")) ||
     fs.existsSync(path.join(appPath, "vite.config.js")) ||
@@ -457,7 +460,7 @@ export async function executeApp({
 
 // Discovery nudge for the consented "Migrate to pnpm N" app upgrade: the
 // contradiction (old pin/lockfile vs the managed pnpm) only bites outside
-// Dyad (CI, deploys, teammates), so surface it in the console the user is
+// NextBillion (CI, deploys, teammates), so surface it in the console the user is
 // already watching instead of failing or silently rewriting the pin.
 function notifyPnpmVersionMigrationAvailable({
   appPath,
@@ -476,7 +479,7 @@ function notifyPnpmVersionMigrationAvailable({
     if (!pnpmVersionMigrationNotifiedAppIds.has(appId)) {
       output.send({
         type: "stdout",
-        message: `This pnpm app needs a pnpm ${managedMajor} migration (pre-9 lockfile or pnpm <= 8 pin). Dyad already runs pnpm ${managedMajor}, so deploys, CI, and teammates' installs can drift without the matching project pin. Open App Details -> App Upgrades and apply "Migrate to pnpm ${managedMajor}".`,
+        message: `This pnpm app needs a pnpm ${managedMajor} migration (pre-9 lockfile or pnpm <= 8 pin). NextBillion already runs pnpm ${managedMajor}, so deploys, CI, and teammates' installs can drift without the matching project pin. Open App Details -> App Upgrades and apply "Migrate to pnpm ${managedMajor}".`,
         appId,
       });
       pnpmVersionMigrationNotifiedAppIds.add(appId);
@@ -484,7 +487,7 @@ function notifyPnpmVersionMigrationAvailable({
     output.send({
       type: "package-manager-warning",
       warningKind: "pnpm-migration",
-      message: `This app pins an older pnpm that can't read the lockfile Dyad writes. Migrate to pnpm ${managedMajor} so CI, deploys, and teammates can install it reliably.`,
+      message: `This app pins an older pnpm that can't read the lockfile NextBillion writes. Migrate to pnpm ${managedMajor} so CI, deploys, and teammates can install it reliably.`,
       appId,
     });
   } catch (error) {
@@ -511,7 +514,7 @@ export function emitProxyServerStarted({
 }) {
   output.send({
     type: "stdout",
-    message: `[dyad-proxy-server]started=[${proxyUrl}] original=[${originalUrl}] mode=[${mode}]`,
+    message: `[nextbillion-proxy-server]started=[${proxyUrl}] original=[${originalUrl}] mode=[${mode}]`,
     appId,
     invocationRef,
     previewAuth,
@@ -855,7 +858,8 @@ export async function ensureProxyForRunningApp({
         type: "stderr",
         appId,
         invocationRef,
-        message: "[dyad-proxy-server] " + appInfo.proxyStartupError.message,
+        message:
+          "[nextbillion-proxy-server] " + appInfo.proxyStartupError.message,
       });
       controller.abort();
     } finally {
@@ -1002,7 +1006,7 @@ Details: ${details || "n/a"}
             output.send({
               type: "stdout",
               message:
-                "pnpm blocked dependency build scripts. Dyad recorded the decision in pnpm-workspace.yaml and is reinstalling...",
+                "pnpm blocked dependency build scripts. NextBillion recorded the decision in pnpm-workspace.yaml and is reinstalling...",
               appId,
             });
 
@@ -1343,7 +1347,7 @@ async function executeAppInDocker({
   invocationRef?: AppRunInvocationRef;
   ignoredBuildsSelfHealAttempted?: boolean;
 }): Promise<void> {
-  const containerName = `dyad-app-${appId}`;
+  const containerName = `nextbillion-app-${appId}`;
 
   try {
     await new Promise<void>((resolve, reject) => {
@@ -1385,7 +1389,7 @@ async function executeAppInDocker({
     );
   }
 
-  const dockerfilePath = path.join(appPath, "Dockerfile.dyad");
+  const dockerfilePath = path.join(appPath, "Dockerfile.nextbillion");
   if (!fs.existsSync(dockerfilePath)) {
     const dockerfileContent = `FROM node:22-alpine
 
@@ -1397,16 +1401,23 @@ RUN npm install -g pnpm
       await fs.promises.writeFile(dockerfilePath, dockerfileContent, "utf-8");
     } catch (error) {
       logger.error(`Failed to create Dockerfile for app ${appId}:`, error);
-      throw new DyadError(
+      throw new NextBillionError(
         `Failed to create Dockerfile: ${error}`,
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   }
 
   const buildProcess = spawn(
     "docker",
-    ["build", "-f", "Dockerfile.dyad", "-t", `dyad-app-${appId}`, "."],
+    [
+      "build",
+      "-f",
+      "Dockerfile.nextbillion",
+      "-t",
+      `nextbillion-app-${appId}`,
+      ".",
+    ],
     {
       cwd: appPath,
       stdio: "pipe",
@@ -1444,12 +1455,12 @@ RUN npm install -g pnpm
       "-v",
       `${appPath}:/app`,
       "-v",
-      `dyad-pnpm-${appId}:/app/.pnpm-store`,
+      `nextbillion-pnpm-${appId}:/app/.pnpm-store`,
       "-e",
       "PNPM_STORE_PATH=/app/.pnpm-store",
       "-w",
       "/app",
-      `dyad-app-${appId}`,
+      `nextbillion-app-${appId}`,
       "sh",
       "-c",
       (
@@ -1551,7 +1562,7 @@ ${errorOutput || "(empty)"}`,
             output.send({
               type: "stdout",
               message:
-                "pnpm blocked dependency build scripts. Dyad recorded the decision in pnpm-workspace.yaml and is reinstalling...",
+                "pnpm blocked dependency build scripts. NextBillion recorded the decision in pnpm-workspace.yaml and is reinstalling...",
               appId,
             });
 
@@ -2035,9 +2046,9 @@ export class AppRuntimeService {
             this.dependencies.deleteRunningApp(appId);
           }
         }
-        throw new DyadError(
+        throw new NextBillionError(
           `Failed to run app ${appId}: ${errorMessage(error)}`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
     });
@@ -2144,9 +2155,9 @@ export class AppRuntimeService {
         } else if (appInfo.mode !== "cloud") {
           this.dependencies.deleteRunningApp(appId);
         }
-        throw new DyadError(
+        throw new NextBillionError(
           `Failed to stop app ${appId}: ${errorMessage(error)}`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       } finally {
         appInfo.stopRequested = false;
@@ -2204,7 +2215,7 @@ export class AppRuntimeService {
       type: "server",
       level: "info",
       message,
-      sourceName: "Dyad",
+      sourceName: "NextBillion",
       appId: options.appId,
       timestamp,
       runtimeBoundary: options.operation,
@@ -2245,9 +2256,9 @@ export class AppRuntimeService {
       options.invocationRef ?? this.createExternalLifecycleRef(options.appId);
     if (options.abortSignal?.aborted) {
       this.cancelExternalLifecycle(invocationRef);
-      throw new DyadError(
+      throw new NextBillionError(
         "The app lifecycle operation was cancelled before it started",
-        DyadErrorKind.UserCancelled,
+        NextBillionErrorKind.UserCancelled,
       );
     }
     const claim = this.claimExternalLifecycle({
@@ -2255,9 +2266,9 @@ export class AppRuntimeService {
       invocationRef,
     });
     if (!claim) {
-      throw new DyadError(
+      throw new NextBillionError(
         "The app lifecycle operation was cancelled before it started",
-        DyadErrorKind.UserCancelled,
+        NextBillionErrorKind.UserCancelled,
       );
     }
     try {
@@ -2302,7 +2313,10 @@ export class AppRuntimeService {
   private async requireApp(appId: number): Promise<RuntimeAppRecord> {
     const app = await this.dependencies.findApp(appId);
     if (!app) {
-      throw new DyadError("App not found", DyadErrorKind.NotFound);
+      throw new NextBillionError(
+        "App not found",
+        NextBillionErrorKind.NotFound,
+      );
     }
     return app;
   }
@@ -2429,9 +2443,9 @@ async function waitForAppReady(
   while (Date.now() - startedAt < timeoutMs) {
     const appInfo = runningApps.get(appId);
     if (!appInfo) {
-      throw new DyadError(
+      throw new NextBillionError(
         "The app process exited before the preview became ready",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
     if (appInfo.proxyStartupError) throw appInfo.proxyStartupError;
@@ -2447,9 +2461,9 @@ async function waitForAppReady(
   }
   // The dev process is still running. Keep its proxy lifetime alive so a late
   // ready URL can recover after a slow first install/build.
-  throw new DyadError(
+  throw new NextBillionError(
     "Timed out waiting for the app preview to become ready",
-    DyadErrorKind.External,
+    NextBillionErrorKind.External,
   );
 }
 
@@ -2467,7 +2481,7 @@ export const appRuntimeService = new AppRuntimeService({
     db.query.apps.findFirst({
       where: eq(apps.id, appId),
     }),
-  resolveAppPath: getDyadAppPath,
+  resolveAppPath: getNextBillionAppPath,
   getRunningApp: (appId) => runningApps.get(appId),
   deleteRunningApp: (appId) => {
     runningApps.delete(appId);

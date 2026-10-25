@@ -15,9 +15,9 @@ export interface MentionedAppCodebase {
 }
 
 export interface GetProviderOptionsParams {
-  dyadAppId: number;
-  dyadRequestId?: string;
-  dyadDisableFiles?: boolean;
+  nextBillionAppId: number;
+  nextBillionRequestId?: string;
+  nextBillionDisableFiles?: boolean;
   smartContextMode?: SmartContextMode;
   files: CodebaseFile[];
   versionedFiles?: VersionedFiles;
@@ -32,9 +32,9 @@ export interface GetProviderOptionsParams {
  * Handles provider-specific configuration including thinking configs for Google/Vertex/Anthropic.
  */
 export function getProviderOptions({
-  dyadAppId,
-  dyadRequestId,
-  dyadDisableFiles,
+  nextBillionAppId,
+  nextBillionRequestId,
+  nextBillionDisableFiles,
   smartContextMode,
   files,
   versionedFiles,
@@ -44,17 +44,19 @@ export function getProviderOptions({
   modelSelection,
 }: GetProviderOptionsParams): Record<string, any> {
   const providerOptions: Record<string, any> = {
-    "dyad-engine": {
-      dyadAppId,
-      dyadRequestId,
-      dyadDisableFiles,
-      dyadSmartContextMode: smartContextMode,
-      dyadFiles: versionedFiles ? undefined : files,
-      dyadVersionedFiles: versionedFiles,
-      dyadMentionedApps: mentionedAppsCodebases.map(({ files, appName }) => ({
-        appName,
-        files,
-      })),
+    "nextbillion-engine": {
+      nextBillionAppId,
+      nextBillionRequestId,
+      nextBillionDisableFiles,
+      nextBillionSmartContextMode: smartContextMode,
+      nextBillionFiles: versionedFiles ? undefined : files,
+      nextBillionVersionedFiles: versionedFiles,
+      nextBillionMentionedApps: mentionedAppsCodebases.map(
+        ({ files, appName }) => ({
+          appName,
+          files,
+        }),
+      ),
     },
     openai: {
       reasoningSummary: "auto",
@@ -116,12 +118,12 @@ export function getProviderOptions({
 
 // Header used to pass the request ID through AI SDK models that don't forward
 // providerOptions into the request body (e.g. OpenAIResponsesLanguageModel).
-export const DYAD_INTERNAL_REQUEST_ID_HEADER =
-  "x-dyad-internal-request-id" as const;
+export const NEXTBILLION_INTERNAL_REQUEST_ID_HEADER =
+  "x-nextbillion-internal-request-id" as const;
 
 export interface GetAiHeadersParams {
   builtinProviderId: string | undefined;
-  dyadRequestId?: string;
+  nextBillionRequestId?: string;
 }
 
 /**
@@ -131,7 +133,7 @@ export interface GetAiHeadersParams {
 export function getAiHeaders(
   params: GetAiHeadersParams,
 ): Record<string, string> | undefined {
-  return params.dyadRequestId
-    ? { [DYAD_INTERNAL_REQUEST_ID_HEADER]: params.dyadRequestId }
+  return params.nextBillionRequestId
+    ? { [NEXTBILLION_INTERNAL_REQUEST_ID_HEADER]: params.nextBillionRequestId }
     : undefined;
 }

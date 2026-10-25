@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DyadErrorKind } from "@/errors/dyad_error";
+import { NextBillionErrorKind } from "@/errors/nextbillion_error";
 const mocks = vi.hoisted(() => ({
   clear: vi.fn(),
   get: vi.fn(),
@@ -66,7 +66,7 @@ describe("recording storage cleanup", () => {
     "http://child.app-42.localhost:42142",
   ])("refuses ambiguous cleanup for %s", async (origin) => {
     await expect(clearPreviewStorage(origin)).rejects.toMatchObject({
-      kind: DyadErrorKind.Validation,
+      kind: NextBillionErrorKind.Validation,
     });
     expect(mocks.clear).not.toHaveBeenCalled();
   });

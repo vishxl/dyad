@@ -7,7 +7,7 @@ testSkipIfWindows(
     const fakeEngineStateUrl = `http://localhost:${po.fakeLlmPort}/test/engine-web-crawl-hang`;
     await fetch(`${fakeEngineStateUrl}/reset`, { method: "POST" });
 
-    await po.setUpDyadPro({ localAgent: true });
+    await po.setUpNextBillionPro({ localAgent: true });
     await po.importApp("minimal");
     await po.chatActions.selectLocalAgentMode();
 

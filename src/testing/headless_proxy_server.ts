@@ -16,7 +16,7 @@
  *
  * This module returns a drop-in module shape with the identical contract but
  * an absolute path to the real `worker/proxy_server.js`, so everything
- * downstream (proxyUrl, `[dyad-proxy-server]started=[…]`, the app-run actor's
+ * downstream (proxyUrl, `[nextbillion-proxy-server]started=[…]`, the app-run actor's
  * PROXY_READY transition, `waitForAppReady`) behaves exactly as in production.
  *
  * Install it from a test file's hoisted section:
@@ -35,7 +35,10 @@ import fs from "node:fs";
 import path from "node:path";
 import { Worker } from "node:worker_threads";
 
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   PROXY_FALLBACK_MAX_ATTEMPTS,
   getProxyFallbackPortStart,
@@ -46,7 +49,7 @@ import {
  * detect a missing `vi.mock` immediately instead of stalling for two minutes
  * inside `waitForAppReady`.
  */
-export const HEADLESS_PROXY_MARKER = "__dyadHeadlessProxy" as const;
+export const HEADLESS_PROXY_MARKER = "__nextBillionHeadlessProxy" as const;
 
 export function resolveProxyWorkerPath(): string {
   const candidates = [
@@ -71,7 +74,7 @@ export interface HeadlessStartProxyOptions {
   authBootstrapToken: string;
   signal?: AbortSignal;
   onStarted?: (proxyUrl: string) => void;
-  onError?: (error: DyadError) => void;
+  onError?: (error: NextBillionError) => void;
   fixedHeaders?: Record<string, string>;
 }
 
@@ -88,9 +91,9 @@ export function createHeadlessProxyModule(): {
     opts: HeadlessStartProxyOptions,
   ): Promise<Worker> => {
     if (!/^https?:\/\//.test(targetOrigin)) {
-      throw new DyadError(
+      throw new NextBillionError(
         "startProxy: targetOrigin must be absolute http/https URL",
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
     const { port, onStarted, onError, fixedHeaders } = opts;
@@ -110,7 +113,7 @@ export function createHeadlessProxyModule(): {
 
     let started = false;
     let reportedError = false;
-    const reportError = (error: DyadError) => {
+    const reportError = (error: NextBillionError) => {
       if (reportedError || opts.signal?.aborted) return;
       reportedError = true;
       onError?.(error);
@@ -121,22 +124,22 @@ export function createHeadlessProxyModule(): {
         onStarted?.(m.substring("proxy-server-start url=".length));
       } else if (typeof m === "string" && m.startsWith("proxy-server-error")) {
         reportError(
-          new DyadError(
+          new NextBillionError(
             `Could not start the preview proxy: every port from ${port} to ${
               fallbackPortStart + PROXY_FALLBACK_MAX_ATTEMPTS - 1
             } is in use. Free up a port and restart the app.`,
-            DyadErrorKind.Conflict,
+            NextBillionErrorKind.Conflict,
           ),
         );
       }
     });
     worker.on("error", (error) => {
       reportError(
-        new DyadError(
+        new NextBillionError(
           `Preview proxy worker failed: ${
             error instanceof Error ? error.message : String(error)
           }`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         ),
       );
     });
@@ -144,9 +147,9 @@ export function createHeadlessProxyModule(): {
     worker.on("exit", () => {
       if (!started && !reportedError)
         reportError(
-          new DyadError(
+          new NextBillionError(
             "Preview proxy exited before it was ready",
-            DyadErrorKind.External,
+            NextBillionErrorKind.External,
           ),
         );
     });

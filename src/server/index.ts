@@ -1,3 +1,4 @@
+import "../legacy_env_bootstrap";
 import fs from "node:fs";
 import http from "node:http";
 import type { IncomingHttpHeaders } from "node:http";
@@ -9,13 +10,13 @@ import dotenv from "dotenv";
 dotenv.config();
 
 process.env.NODE_ENV ??= "development";
-process.env.DYAD_HEADLESS_HTTP = "1";
+process.env.NEXTBILLION_HEADLESS_HTTP = "1";
 // node-pty is a native module built for Electron's ABI and cannot load under
 // the plain Node runtime here; the shim's spawn is inert, which made every
 // pty-based command (runCommand, e.g. the managed pnpm install) hang until its
-// timeout. DYAD_DISABLE_PTY=1 routes pty_command_runner through a real
+// timeout. NEXTBILLION_DISABLE_PTY=1 routes pty_command_runner through a real
 // child_process with the same result contract.
-process.env.DYAD_DISABLE_PTY ??= "1";
+process.env.NEXTBILLION_DISABLE_PTY ??= "1";
 
 import { ensureRuntimeGitEnvironment } from "../main/git_path";
 
@@ -33,14 +34,15 @@ ensureRuntimeGitEnvironment({
 });
 
 const dataDir =
-  process.env.DYAD_DATA_DIR?.trim() ||
-  process.env.DYAD_DEV_USER_DATA_DIR?.trim() ||
+  process.env.NEXTBILLION_DATA_DIR?.trim() ||
+  process.env.NEXTBILLION_DEV_USER_DATA_DIR?.trim() ||
   path.resolve(process.cwd(), "userData");
 
-process.env.DYAD_DEV_USER_DATA_DIR = path.resolve(dataDir);
-fs.mkdirSync(process.env.DYAD_DEV_USER_DATA_DIR, { recursive: true });
+process.env.NEXTBILLION_DEV_USER_DATA_DIR = path.resolve(dataDir);
+fs.mkdirSync(process.env.NEXTBILLION_DEV_USER_DATA_DIR, { recursive: true });
 
 import { initializeDatabase } from "../db";
+import { runLegacyAppFolderMigration } from "../legacy_app_folder_runner";
 import { registerIpcHandlers } from "../ipc/ipc_host";
 import { encodeIpcDates } from "../ipc/contracts/core";
 // Import the shim module directly: type-checking resolves "electron" to the
@@ -53,7 +55,7 @@ import { getAllowedRpcOrigins, isRpcRequestAllowed } from "./rpc_access";
 import { shutdownObservability } from "../observability/langfuse";
 
 const allowedRpcOrigins = getAllowedRpcOrigins();
-const expectedRpcToken = process.env.DYAD_RPC_TOKEN?.trim() || undefined;
+const expectedRpcToken = process.env.NEXTBILLION_RPC_TOKEN?.trim() || undefined;
 
 function checkRpcAccess(
   origin: string | undefined,
@@ -71,7 +73,9 @@ function presentedTokenFrom(
   headers: IncomingHttpHeaders,
   url: URL,
 ): string | undefined {
-  const headerToken = headers["x-dyad-rpc-token"];
+  // The pre-rebrand header is still accepted so bundles cached by open browser tabs keep working.
+  const headerToken =
+    headers["x-nextbillion-rpc-token"] ?? headers["x-dyad-rpc-token"];
   const normalized = Array.isArray(headerToken) ? headerToken[0] : headerToken;
   return normalized ?? url.searchParams.get("token") ?? undefined;
 }
@@ -144,6 +148,7 @@ configureTrustedRenderer({
   packagedRendererUrl: "file:///headless/index.html",
 });
 initializeDatabase();
+runLegacyAppFolderMigration((msg) => console.log(`[legacy-migration] ${msg}`));
 registerIpcHandlers();
 
 async function readJsonBody(request: http.IncomingMessage): Promise<unknown> {
@@ -195,7 +200,7 @@ const server = http.createServer(async (request, response) => {
     response.setHeader("Content-Type", "application/json");
     response.end(
       JSON.stringify({
-        __dyadIpcEnvelope: "dyad-ipc-envelope-v1",
+        __nextBillionIpcEnvelope: "nextbillion-ipc-envelope-v1",
         ok: false,
         error: { message: "Forbidden." },
       }),
@@ -211,7 +216,7 @@ const server = http.createServer(async (request, response) => {
       response.setHeader("Content-Type", "application/json");
       response.end(
         JSON.stringify({
-          __dyadIpcEnvelope: "dyad-ipc-envelope-v1",
+          __nextBillionIpcEnvelope: "nextbillion-ipc-envelope-v1",
           ok: false,
           error: { message: `No handler registered for channel "${channel}".` },
         }),
@@ -230,7 +235,7 @@ const server = http.createServer(async (request, response) => {
     response.setHeader("Content-Type", "application/json");
     response.end(
       JSON.stringify({
-        __dyadIpcEnvelope: "dyad-ipc-envelope-v1",
+        __nextBillionIpcEnvelope: "nextbillion-ipc-envelope-v1",
         ok: false,
         error: { message },
       }),
@@ -290,7 +295,7 @@ websocketServer.on("error", (err) => {
   console.error("[headless-ws] server error", err);
 });
 
-const port = Number(process.env.DYAD_HEADLESS_PORT ?? 3000);
+const port = Number(process.env.NEXTBILLION_HEADLESS_PORT ?? 3000);
 
 // Electron calls shutdownObservability() on will-quit; the headless server has
 // no will-quit, so flush pending telemetry spans on the usual stop signals.
@@ -307,9 +312,11 @@ process.on("SIGINT", () => void shutdownAndExit("SIGINT"));
 process.on("SIGTERM", () => void shutdownAndExit("SIGTERM"));
 
 server.listen(port, "127.0.0.1", () => {
-  console.log(`Headless Dyad IPC server listening on http://127.0.0.1:${port}`);
+  console.log(
+    `Headless NextBillion IPC server listening on http://127.0.0.1:${port}`,
+  );
   console.log(`WebSocket endpoint available at ws://127.0.0.1:${port}/ws`);
-  console.log(`Data directory: ${process.env.DYAD_DEV_USER_DATA_DIR}`);
+  console.log(`Data directory: ${process.env.NEXTBILLION_DEV_USER_DATA_DIR}`);
   console.log(
     `RPC origin allowlist: ${Array.from(allowedRpcOrigins).join(", ")}`,
   );
@@ -317,7 +324,7 @@ server.listen(port, "127.0.0.1", () => {
     // Localhost-only dev harness: the operator needs the token for curl/CLI
     // probes, and stdout is their own terminal.
     console.log(
-      `RPC token required: pass -H "x-dyad-rpc-token: ${expectedRpcToken}" on /rpc, ?token=${expectedRpcToken} on /ws.`,
+      `RPC token required: pass -H "x-nextbillion-rpc-token: ${expectedRpcToken}" on /rpc, ?token=${expectedRpcToken} on /ws.`,
     );
   }
 });

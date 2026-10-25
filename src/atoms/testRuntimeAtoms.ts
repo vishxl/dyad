@@ -76,7 +76,7 @@ export interface TestRunState {
   /**
    * Whether the run executed in an isolated sandbox. Drives the cleanup copy:
    * the fallback path (Docker/cloud runtime, or the user's opt-out) creates no
-   * workspace, so there is no sandbox to claim Dyad is deleting.
+   * workspace, so there is no sandbox to claim NextBillion is deleting.
    */
   sandboxed?: boolean;
   startedAt?: number;

@@ -7,7 +7,7 @@ import {
 
 it("extracts complete producer blocks, excluding escaped content and unfinished tags", () => {
   const first = buildCompactionBlock(
-    "Summary with <dyad-compaction>quoted tags</dyad-compaction>",
+    "Summary with <nextbillion-compaction>quoted tags</nextbillion-compaction>",
   );
   const second = buildCompactionBlock("");
   expect(

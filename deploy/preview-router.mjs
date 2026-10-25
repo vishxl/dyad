@@ -1,3 +1,4 @@
+import "../scripts/lib/legacy-env.mjs";
 /**
  * Fallback preview router for hosted deployments (see context/dyad-web-deployment.md).
  *
@@ -12,7 +13,7 @@
  */
 import http from "node:http";
 
-const LISTEN_PORT = Number(process.env.DYAD_PREVIEW_ROUTER_PORT ?? 8788);
+const LISTEN_PORT = Number(process.env.NEXTBILLION_PREVIEW_ROUTER_PORT ?? 8788);
 // Preview proxy workers bind 42100 + appId % 10000 with 50 fallback ports.
 const MIN_PORT = 42100;
 const MAX_PORT = 42100 + 10000 + 50;

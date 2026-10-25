@@ -18,7 +18,7 @@ import {
 } from "../../prompts/supabase_prompt";
 import { buildNeonPromptForApp } from "../../neon_admin/neon_prompt_context";
 import { NEON_DISCONNECTED_SYSTEM_PROMPT } from "../../prompts/neon_prompt";
-import { getDyadAppPath } from "../../paths/paths";
+import { getNextBillionAppPath } from "../../paths/paths";
 import { detectFrameworkType } from "../utils/framework_utils";
 import log from "electron-log";
 import {
@@ -36,13 +36,16 @@ import {
 } from "@/ipc/utils/model_effort";
 import { extractMentionedAppsCodebasesFromPrompt } from "../utils/mention_apps";
 import {
-  isDyadProEnabled,
+  isNextBillionProEnabled,
   isBasicAgentMode,
   isLocalAgentBackedMode,
   isTurboEditsV2Enabled,
   hasSupabaseCredentialsForOrganization,
 } from "@/lib/schemas";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { resolveChatModeForTurn } from "./chat_mode_resolution";
 import { isImplementerSubagentEnabled } from "@/lib/autoSidekick";
 import { estimateAgentToolTokens } from "@/pro/main/ipc/handlers/local_agent/tool_definitions";
@@ -77,9 +80,9 @@ export function registerTokenCountHandlers() {
       });
 
       if (!chat) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Chat not found: ${req.chatId}`,
-          DyadErrorKind.NotFound,
+          NextBillionErrorKind.NotFound,
         );
       }
 
@@ -109,7 +112,9 @@ export function registerTokenCountHandlers() {
       // Count system prompt tokens
       // Migration on read converts "agent" to "build", so no need to check for it here
       const themePrompt = await getThemePromptById(chat.app?.themeId ?? null);
-      const frameworkType = detectFrameworkType(getDyadAppPath(chat.app.path));
+      const frameworkType = detectFrameworkType(
+        getNextBillionAppPath(chat.app.path),
+      );
       const enableAppBlueprint =
         settings.enableAppBlueprint === true && chat.app.needsAppBlueprint;
       const appBlueprint = getAppBlueprintForChat(chat.id);
@@ -119,7 +124,7 @@ export function registerTokenCountHandlers() {
       const appBlueprintQuestionnaireCompleted =
         hasCompletedAppBlueprintQuestionnaire(chat.messages);
       let systemPrompt = constructSystemPrompt({
-        aiRules: await readAiRules(getDyadAppPath(chat.app.path)),
+        aiRules: await readAiRules(getNextBillionAppPath(chat.app.path)),
         chatMode: selectedChatMode === "ask" ? "local-agent" : selectedChatMode,
         enableTurboEditsV2: isTurboEditsV2Enabled(settings),
         themePrompt,
@@ -128,7 +133,7 @@ export function registerTokenCountHandlers() {
         hasSupabaseProject: !!chat.app?.supabaseProjectId,
         implementerAvailable:
           selectedChatMode === "local-agent" &&
-          isDyadProEnabled(settings) &&
+          isNextBillionProEnabled(settings) &&
           isImplementerSubagentEnabled(settings),
         testingEnabled: !!chat.app?.testingEnabled,
         enableAppBlueprint,
@@ -192,7 +197,7 @@ export function registerTokenCountHandlers() {
         systemPrompt += "\n\n" + SUPABASE_NOT_AVAILABLE_SYSTEM_PROMPT;
       }
 
-      const isDyadPro = isDyadProEnabled(settings);
+      const isNextBillionPro = isNextBillionProEnabled(settings);
       const freeModelMode = isFreeProModel(selectedModel);
       const mcpToolDefs =
         selectedChatMode === "local-agent" ? getCachedMcpToolDefs() : [];
@@ -210,12 +215,16 @@ export function registerTokenCountHandlers() {
           : [];
       if (
         selectedChatMode === "local-agent" &&
-        isShellExperimentAvailable({ settings, isDyadPro, freeModelMode })
+        isShellExperimentAvailable({
+          settings,
+          isNextBillionPro,
+          freeModelMode,
+        })
       ) {
-        systemPrompt += `\n\n<shell_execution>\n${shellExecutionGuidance(process.platform, getDyadAppPath(chat.app.path))}\n</shell_execution>`;
+        systemPrompt += `\n\n<shell_execution>\n${shellExecutionGuidance(process.platform, getNextBillionAppPath(chat.app.path))}\n</shell_execution>`;
       }
       const toolDefinitionTokens = await estimateAgentToolTokens({
-        appPath: getDyadAppPath(chat.app.path),
+        appPath: getNextBillionAppPath(chat.app.path),
         toolProfile: selectedChatMode === "build" ? "build" : "agent",
         readOnly: selectedChatMode === "ask",
         planModeOnly: selectedChatMode === "plan",
@@ -223,7 +232,7 @@ export function registerTokenCountHandlers() {
           selectedChatMode === "local-agent" && isBasicAgentMode(settings),
         enableAppBlueprint,
         freeModelMode,
-        isDyadPro,
+        isNextBillionPro,
         frameworkType,
         supabaseProjectId: chat.app.supabaseProjectId,
         supabaseProviderToolsAvailable,
@@ -233,17 +242,17 @@ export function registerTokenCountHandlers() {
         testingEnabled: !!chat.app.testingEnabled,
         canUseExplorerSubagent:
           selectedChatMode !== "build" &&
-          isDyadPro &&
+          isNextBillionPro &&
           settings.enableExplorerSubagent !== false,
         canUseImplementerSubagent:
           selectedChatMode === "local-agent" &&
-          isDyadPro &&
+          isNextBillionPro &&
           isImplementerSubagentEnabled(settings),
         mcpToolDefs,
         suggestablePlugins,
         canUseAdvancedSubagentTools:
           selectedChatMode === "local-agent" &&
-          isDyadPro &&
+          isNextBillionPro &&
           settings.enableAdvancedSubagents === true,
         runTypeScriptForWholeProject:
           settings.runTypeScriptForWholeProject === true,

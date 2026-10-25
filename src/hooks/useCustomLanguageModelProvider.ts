@@ -6,7 +6,10 @@ import {
 } from "@/ipc/types";
 import { showError } from "@/lib/toast";
 import { queryKeys } from "@/lib/queryKeys";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 export function useCustomLanguageModelProvider() {
   const queryClient = useQueryClient();
@@ -16,21 +19,21 @@ export function useCustomLanguageModelProvider() {
       params: CreateCustomLanguageModelProviderParams,
     ): Promise<LanguageModelProvider> => {
       if (!params.id.trim()) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider ID is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (!params.name.trim()) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider name is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (!params.apiBaseUrl.trim()) {
-        throw new DyadError(
+        throw new NextBillionError(
           "API base URL is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -57,21 +60,21 @@ export function useCustomLanguageModelProvider() {
       params: CreateCustomLanguageModelProviderParams,
     ): Promise<LanguageModelProvider> => {
       if (!params.id.trim()) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider ID is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (!params.name.trim()) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider name is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
       if (!params.apiBaseUrl.trim()) {
-        throw new DyadError(
+        throw new NextBillionError(
           "API base URL is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 
@@ -96,9 +99,9 @@ export function useCustomLanguageModelProvider() {
   const deleteProviderMutation = useMutation({
     mutationFn: async (providerId: string): Promise<void> => {
       if (!providerId) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Provider ID is required",
-          DyadErrorKind.Validation,
+          NextBillionErrorKind.Validation,
         );
       }
 

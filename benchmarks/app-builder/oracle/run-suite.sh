@@ -46,11 +46,11 @@ trap cleanup EXIT
 # carrying checkpoint tags, score each checkpoint against its own tag.
 # The tree must be its OWN repository. Testing "is this path inside any repo"
 # is not the same test: five oracle trees have no .git of their own, so
-# \`git -C "$APP_DIR"\` resolves to the OUTER dyad repo. That silently skipped
+# \`git -C "$APP_DIR"\` resolves to the OUTER nextbillion repo. That silently skipped
 # the checkout (scoring all three checkpoints against one tree, which is exactly
 # what per-checkpoint tags exist to prevent), and had the outer repo ever owned a
 # tag named checkpoint-mN it would have checked that tag out across the whole
-# dyad working tree.
+# nextbillion working tree.
 if [[ -e "$APP_DIR/.git" ]] && git -C "$APP_DIR" rev-parse --git-dir >/dev/null 2>&1; then
   if git -C "$APP_DIR" rev-parse -q --verify "refs/tags/checkpoint-m$CK" >/dev/null; then
     git -C "$APP_DIR" checkout -q "checkpoint-m$CK" 2>/dev/null \

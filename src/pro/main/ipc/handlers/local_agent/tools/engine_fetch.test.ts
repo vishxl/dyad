@@ -2,12 +2,12 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const mocks = vi.hoisted(() => ({
   readSettings: vi.fn(),
-  getDyadEngineBaseUrl: vi.fn(),
+  getNextBillionEngineBaseUrl: vi.fn(),
 }));
 
 vi.mock("@/main/settings", () => ({ readSettings: mocks.readSettings }));
-vi.mock("@/ipc/utils/dyad_engine_url", () => ({
-  getDyadEngineBaseUrl: mocks.getDyadEngineBaseUrl,
+vi.mock("@/ipc/utils/nextbillion_engine_url", () => ({
+  getNextBillionEngineBaseUrl: mocks.getNextBillionEngineBaseUrl,
 }));
 
 import {
@@ -15,7 +15,10 @@ import {
   EngineFetchTimeoutError,
   engineFetch,
 } from "./engine_fetch";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
 describe("engineFetch", () => {
   beforeEach(() => {
@@ -24,7 +27,7 @@ describe("engineFetch", () => {
     mocks.readSettings.mockReturnValue({
       providerSettings: { auto: { apiKey: { value: "test-key" } } },
     });
-    mocks.getDyadEngineBaseUrl.mockReturnValue("https://engine.test/v1");
+    mocks.getNextBillionEngineBaseUrl.mockReturnValue("https://engine.test/v1");
   });
 
   it("uses a 300,000ms default timeout and reports it as a timeout", async () => {
@@ -38,7 +41,10 @@ describe("engineFetch", () => {
         });
       });
 
-    const request = engineFetch({ dyadRequestId: "request-1" }, "/tools/test");
+    const request = engineFetch(
+      { nextBillionRequestId: "request-1" },
+      "/tools/test",
+    );
     const rejection = expect(request).rejects.toBeInstanceOf(
       EngineFetchTimeoutError,
     );
@@ -49,7 +55,7 @@ describe("engineFetch", () => {
     await rejection;
     expect(DEFAULT_ENGINE_FETCH_TIMEOUT_MS).toBe(300_000);
     await expect(request).rejects.toMatchObject({
-      kind: DyadErrorKind.External,
+      kind: NextBillionErrorKind.External,
     });
     expect(vi.getTimerCount()).toBe(0);
   });
@@ -64,15 +70,19 @@ describe("engineFetch", () => {
       });
     });
 
-    const request = engineFetch({ dyadRequestId: "request-2" }, "/tools/test", {
-      signal: controller.signal,
-    });
+    const request = engineFetch(
+      { nextBillionRequestId: "request-2" },
+      "/tools/test",
+      {
+        signal: controller.signal,
+      },
+    );
     const rejection = request.catch((error) => {
-      expect(error).toBeInstanceOf(DyadError);
+      expect(error).toBeInstanceOf(NextBillionError);
       expect(error).not.toBeInstanceOf(EngineFetchTimeoutError);
       expect(error).toMatchObject({
         message: "This agent run was cancelled.",
-        kind: DyadErrorKind.UserCancelled,
+        kind: NextBillionErrorKind.UserCancelled,
         cause: expect.objectContaining({ message: "user cancelled" }),
       });
     });
@@ -87,11 +97,11 @@ describe("engineFetch", () => {
     const fetchMock = vi.spyOn(globalThis, "fetch");
 
     await expect(
-      engineFetch({ dyadRequestId: "request-3" }, "/tools/test", {
+      engineFetch({ nextBillionRequestId: "request-3" }, "/tools/test", {
         signal: controller.signal,
       }),
     ).rejects.toMatchObject({
-      kind: DyadErrorKind.UserCancelled,
+      kind: NextBillionErrorKind.UserCancelled,
       cause: expect.objectContaining({ message: "already cancelled" }),
     });
     expect(fetchMock).not.toHaveBeenCalled();
@@ -106,7 +116,7 @@ describe("engineFetch", () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(new Response("ok"));
 
     const response = await engineFetch(
-      { dyadRequestId: "request-4", abortSignal: controller.signal },
+      { nextBillionRequestId: "request-4", abortSignal: controller.signal },
       "/tools/test",
     );
 
@@ -137,7 +147,7 @@ describe("engineFetch", () => {
 
     const request = engineFetch(
       {
-        dyadRequestId: "request-combined-signals",
+        nextBillionRequestId: "request-combined-signals",
         abortSignal: turnController.signal,
       },
       "/tools/test",
@@ -146,7 +156,7 @@ describe("engineFetch", () => {
     turnController.abort(new Error("turn cancelled"));
 
     await expect(request).rejects.toMatchObject({
-      kind: DyadErrorKind.UserCancelled,
+      kind: NextBillionErrorKind.UserCancelled,
       cause: expect.objectContaining({ message: "turn cancelled" }),
     });
     expect(explicitController.signal.aborted).toBe(false);
@@ -162,13 +172,13 @@ describe("engineFetch", () => {
     });
 
     const request = engineFetch(
-      { dyadRequestId: "request-short-timeout" },
+      { nextBillionRequestId: "request-short-timeout" },
       "/tools/test",
       { timeoutMs: 25 },
     );
     const rejection = expect(request).rejects.toMatchObject({
-      message: "Dyad engine request to /tools/test timed out after 25ms",
-      kind: DyadErrorKind.External,
+      message: "NextBillion engine request to /tools/test timed out after 25ms",
+      kind: NextBillionErrorKind.External,
     });
     await vi.advanceTimersByTimeAsync(25);
 
@@ -193,11 +203,14 @@ describe("engineFetch", () => {
     });
 
     const response = await engineFetch(
-      { dyadRequestId: "request-headers", abortSignal: controller.signal },
+      {
+        nextBillionRequestId: "request-headers",
+        abortSignal: controller.signal,
+      },
       "/tools/test",
     );
     const bodyRejection = expect(response.text()).rejects.toMatchObject({
-      kind: DyadErrorKind.UserCancelled,
+      kind: NextBillionErrorKind.UserCancelled,
       cause: expect.objectContaining({ message: "cancel body read" }),
     });
     controller.abort(new Error("cancel body read"));
@@ -223,7 +236,7 @@ describe("engineFetch", () => {
     });
 
     const response = await engineFetch(
-      { dyadRequestId: "request-body-timeout" },
+      { nextBillionRequestId: "request-body-timeout" },
       "/tools/test",
     );
     const bodyRejection = expect(response.json()).rejects.toBeInstanceOf(
@@ -246,11 +259,15 @@ describe("engineFetch", () => {
       });
     });
 
-    const request = engineFetch({ dyadRequestId: "request-5" }, "/tools/test", {
-      signal: controller.signal,
-    });
+    const request = engineFetch(
+      { nextBillionRequestId: "request-5" },
+      "/tools/test",
+      {
+        signal: controller.signal,
+      },
+    );
     const rejection = expect(request).rejects.toMatchObject({
-      kind: DyadErrorKind.UserCancelled,
+      kind: NextBillionErrorKind.UserCancelled,
     });
     controller.abort();
     await rejection;
@@ -272,7 +289,10 @@ describe("engineFetch", () => {
     );
 
     const response = await engineFetch(
-      { dyadRequestId: "request-abandoned", abortSignal: controller.signal },
+      {
+        nextBillionRequestId: "request-abandoned",
+        abortSignal: controller.signal,
+      },
       "/tools/test",
     );
     await response.body?.cancel("consumer stopped");

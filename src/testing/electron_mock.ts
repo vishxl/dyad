@@ -7,7 +7,7 @@
  *   - `ipcMain.handle` records handlers into a Map the test can invoke directly
  *     (this is how we call `chat:stream` without a renderer);
  *   - `app.getPath("userData")` resolves to the per-test temp dir chosen by the
- *     harness via the `DYAD_DEV_USER_DATA_DIR` env var (read at call time so the
+ *     harness via the `NEXTBILLION_DEV_USER_DATA_DIR` env var (read at call time so the
  *     harness can set it after this mock is constructed);
  *   - `BrowserWindow` / `safeStorage` / `Notification` / `shell` / `dialog` /
  *     `net` / `utilityProcess` are inert stand-ins so importing main-process
@@ -77,9 +77,9 @@ export function createFakeIpcEvent(sink: RendererEvent[]): {
 
 function resolveUserDataPath(): string {
   return (
-    process.env.DYAD_DEV_USER_DATA_DIR ||
-    process.env.DYAD_TEST_USER_DATA_DIR ||
-    `${process.env.TMPDIR || "/tmp"}/dyad-vitest-userdata-${process.pid}`
+    process.env.NEXTBILLION_DEV_USER_DATA_DIR ||
+    process.env.NEXTBILLION_TEST_USER_DATA_DIR ||
+    `${process.env.TMPDIR || "/tmp"}/nextbillion-vitest-userdata-${process.pid}`
   );
 }
 
@@ -106,7 +106,7 @@ export function createElectronMock(shared: ElectronMockShared) {
       // matches the proven spike behavior.
       getPath: vi.fn((_name?: string) => resolveUserDataPath()),
       getAppPath: vi.fn(() => process.cwd()),
-      getName: vi.fn(() => "dyad"),
+      getName: vi.fn(() => "nextbillion"),
       getVersion: vi.fn(() => "0.0.0-test"),
       isPackaged: false,
       quit: vi.fn(),
@@ -219,7 +219,7 @@ export function createElectronMock(shared: ElectronMockShared) {
           nodePath.join(__dirname, "code_explorer_fork_wrapper.cjs"),
           [],
           {
-            env: { ...process.env, DYAD_TEST_WORKER_BUNDLE: bundle },
+            env: { ...process.env, NEXTBILLION_TEST_WORKER_BUNDLE: bundle },
             // utilityProcess execArgv V8 flags aren't applied by Electron 40
             // either (see code_explorer.ts) — drop them here too.
             execArgv: [],

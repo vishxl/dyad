@@ -56,8 +56,8 @@ export const SESSION_DEBUG_SCHEMA_VERSION = 4;
 // -- System info --
 
 const DebugSystemInfoSchema = z.object({
-  /** Dyad application version (from package.json) */
-  dyadVersion: z.string(),
+  /** NextBillion application version (from package.json) */
+  nextBillionVersion: z.string(),
   /** OS platform: "darwin", "win32", "linux" */
   platform: z.string(),
   /** CPU architecture: "x64", "arm64" */
@@ -89,8 +89,8 @@ const DebugSettingsSchema = z.object({
   defaultChatMode: z.string().nullable(),
   /** Whether changes are auto-approved without review */
   autoApproveChanges: z.boolean().nullable(),
-  /** Whether Dyad Pro is enabled */
-  enableDyadPro: z.boolean().nullable(),
+  /** Whether NextBillion Pro is enabled */
+  enableNextBillionPro: z.boolean().nullable(),
   /** Model-specific effort level */
   effortLevel: z.string(),
   /** Max chat turns kept in context window */

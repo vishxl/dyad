@@ -25,7 +25,7 @@ const h = vi.hoisted(() => ({
   retainArtifacts: vi.fn(),
   startRuntime: vi.fn(),
   broadcast: vi.fn(),
-  getDyadAppPath: vi.fn(),
+  getNextBillionAppPath: vi.fn(),
   // `previewRouted` is what tells the run its specs actually reach the shim;
   // without it every case below would degrade to an ordinary browser run.
   ensurePlaywrightBootstrap: vi.fn(async () => ({
@@ -43,7 +43,7 @@ const h = vi.hoisted(() => ({
 vi.mock("electron", () => ({
   BrowserWindow: { fromWebContents: vi.fn(), getAllWindows: vi.fn(() => []) },
   app: {
-    getPath: vi.fn(() => "/tmp/dyad-tests-preview"),
+    getPath: vi.fn(() => "/tmp/nextbillion-tests-preview"),
     getAppPath: vi.fn(() => process.cwd()),
   },
   ipcMain: { handle: vi.fn(), on: vi.fn() },
@@ -107,7 +107,7 @@ vi.mock("../utils/process_manager", async (importOriginal) => ({
 
 vi.mock("@/paths/paths", async (importOriginal) => ({
   ...(await importOriginal<typeof import("@/paths/paths")>()),
-  getDyadAppPath: h.getDyadAppPath,
+  getNextBillionAppPath: h.getNextBillionAppPath,
 }));
 
 import {
@@ -119,7 +119,7 @@ import {
 import {
   PREVIEW_CDP_ENDPOINT_ENV,
   PREVIEW_CDP_TOKEN_ENV,
-  DYAD_CONFIG_FILENAME,
+  NEXTBILLION_CONFIG_FILENAME,
   ensurePreviewDnsPreload,
 } from "../utils/playwright_bootstrap";
 import { buildWindowsCommandInvocation } from "../utils/windows_command";
@@ -132,7 +132,12 @@ import { trackE2eTestProcess } from "../services/e2e_test_process_registry";
 const PROXY_URL = "http://app-1.localhost:42101/";
 const CDP_ENDPOINT = "http://127.0.0.1:51234";
 const CDP_TOKEN = "test-preview-token";
-const APP_PATH = path.join(os.tmpdir(), "dyad-tests-preview", "apps", "my-app");
+const APP_PATH = path.join(
+  os.tmpdir(),
+  "nextbillion-tests-preview",
+  "apps",
+  "my-app",
+);
 
 function runAppTestsCore(options: RunAppTestsCoreOptions) {
   return runAppTestsCoreWithoutToken({
@@ -182,7 +187,7 @@ beforeEach(() => {
     baseUrl: "http://127.0.0.1:49999",
     stop: vi.fn().mockResolvedValue(true),
   });
-  h.getDyadAppPath.mockReturnValue(APP_PATH);
+  h.getNextBillionAppPath.mockReturnValue(APP_PATH);
   h.prepareIsolation.mockReset();
   h.broadcast.mockReset();
   h.spawnStreaming.mockReset().mockResolvedValue({
@@ -218,7 +223,9 @@ describe("selected file batches", () => {
   it.each(["batch", "panel", "preview", "sandbox"])(
     "runs real Playwright from a symlinked app directory (%s)",
     async (mode) => {
-      const root = fs.mkdtempSync(path.join(os.tmpdir(), "dyad-symlink-run-"));
+      const root = fs.mkdtempSync(
+        path.join(os.tmpdir(), "nextbillion-symlink-run-"),
+      );
       try {
         const physical = path.join(root, "physical");
         const linked = path.join(root, "linked");
@@ -230,7 +237,7 @@ describe("selected file batches", () => {
           "junction",
         );
         fs.writeFileSync(
-          path.join(physical, DYAD_CONFIG_FILENAME),
+          path.join(physical, NEXTBILLION_CONFIG_FILENAME),
           'export default { testDir: "./e2e-tests" };',
         );
         fs.writeFileSync(
@@ -240,7 +247,7 @@ describe("selected file batches", () => {
         // Bootstrap is mocked (or already completed for the sandbox path),
         // but these cases launch real Node processes that load its DNS helper.
         ensurePreviewDnsPreload(physical);
-        h.getDyadAppPath.mockReturnValue(
+        h.getNextBillionAppPath.mockReturnValue(
           mode === "sandbox" ? APP_PATH : linked,
         );
         h.spawnStreaming.mockImplementation(async (options) => {
@@ -279,7 +286,7 @@ describe("selected file batches", () => {
         expect(result.infraError).toBeUndefined();
         if (mode === "sandbox") {
           expect(h.ensurePlaywrightBootstrap).not.toHaveBeenCalled();
-          expect(lastSpawn().env.DYAD_TEST_BASE_URL).toBe(
+          expect(lastSpawn().env.NEXTBILLION_TEST_BASE_URL).toBe(
             "http://127.0.0.1:49999",
           );
         }
@@ -577,7 +584,9 @@ describe("selected file batches", () => {
         testCaseLifecycle: {
           beforeEach: vi.fn(async () => {
             lifecycleCalls.push("before");
-            return { DYAD_TEST_USER_EMAIL: `user-${++userNumber}@dyad.test` };
+            return {
+              NEXTBILLION_TEST_USER_EMAIL: `user-${++userNumber}@nextbillion.test`,
+            };
           }),
           afterEach: vi.fn(async () => {
             lifecycleCalls.push("after");
@@ -607,7 +616,7 @@ describe("selected file batches", () => {
             expect(response.status).toBe(200);
             const credentials = await response.json();
             if (phase === "before")
-              emails.push(credentials.DYAD_TEST_USER_EMAIL);
+              emails.push(credentials.NEXTBILLION_TEST_USER_EMAIL);
           }
         }
         return reportSpawn(options);
@@ -647,9 +656,9 @@ describe("selected file batches", () => {
         expect.objectContaining({ isolateTestCases: true }),
       );
       expect(emails).toEqual([
-        "user-1@dyad.test",
-        "user-2@dyad.test",
-        "user-3@dyad.test",
+        "user-1@nextbillion.test",
+        "user-2@nextbillion.test",
+        "user-3@nextbillion.test",
       ]);
       expect(lifecycleCalls).toEqual([
         "before",
@@ -772,14 +781,17 @@ describe("preview runs", () => {
       vi.stubEnv("NODE_OPTIONS", "--no-warnings");
       try {
         await runAppTestsCore({ appId: 1, previewCdpEndpoint });
-        expect(lastSpawn().env.DYAD_TEST_BASE_URL).toBe(PROXY_URL);
+        expect(lastSpawn().env.NEXTBILLION_TEST_BASE_URL).toBe(PROXY_URL);
         // Match the runner's native resolution: realpathSync can retain Windows
         // 8.3 aliases (RUNNER~1) that fs.promises.realpath expands (runneradmin).
         const canonicalAppPath = await fs.promises.realpath(APP_PATH);
         expect(lastSpawn().env.NODE_OPTIONS).toBe(
           `--no-warnings --require ${JSON.stringify(
             path
-              .join(canonicalAppPath, "e2e-tests/fixtures/dyad/preview-dns.cjs")
+              .join(
+                canonicalAppPath,
+                "e2e-tests/fixtures/nextbillion/preview-dns.cjs",
+              )
               .replaceAll("\\", "/"),
           )}`,
         );
@@ -872,7 +884,7 @@ describe("preview runs", () => {
     expect(lastSpawn().args).not.toContain("--headed");
   });
 
-  it("keeps Playwright's own recorders off Dyad's windows", async () => {
+  it("keeps Playwright's own recorders off NextBillion's windows", async () => {
     const rotatePreviewView = mockPreviewBatch();
 
     await runAppTestsCore({
@@ -883,9 +895,9 @@ describe("preview runs", () => {
 
     expect(h.spawnStreaming).toHaveBeenCalledTimes(2);
     const { args, env } = lastSpawn();
-    // A trace of the borrowed context records every page in it, Dyad's own
+    // A trace of the borrowed context records every page in it, NextBillion's own
     // included; the copy-prompt snapshot is taken from the context's FIRST
-    // page, which over CDP is a Dyad window rather than the app.
+    // page, which over CDP is a NextBillion window rather than the app.
     expect(args).toContain("--trace=off");
     expect(env.PLAYWRIGHT_NO_COPY_PROMPT).toBe("1");
   });

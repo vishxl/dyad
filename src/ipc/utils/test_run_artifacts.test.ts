@@ -17,7 +17,7 @@ afterEach(async () => {
 });
 async function makeRoot() {
   const root = await fs.mkdtemp(
-    path.join(os.tmpdir(), "dyad-queue-artifacts-"),
+    path.join(os.tmpdir(), "nextbillion-queue-artifacts-"),
   );
   roots.push(root);
   return root;
@@ -31,9 +31,13 @@ it("allocates without pruning and expires only old, explicitly owned runs when a
   const user = path.join(
     root,
     "test-results",
-    "dyad-run-00000000-0000-4000-8000-000000000000",
+    "nextbillion-run-00000000-0000-4000-8000-000000000000",
   );
-  const legacy = path.join(root, "test-results", "dyad-preview-user-notes");
+  const legacy = path.join(
+    root,
+    "test-results",
+    "nextbillion-preview-user-notes",
+  );
   for (const dir of [user, legacy]) {
     await fs.mkdir(dir);
     await fs.utimes(dir, new Date(0), new Date(0));

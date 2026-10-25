@@ -38,19 +38,19 @@ function createContext(): AgentContext {
   } as AgentContext;
 }
 
-import { assertDyadInternalAccessAllowed } from "./resolve_app_context";
+import { assertNextBillionInternalAccessAllowed } from "./resolve_app_context";
 it.each([undefined, "reference"])(
   "rejects Git metadata for %s app reads",
   (appName) => {
     expect(() =>
-      assertDyadInternalAccessAllowed({
+      assertNextBillionInternalAccessAllowed({
         targetAppPath: "/apps/current",
         fullFilePath: "/apps/current/.git/config",
         appName,
       }),
     ).toThrow("Git metadata");
     expect(() =>
-      assertDyadInternalAccessAllowed({
+      assertNextBillionInternalAccessAllowed({
         targetAppPath: "/apps/current",
         fullFilePath: "/apps/current/nested/.git/config",
         appName,

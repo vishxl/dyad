@@ -2,10 +2,14 @@ import { and, eq } from "drizzle-orm";
 import log from "electron-log";
 import { db } from "@/db";
 import { apps, coolifyAppConnections } from "@/db/schema";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import { getClient, readConnection, readConnectionState } from "./store";
 import { readSettings } from "@/main/settings";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 import {
   declaresStart,
   detectFrameworkType,
@@ -73,7 +77,10 @@ export interface DeployResult {
 
 function throwIfAborted(signal: AbortSignal): void {
   if (signal.aborted) {
-    throw new DyadError("Deployment cancelled.", DyadErrorKind.UserCancelled);
+    throw new NextBillionError(
+      "Deployment cancelled.",
+      NextBillionErrorKind.UserCancelled,
+    );
   }
 }
 
@@ -106,12 +113,15 @@ async function githubFetch(
   }
 }
 
-function githubError(err: unknown, signal: AbortSignal): DyadError {
+function githubError(err: unknown, signal: AbortSignal): NextBillionError {
   if (signal.aborted) {
-    return new DyadError("Deployment cancelled.", DyadErrorKind.UserCancelled);
+    return new NextBillionError(
+      "Deployment cancelled.",
+      NextBillionErrorKind.UserCancelled,
+    );
   }
   const timedOut = err instanceof Error && err.name === "TimeoutError";
-  return new DyadError(
+  return new NextBillionError(
     `Could not reach GitHub to register the deploy key: ${
       timedOut
         ? `no response within ${GITHUB_TIMEOUT_MS / 1000}s`
@@ -119,7 +129,7 @@ function githubError(err: unknown, signal: AbortSignal): DyadError {
           ? err.message
           : String(err)
     }`,
-    DyadErrorKind.External,
+    NextBillionErrorKind.External,
   );
 }
 
@@ -171,7 +181,7 @@ async function recordConnectionChange(
 }
 
 /**
- * Puts Dyad's public key on the repository as a deploy key.
+ * Puts NextBillion's public key on the repository as a deploy key.
  *
  * "Already in use" from GitHub does not mean it is on *this* repository — a
  * deploy key belongs to exactly one repo across all of GitHub — so confirm
@@ -194,10 +204,10 @@ async function ensureGithubDeployKey({
   const publicKey = await ensureDeployKey(keyName);
   const accessToken = readSettings().githubAccessToken?.value;
   if (!accessToken) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Not authenticated with GitHub, so the deploy key could not be added to " +
         `${owner}/${repo}. Reconnect GitHub and try again.`,
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 
@@ -211,7 +221,7 @@ async function ensureGithubDeployKey({
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        title: "Dyad deploy key (Coolify)",
+        title: "NextBillion deploy key (Coolify)",
         key: publicKey,
         read_only: true,
       }),
@@ -246,11 +256,11 @@ async function ensureGithubDeployKey({
       // A failed lookup is not evidence the key belongs elsewhere; saying so would
       // send the user to delete a key that is very likely already correct.
       if (!listed.ok) {
-        throw new DyadError(
+        throw new NextBillionError(
           `GitHub rejected the deploy key for ${owner}/${repo} as already in use, ` +
             `and listing that repository's keys to check whether it is ours failed ` +
             `(${listed.status}). Try again in a moment.`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
       const listedBody = await githubBody(() => listed.text(), signal);
@@ -266,11 +276,11 @@ async function ensureGithubDeployKey({
         // A proxy or a sign-in page answers 200 with HTML. Left bare that is a
         // SyntaxError with no mention of GitHub or the deploy key, which is the
         // whole explanation the user gets for a failed deploy.
-        throw new DyadError(
+        throw new NextBillionError(
           `GitHub returned something other than a key list for ${owner}/${repo}, ` +
-            `so Dyad could not tell whether the deploy key it holds is already ` +
+            `so NextBillion could not tell whether the deploy key it holds is already ` +
             `registered there. Try again in a moment.`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
       keys.push(...pageKeys);
@@ -286,29 +296,29 @@ async function ensureGithubDeployKey({
       report.log(`Deploy key already present on ${owner}/${repo}.\n`);
       return { keyName, publicKey };
     }
-    throw new DyadError(
+    throw new NextBillionError(
       `The deploy key for ${owner}/${repo} is already registered on a different ` +
         `repository, so GitHub will not accept it here. Remove it from the other ` +
         `repository's deploy keys, or delete ${deployKeyFilePath(keyName)} to ` +
         `generate a new ` +
-        `one — Dyad registers a regenerated key with Coolify under a new name.`,
-      DyadErrorKind.Validation,
+        `one — NextBillion registers a regenerated key with Coolify under a new name.`,
+      NextBillionErrorKind.Validation,
     );
   }
   if (res.status === 401 || res.status === 403) {
     // The guard above only proves a token exists. One that is revoked,
     // expired, or blocked by an org's SAML enforcement is the same problem
-    // for the user as having none, and rules/dyad-errors.md puts both under
+    // for the user as having none, and rules/nextbillion-errors.md puts both under
     // Auth — the Coolify client classifies its equivalent the same way.
-    throw new DyadError(
+    throw new NextBillionError(
       `GitHub rejected the stored account when registering the deploy key ` +
         `for ${owner}/${repo} (${res.status}). Reconnect GitHub and try again.`,
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
-  throw new DyadError(
+  throw new NextBillionError(
     `Could not add the deploy key to ${owner}/${repo} (${res.status}): ${body.slice(0, 200)}`,
-    DyadErrorKind.External,
+    NextBillionErrorKind.External,
   );
 }
 
@@ -446,12 +456,12 @@ async function resolveApplication({
       // build a second one, and recording it as gone would throw away the one
       // id that cannot be re-entered.
       if (!(await serverIsOnThisInstance(client, expectedServerUuid))) {
-        throw new DyadError(
+        throw new NextBillionError(
           "This app deploys to a server that is not on the Coolify instance " +
             "you are connected to now. Its application is still running where " +
             "it was — connect back to that instance, or edit the connection " +
             "to move this app here.",
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         );
       }
       report.log(
@@ -539,7 +549,7 @@ async function warnIfBranchNotPushed({
 
   // Uncommitted work does not move HEAD, so the comparison above says nothing
   // about it. Deploying what is on GitHub is the intent, but a user looking
-  // at edits Dyad has just made has no way to tell they are not in this
+  // at edits NextBillion has just made has no way to tell they are not in this
   // build.
   try {
     const uncommitted = await getGitUncommittedFiles({ path: appPath });
@@ -660,7 +670,10 @@ export async function runDeployPipeline({
 
   const app = await db.query.apps.findFirst({ where: eq(apps.id, appId) });
   if (!app) {
-    throw new DyadError(`App ${appId} not found`, DyadErrorKind.NotFound);
+    throw new NextBillionError(
+      `App ${appId} not found`,
+      NextBillionErrorKind.NotFound,
+    );
   }
   const settings = readSettings();
   const { state: connection, id: connectionId } = await readConnection(appId);
@@ -669,26 +682,26 @@ export async function runDeployPipeline({
     connection.kind === "none" ||
     connectionId === null
   ) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Connect a Coolify server for this app first.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
   if (!app.githubOrg || !app.githubRepo) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Coolify deploys from a git repository. Connect this app to GitHub first.",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 
   await warnIfBranchNotPushed({
-    appPath: getDyadAppPath(app.path),
+    appPath: getNextBillionAppPath(app.path),
     branch: app.githubBranch ?? "main",
     report,
   });
 
   const client = getClient(signal);
-  const resolvedAppPath = getDyadAppPath(app.path);
+  const resolvedAppPath = getNextBillionAppPath(app.path);
   const build: CoolifyBuildConfig = buildConfigForFramework(
     detectFrameworkType(resolvedAppPath),
     { declaresStart: declaresStart(resolvedAppPath) },
@@ -709,7 +722,7 @@ export async function runDeployPipeline({
     // The half already in hand, rather than a second read off disk with a
     // fallback that would fingerprint an empty string.
     name: coolifyKeyName(keyName, publicKey),
-    description: "Key Dyad uses to let Coolify clone this repository",
+    description: "Key NextBillion uses to let Coolify clone this repository",
     privateKey: readPrivateKey(keyName),
   });
   throwIfAborted(signal);
@@ -739,7 +752,9 @@ export async function runDeployPipeline({
         privateKeyUuid: key.uuid,
         gitRepository,
         gitBranch,
-        name: `dyad-${app.name}`.toLowerCase().replace(/[^a-z0-9-]/g, "-"),
+        name: `nextbillion-${app.name}`
+          .toLowerCase()
+          .replace(/[^a-z0-9-]/g, "-"),
         build,
         domains: connection.domain,
       });
@@ -775,15 +790,15 @@ export async function runDeployPipeline({
   // on the first query, so a failure here fails the whole deployment.
   const database = await resolveDatabaseEnv(app, report).catch((error) => {
     // Neon classifies its own failures — a missing development branch is a
-    // Precondition, an expired token is Auth — and rules/dyad-errors.md keeps
+    // Precondition, an expired token is Auth — and rules/nextbillion-errors.md keeps
     // those out of telemetry. Rewrapping them as External would report every
     // one of them as a crash.
-    if (isDyadError(error)) throw error;
-    throw new DyadError(
+    if (isNextBillionError(error)) throw error;
+    throw new NextBillionError(
       `Could not resolve this app's database connection details: ${
         error instanceof Error ? error.message : String(error)
       }`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   });
   if (database.branchId) {
@@ -841,11 +856,11 @@ export async function runDeployPipeline({
       // There is nothing to poll, and falling through would report "last
       // status: unknown" — a status never actually asked for — for a build
       // that is in fact running.
-      throw new DyadError(
+      throw new NextBillionError(
         "Coolify accepted the deploy but returned no deployment to follow, " +
           "which usually means one is already running for this application. " +
           "Wait for it to finish, then deploy again.",
-        DyadErrorKind.External,
+        NextBillionErrorKind.External,
       );
     }
   }
@@ -868,13 +883,13 @@ export async function runDeployPipeline({
     });
     if (!entry) {
       if (++consecutiveFailures >= MAX_POLL_FAILURES) {
-        throw new DyadError(
+        throw new NextBillionError(
           `Lost contact with Coolify while the build was running: ${
             lastPollError instanceof Error
               ? lastPollError.message
               : String(lastPollError)
           }`,
-          DyadErrorKind.External,
+          NextBillionErrorKind.External,
         );
       }
       continue;
@@ -925,9 +940,9 @@ export async function runDeployPipeline({
         }
       }
     }
-    throw new DyadError(
+    throw new NextBillionError(
       `Deployment did not finish (last status: ${status}).${detail}`,
-      DyadErrorKind.External,
+      NextBillionErrorKind.External,
     );
   }
 

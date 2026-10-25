@@ -18,9 +18,9 @@ const logger = log.scope("preview_cdp_broker");
 
 const LOOPBACK_HOST = "127.0.0.1";
 const MAX_CDP_MESSAGE_BYTES = 4 * 1024 * 1024;
-const PREVIEW_PAGE_SESSION_ID = "dyad-preview-page";
-const PREVIEW_BROWSER_CONTEXT_ID = "dyad-preview-context";
-const PREVIEW_BROWSER_TARGET_ID = "dyad-preview-browser";
+const PREVIEW_PAGE_SESSION_ID = "nextbillion-preview-page";
+const PREVIEW_BROWSER_CONTEXT_ID = "nextbillion-preview-context";
+const PREVIEW_BROWSER_TARGET_ID = "nextbillion-preview-browser";
 
 type CdpId = number;
 
@@ -169,7 +169,7 @@ function syntheticPageTargetInfo(target: BrokerTarget): CdpTargetInfo {
     // target's id cannot be replaced without rewriting every frame reference.
     targetId: target.realTargetId,
     type: "page",
-    title: "Dyad test preview",
+    title: "NextBillion test preview",
     url: target.url,
     attached: true,
     browserContextId: PREVIEW_BROWSER_CONTEXT_ID,
@@ -180,7 +180,7 @@ function syntheticBrowserTargetInfo(): CdpTargetInfo {
   return {
     targetId: PREVIEW_BROWSER_TARGET_ID,
     type: "browser",
-    title: "Dyad preview broker",
+    title: "NextBillion preview broker",
     url: "",
     attached: true,
   };
@@ -191,7 +191,7 @@ function syntheticBrowserTargetInfo(): CdpTargetInfo {
  *
  * This is intentionally not a transparent proxy. It creates a synthetic
  * browser with exactly one representable page and rejects browser-global
- * commands that could enumerate or attach to Dyad's other WebContents.
+ * commands that could enumerate or attach to NextBillion's other WebContents.
  */
 export class PreviewCdpBroker {
   readonly token = randomBytes(32).toString("base64url");
@@ -254,7 +254,7 @@ export class PreviewCdpBroker {
       });
       response.end(
         JSON.stringify({
-          Browser: "DyadPreview/1.0",
+          Browser: "NextBillionPreview/1.0",
           "Protocol-Version": "1.3",
           webSocketDebuggerUrl: `ws://${LOOPBACK_HOST}:${address.port}${this.websocketPath}`,
         }),
@@ -526,7 +526,7 @@ export class PreviewCdpBroker {
         protocolVersion: version.protocolVersion ?? "1.3",
         product: version.product ?? "Chrome/0",
         revision: version.revision ?? "",
-        userAgent: version.userAgent ?? "DyadPreview",
+        userAgent: version.userAgent ?? "NextBillionPreview",
         jsVersion: version.jsVersion ?? "",
       };
     }

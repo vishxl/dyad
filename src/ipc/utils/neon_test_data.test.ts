@@ -263,7 +263,7 @@ describe("clearNeonTestData", () => {
     expect(mocks.query).toHaveBeenCalledTimes(2);
   });
 
-  it("skips database access for Dyad's fake-provider E2E build", async () => {
+  it("skips database access for NextBillion's fake-provider E2E build", async () => {
     mocks.testBuild = true;
     await clearNeonTestData("postgres://fake");
     expect(mocks.neon).not.toHaveBeenCalled();

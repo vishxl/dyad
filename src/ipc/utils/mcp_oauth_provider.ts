@@ -170,7 +170,7 @@ interface ProviderConfig {
   writeAuthority?: McpOAuthWriteAuthority;
 }
 
-export class DyadOAuthClientProvider implements OAuthClientProvider {
+export class NextBillionOAuthClientProvider implements OAuthClientProvider {
   private readonly serverId: number;
   private readonly callbackPort: number;
   private readonly scope: string | undefined;
@@ -243,7 +243,7 @@ export class DyadOAuthClientProvider implements OAuthClientProvider {
       grant_types: ["authorization_code", "refresh_token"],
       response_types: ["code"],
       token_endpoint_auth_method: tokenEndpointAuthMethod,
-      client_name: "Dyad",
+      client_name: "NextBillion",
       scope: this.scope,
     };
   }

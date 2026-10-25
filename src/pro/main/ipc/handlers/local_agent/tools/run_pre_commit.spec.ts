@@ -59,7 +59,7 @@ async function makeRepo(options?: {
   executable?: boolean;
   hooksPath?: string;
 }): Promise<string> {
-  const repo = await mkdtemp(path.join(os.tmpdir(), "dyad-pre-commit-"));
+  const repo = await mkdtemp(path.join(os.tmpdir(), "nextbillion-pre-commit-"));
   tempDirs.push(repo);
   const initialized = await exec(["init"], repo);
   expect(initialized.exitCode).toBe(0);
@@ -307,7 +307,7 @@ describe("runPreCommitTool", () => {
     );
   });
 
-  it("uses Dyad's package-manager environment for hooks", async () => {
+  it("uses NextBillion's package-manager environment for hooks", async () => {
     vi.stubEnv("COREPACK_ENABLE_PROJECT_SPEC", "1");
     try {
       await runPreCommitTool.execute({}, context(repo));

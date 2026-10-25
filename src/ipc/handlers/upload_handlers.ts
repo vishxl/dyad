@@ -2,7 +2,10 @@ import log from "electron-log";
 import fetch from "node-fetch";
 import { createTypedHandler } from "./base";
 import { systemContracts } from "../types/system";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { IS_TEST_BUILD } from "@/ipc/utils/test_utils";
 
 const logger = log.scope("upload_handlers");
@@ -36,17 +39,17 @@ export function registerUploadHandlers() {
       typeof url === "string" &&
       (url.startsWith("https://") || (IS_TEST_BUILD && isTestUploadUrl(url)));
     if (!isSignedUrl) {
-      throw new DyadError(
+      throw new NextBillionError(
         "Invalid signed URL provided",
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
 
     // Validate content type
     if (!contentType || typeof contentType !== "string") {
-      throw new DyadError(
+      throw new NextBillionError(
         "Invalid content type provided",
-        DyadErrorKind.Validation,
+        NextBillionErrorKind.Validation,
       );
     }
 

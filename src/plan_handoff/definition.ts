@@ -5,13 +5,16 @@ import { db } from "@/db";
 import { apps, chats, chatTurnIntents } from "@/db/schema";
 import type { DistributedMachineDefinition } from "@/distributed_machines/definition";
 import { REMOTE_MACHINE_PROTOCOL_VERSION } from "@/distributed_machines/remote_protocol";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import { createChatForApp } from "@/ipc/utils/chat_creation_utils";
 import {
   readPlanFromDisk,
   savePlanToDisk,
 } from "@/ipc/handlers/planPersistence";
-import { getDyadAppPath } from "@/paths/paths";
+import { getNextBillionAppPath } from "@/paths/paths";
 import {
   publishChatInvalidations,
   routePlanHandoffPresentation,
@@ -65,9 +68,9 @@ function assertPlanHash(intent: PlanHandoffIntent): void {
     .update(serializePlanDocument(intent.plan))
     .digest("hex");
   if (actual !== intent.planHash || intent.planVersion !== actual) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Plan handoff payload does not match its immutable version",
-      DyadErrorKind.Validation,
+      NextBillionErrorKind.Validation,
     );
   }
 }
@@ -173,9 +176,9 @@ function createCommandRunner(
         .where(eq(chats.id, intent.sourceChatId))
         .get();
       if (!source || source.appId !== intent.appId)
-        throw new DyadError(
+        throw new NextBillionError(
           "Source chat unavailable",
-          DyadErrorKind.Precondition,
+          NextBillionErrorKind.Precondition,
         );
       const planSlug = await appOperationCoordinator.run(
         {
@@ -196,10 +199,13 @@ function createCommandRunner(
             .where(eq(apps.id, intent.appId))
             .get();
           if (!app) {
-            throw new DyadError("App not found", DyadErrorKind.NotFound);
+            throw new NextBillionError(
+              "App not found",
+              NextBillionErrorKind.NotFound,
+            );
           }
           const latest = await readPlanFromDisk({
-            appPath: getDyadAppPath(app.path),
+            appPath: getNextBillionAppPath(app.path),
             chatId: intent.sourceChatId,
           });
           if (
@@ -207,16 +213,16 @@ function createCommandRunner(
               .update(serializePlanDocument(latest))
               .digest("hex") !== intent.planHash
           )
-            throw new DyadError(
+            throw new NextBillionError(
               "The plan changed. Review the current version before accepting.",
-              DyadErrorKind.Precondition,
+              NextBillionErrorKind.Precondition,
             );
           db.update(apps)
             .set({ needsAppBlueprint: false })
             .where(eq(apps.id, intent.appId))
             .run();
           return savePlanToDisk({
-            appPath: getDyadAppPath(app.path),
+            appPath: getNextBillionAppPath(app.path),
             chatId: intent.sourceChatId,
             title: intent.plan.title,
             summary: intent.plan.summary,
@@ -265,9 +271,12 @@ function createCommandRunner(
               .where(eq(apps.id, intent.appId))
               .get();
             if (!app)
-              throw new DyadError("App not found", DyadErrorKind.NotFound);
+              throw new NextBillionError(
+                "App not found",
+                NextBillionErrorKind.NotFound,
+              );
             await savePlanToDisk({
-              appPath: getDyadAppPath(app.path),
+              appPath: getNextBillionAppPath(app.path),
               chatId: targetChatId!,
               ...intent.plan,
               status: "accepted",
@@ -334,7 +343,7 @@ function createCommandRunner(
               .get();
             if (!app) return;
             const latest = await readPlanFromDisk({
-              appPath: getDyadAppPath(app.path),
+              appPath: getNextBillionAppPath(app.path),
               chatId: intent.sourceChatId,
             });
             if (
@@ -343,7 +352,7 @@ function createCommandRunner(
             )
               return;
             await savePlanToDisk({
-              appPath: getDyadAppPath(app.path),
+              appPath: getNextBillionAppPath(app.path),
               chatId: intent.sourceChatId,
               title: intent.plan.title,
               summary: intent.plan.summary,
@@ -399,9 +408,9 @@ function requireSourceChat(sourceChatId: number, appId?: number): void {
     .where(eq(chats.id, sourceChatId))
     .get();
   if (!chat || (appId !== undefined && chat.appId !== appId)) {
-    throw new DyadError(
+    throw new NextBillionError(
       "Plan handoff chat is not authorized",
-      DyadErrorKind.Auth,
+      NextBillionErrorKind.Auth,
     );
   }
 }
@@ -471,18 +480,18 @@ export const planHandoffDefinition = {
       if (event.type !== "ACCEPT") return;
       requireSourceChat(key.sourceChatId, event.intent.appId);
       if (event.intent.sourceChatId !== key.sourceChatId) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Plan handoff does not belong to the routed chat",
-          DyadErrorKind.Auth,
+          NextBillionErrorKind.Auth,
         );
       }
       if (
         event.intent.originWindowSessionId &&
         event.intent.originWindowSessionId !== sender.windowSessionId
       ) {
-        throw new DyadError(
+        throw new NextBillionError(
           "Plan handoff origin does not match the sender",
-          DyadErrorKind.Auth,
+          NextBillionErrorKind.Auth,
         );
       }
       event.intent.originWindowSessionId = sender.windowSessionId;

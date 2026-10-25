@@ -12,7 +12,7 @@ function buildWriteXml(args: {
   description?: string;
   content: string;
 }): string {
-  return `<dyad-write path="${args.path}" description="${args.description ?? ""}">\n${args.content}\n</dyad-write>`;
+  return `<nextbillion-write path="${args.path}" description="${args.description ?? ""}">\n${args.content}\n</nextbillion-write>`;
 }
 
 function buildEditXml(args: {
@@ -20,21 +20,21 @@ function buildEditXml(args: {
   description?: string;
   content: string;
 }): string {
-  return `<dyad-edit path="${args.path}" description="${args.description ?? ""}">\n${args.content}\n</dyad-edit>`;
+  return `<nextbillion-edit path="${args.path}" description="${args.description ?? ""}">\n${args.content}\n</nextbillion-edit>`;
 }
 
 function buildExecuteSqlXml(args: {
   description?: string;
   content: string;
 }): string {
-  return `<dyad-execute-sql description="${args.description ?? ""}">\n${args.content}\n</dyad-execute-sql>`;
+  return `<nextbillion-execute-sql description="${args.description ?? ""}">\n${args.content}\n</nextbillion-execute-sql>`;
 }
 
 function buildCodebaseContextXml(args: {
   files?: string;
   content: string;
 }): string {
-  return `<dyad-codebase-context files="${args.files ?? ""}">\n${args.content}\n</dyad-codebase-context>`;
+  return `<nextbillion-codebase-context files="${args.files ?? ""}">\n${args.content}\n</nextbillion-codebase-context>`;
 }
 
 function buildScriptXml(args: {
@@ -43,7 +43,7 @@ function buildScriptXml(args: {
   output?: string;
 }): string {
   const payload = JSON.stringify({ script: args.script, output: args.output });
-  return `<dyad-script description="${args.description ?? "Script"}">\n${payload}\n</dyad-script>`;
+  return `<nextbillion-script description="${args.description ?? "Script"}">\n${payload}\n</nextbillion-script>`;
 }
 
 // Extract the interior of a fenced code block from the clipboard text.
@@ -89,7 +89,7 @@ describe("useCopyToClipboard", () => {
   }
 
   describe("code-fence fidelity — newlines inside ``` are verbatim", () => {
-    it("preserves 2 PEP-8 blank lines (3 consecutive newlines) inside a dyad-write code fence", async () => {
+    it("preserves 2 PEP-8 blank lines (3 consecutive newlines) inside a nextbillion-write code fence", async () => {
       const fileContent =
         "def add(a, b):\n    return a + b\n\n\ndef sub(a, b):\n    return a - b\n";
       const out = await copy(
@@ -124,7 +124,7 @@ describe("useCopyToClipboard", () => {
       );
     });
 
-    it("preserves blank lines inside a dyad-edit fence", async () => {
+    it("preserves blank lines inside a nextbillion-edit fence", async () => {
       const content = "function a() {}\n\n\nfunction b() {}";
       const out = await copy(
         buildEditXml({ path: "fns.ts", description: "ed", content }),
@@ -135,7 +135,7 @@ describe("useCopyToClipboard", () => {
       expect(fence).not.toContain("a() {}\n\nfunction b()");
     });
 
-    it("preserves blank lines inside a dyad-execute-sql fence", async () => {
+    it("preserves blank lines inside a nextbillion-execute-sql fence", async () => {
       const sql = "SELECT 1;\n\n\nSELECT 2;";
       const out = await copy(
         buildExecuteSqlXml({ description: "q", content: sql }),
@@ -146,7 +146,7 @@ describe("useCopyToClipboard", () => {
       expect(fence).not.toContain("SELECT 1;\n\nSELECT 2;");
     });
 
-    it("preserves blank lines inside a language-less dyad-codebase-context fence", async () => {
+    it("preserves blank lines inside a language-less nextbillion-codebase-context fence", async () => {
       const content = "fileA\n\n\nfileB";
       const out = await copy(
         buildCodebaseContextXml({ files: "a.ts", content }),
@@ -157,7 +157,7 @@ describe("useCopyToClipboard", () => {
       expect(fence).not.toContain("fileA\n\nfileB");
     });
 
-    it("preserves blank lines inside BOTH the js and text fences of a dyad-script", async () => {
+    it("preserves blank lines inside BOTH the js and text fences of a nextbillion-script", async () => {
       const out = await copy(
         buildScriptXml({
           description: "run",
@@ -188,12 +188,12 @@ describe("useCopyToClipboard", () => {
     });
   });
 
-  describe("dyad-suggest-plugin", () => {
+  describe("nextbillion-suggest-plugin", () => {
     // A settled message holds the pending card followed by its terminal
     // card, so the pair must copy as one entry.
     it("copies a settled suggestion once, with its name and reason", async () => {
       const out = await copy(
-        '<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." request-id="r1" outcome="pending"></dyad-suggest-plugin>\n<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="connected"></dyad-suggest-plugin>',
+        '<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." request-id="r1" outcome="pending"></nextbillion-suggest-plugin>\n<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="connected"></nextbillion-suggest-plugin>',
       );
       expect(out.match(/Suggested plugin/g)).toHaveLength(1);
       expect(out).toContain("### Suggested plugin: Vercel");
@@ -202,21 +202,21 @@ describe("useCopyToClipboard", () => {
 
     it("copies a suggestion the user opted out of", async () => {
       const out = await copy(
-        '<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="never"></dyad-suggest-plugin>',
+        '<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="never"></nextbillion-suggest-plugin>',
       );
       expect(out).toContain("### Suggested plugin: Vercel");
     });
 
     it("copies a declined suggestion", async () => {
       const out = await copy(
-        '<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="declined"></dyad-suggest-plugin>',
+        '<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="declined"></nextbillion-suggest-plugin>',
       );
       expect(out).toContain("### Suggested plugin: Vercel");
     });
 
     it("omits a dismissed suggestion and its pending card, which were never shown", async () => {
       const out = await copy(
-        'Before\n<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." request-id="r1" outcome="pending"></dyad-suggest-plugin>\n<dyad-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="dismissed"></dyad-suggest-plugin>\nAfter',
+        'Before\n<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." request-id="r1" outcome="pending"></nextbillion-suggest-plugin>\n<nextbillion-suggest-plugin slug="vercel" name="Vercel" reason="Read the build logs." outcome="dismissed"></nextbillion-suggest-plugin>\nAfter',
       );
       expect(out).not.toContain("Suggested plugin");
       expect(out).toContain("Before");
@@ -231,9 +231,9 @@ describe("useCopyToClipboard", () => {
     });
 
     it("collapses a multi-newline seam between a converted tag and following markdown", async () => {
-      // dyad-rename ends with "\n\n"; the following markdown starts with
+      // nextbillion-rename ends with "\n\n"; the following markdown starts with
       // "\n\n\n\n" → a 6-newline seam that must collapse to exactly 2.
-      const message = `<dyad-rename from="old.txt" to="new.txt"></dyad-rename>\n\n\n\nTail para.`;
+      const message = `<nextbillion-rename from="old.txt" to="new.txt"></nextbillion-rename>\n\n\n\nTail para.`;
       const out = await copy(message);
       expect(out).toBe("### Rename: old.txt → new.txt\n\nTail para.");
     });

@@ -1,4 +1,4 @@
-/** Keep model-authored Dyad action markup distinct from host-emitted tool cards. */
+/** Keep model-authored NextBillion action markup distinct from host-emitted tool cards. */
 export function claudeTextFilter(allowSecurityFindings = false) {
   let pending = "";
   return (text: string, final = false) => {
@@ -10,8 +10,8 @@ export function claudeTextFilter(allowSecurityFindings = false) {
         : pending.length;
     const ready = pending.slice(0, boundary);
     pending = pending.slice(boundary);
-    return ready.replace(/<\/?dyad-[\w-]+/gi, (tag) =>
-      allowSecurityFindings && /^<\/?dyad-security-finding$/i.test(tag)
+    return ready.replace(/<\/?(?:nextbillion|dyad)-[\w-]+/gi, (tag) =>
+      allowSecurityFindings && /^<\/?nextbillion-security-finding$/i.test(tag)
         ? tag
         : tag.replace("<", "&lt;"),
     );

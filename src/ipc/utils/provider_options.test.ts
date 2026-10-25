@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import type { ModelSelection, UserSettings } from "@/lib/schemas";
 import {
-  DYAD_INTERNAL_REQUEST_ID_HEADER,
+  NEXTBILLION_INTERNAL_REQUEST_ID_HEADER,
   getAiHeaders,
   getProviderOptions,
 } from "./provider_options";
@@ -20,7 +20,7 @@ const optionsFor = (
   modelSelection = settings.selectedModel as ModelSelection,
 ) =>
   getProviderOptions({
-    dyadAppId: 1,
+    nextBillionAppId: 1,
     files: [],
     mentionedAppsCodebases: [],
     builtinProviderId,
@@ -99,13 +99,13 @@ describe("getProviderOptions model effort", () => {
 });
 
 describe("getAiHeaders", () => {
-  it("forwards the Dyad request ID for fallback diagnostics", () => {
+  it("forwards the NextBillion request ID for fallback diagnostics", () => {
     expect(
       getAiHeaders({
-        builtinProviderId: "dyad-engine",
-        dyadRequestId: "request-123",
+        builtinProviderId: "nextbillion-engine",
+        nextBillionRequestId: "request-123",
       }),
-    ).toEqual({ [DYAD_INTERNAL_REQUEST_ID_HEADER]: "request-123" });
+    ).toEqual({ [NEXTBILLION_INTERNAL_REQUEST_ID_HEADER]: "request-123" });
   });
 
   it("omits headers when there is no request ID", () => {

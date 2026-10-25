@@ -10,7 +10,11 @@ import {
   executeSupabaseSql,
 } from "./supabase_management_client";
 import { hasSupabaseCredentialsForOrganization } from "../lib/schemas";
-import { DyadError, DyadErrorKind, isDyadError } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+  isNextBillionError,
+} from "@/errors/nextbillion_error";
 import { readSettings } from "@/main/settings";
 import { SUPABASE_PROJECT_CREATED_BUT_UNLINKED } from "@/ipc/types/supabase";
 
@@ -313,8 +317,10 @@ describe("getProjectApiKeys", () => {
       organizationSlug: "org-1",
     }).catch((thrown) => thrown);
 
-    expect(isDyadError(error)).toBe(true);
-    expect((error as DyadError).kind).toBe(DyadErrorKind.External);
+    expect(isNextBillionError(error)).toBe(true);
+    expect((error as NextBillionError).kind).toBe(
+      NextBillionErrorKind.External,
+    );
   });
 
   // Without `reveal`, Supabase lists secret keys but withholds their values.
@@ -458,7 +464,7 @@ describe("getSupabaseProjectLogs", () => {
 });
 
 describe("classifyManagementApiError", () => {
-  it("maps a Management API 401/403 to an Auth DyadError", () => {
+  it("maps a Management API 401/403 to an Auth NextBillionError", () => {
     for (const status of [401, 403]) {
       const error = classifyManagementApiError(
         new SupabaseManagementAPIError(
@@ -473,15 +479,18 @@ describe("classifyManagementApiError", () => {
         "update this app's API key",
       );
 
-      expect(isDyadError(error)).toBe(true);
+      expect(isNextBillionError(error)).toBe(true);
       // Auth is telemetry-filtered and drives the reconnect path; an
       // unclassified error would be reported as a product exception instead.
-      expect((error as DyadError).kind).toBe(DyadErrorKind.Auth);
+      expect((error as NextBillionError).kind).toBe(NextBillionErrorKind.Auth);
     }
   });
 
-  it("preserves an already-classified DyadError", () => {
-    const original = new DyadError("nope", DyadErrorKind.Precondition);
+  it("preserves an already-classified NextBillionError", () => {
+    const original = new NextBillionError(
+      "nope",
+      NextBillionErrorKind.Precondition,
+    );
 
     expect(classifyManagementApiError(original, "do a thing")).toBe(original);
   });

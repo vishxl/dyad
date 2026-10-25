@@ -146,7 +146,7 @@ export const planningQuestionnaireTool: ToolDefinition<
         outcome: "pending",
       });
     ctx.onXmlComplete(
-      `<dyad-status title="Questionnaire requested" state="finished">${escapeXmlContent(questions.map((q) => q.question).join("\n"))}</dyad-status>`,
+      `<nextbillion-status title="Questionnaire requested" state="finished">${escapeXmlContent(questions.map((q) => q.question).join("\n"))}</nextbillion-status>`,
     );
     userInputRegistry.request(
       {
@@ -168,7 +168,7 @@ export const planningQuestionnaireTool: ToolDefinition<
 
     if (!answers) {
       ctx.onXmlComplete(
-        `<dyad-status title="Questionnaire closed" state="warning">${ctx.abortSignal?.aborted ? "Cancelled. No answers were submitted." : "Dismissed or interrupted. No answers were submitted."}</dyad-status>`,
+        `<nextbillion-status title="Questionnaire closed" state="warning">${ctx.abortSignal?.aborted ? "Cancelled. No answers were submitted." : "Dismissed or interrupted. No answers were submitted."}</nextbillion-status>`,
       );
       return "The user dismissed the questionnaire without answering. Ask them how they'd like to proceed, or try asking questions in regular chat text.";
     }
@@ -191,7 +191,7 @@ export const planningQuestionnaireTool: ToolDefinition<
       .join("\n");
 
     ctx.onXmlComplete(
-      `<dyad-questionnaire count="${questions.length}">\n${qaEntries}\n</dyad-questionnaire>`,
+      `<nextbillion-questionnaire count="${questions.length}">\n${qaEntries}\n</nextbillion-questionnaire>`,
     );
 
     return `${COMPLETED_PLANNING_QUESTIONNAIRE_RESULT_PREFIX}${formattedAnswers}`;

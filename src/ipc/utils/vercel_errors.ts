@@ -1,27 +1,30 @@
 import { ResponseValidationError } from "@vercel/sdk/models/responsevalidationerror.js";
 import { VercelError } from "@vercel/sdk/models/vercelerror.js";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 
-function getVercelErrorKind(status: number): DyadErrorKind {
+function getVercelErrorKind(status: number): NextBillionErrorKind {
   switch (status) {
     case 400:
     case 422:
-      return DyadErrorKind.Validation;
+      return NextBillionErrorKind.Validation;
     case 401:
     case 403:
-      return DyadErrorKind.Auth;
+      return NextBillionErrorKind.Auth;
     case 402:
     case 428:
-      return DyadErrorKind.Precondition;
+      return NextBillionErrorKind.Precondition;
     case 404:
     case 410:
-      return DyadErrorKind.NotFound;
+      return NextBillionErrorKind.NotFound;
     case 409:
-      return DyadErrorKind.Conflict;
+      return NextBillionErrorKind.Conflict;
     case 429:
-      return DyadErrorKind.RateLimited;
+      return NextBillionErrorKind.RateLimited;
     default:
-      return DyadErrorKind.External;
+      return NextBillionErrorKind.External;
   }
 }
 
@@ -64,14 +67,14 @@ export function getVercelProjectCreationError(error: unknown): Error {
     }
     const fallback =
       error instanceof ResponseValidationError
-        ? "Dyad couldn't read Vercel's response while setting up your project."
+        ? "NextBillion couldn't read Vercel's response while setting up your project."
         : "Vercel rejected the project setup request without an error message.";
     const recovery =
       error.statusCode >= 200 && error.statusCode < 300
         ? ' The project may already have been created. Check your Vercel dashboard; if it exists, choose "Connect to existing project" in the Publish panel before retrying.'
         : "";
 
-    return new DyadError(
+    return new NextBillionError(
       `Vercel project setup failed (HTTP ${error.statusCode}): ${(detail || fallback).slice(0, 4000)}${recovery}`,
       getVercelErrorKind(error.statusCode),
     );

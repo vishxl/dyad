@@ -4,13 +4,13 @@
 //
 // Ask mode for Pro users routes through the local agent in read-only mode.
 // Part 1: the ask-read-file fixture runs a read-only sandbox script
-// (execute_sandbox_script) that reads src/App.tsx; the completed <dyad-script>
-// card renders in the DOM (data-testid="dyad-script-card") and the XML lands
+// (execute_sandbox_script) that reads src/App.tsx; the completed <nextbillion-script>
+// card renders in the DOM (data-testid="nextbillion-script-card") and the XML lands
 // in the assistant message. Part 2: a fresh chat sends [dump] and the request
 // payload must contain ONLY the read-only toolset and preserve the engine auth
 // header through the hybrid harness's Node fetch seam.
 //
-// Dyad Pro engine/gateway calls are routed to the harness fake server via
+// NextBillion Pro engine/gateway calls are routed to the harness fake server via
 // `engine: true`.
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
@@ -40,9 +40,9 @@ describe("local-agent ask mode (integration)", () => {
       chatMode: "ask",
       settings: {
         isTestMode: true,
-        enableDyadPro: true,
+        enableNextBillionPro: true,
         enableImplementerSubagent: true,
-        providerSettings: { auto: { apiKey: { value: "testdyadkey" } } },
+        providerSettings: { auto: { apiKey: { value: "testnextbillionkey" } } },
         enableCodeExplorer: false,
       },
     });
@@ -72,10 +72,10 @@ describe("local-agent ask mode (integration)", () => {
     const { send } = await harness.typeInChat("tc=local-agent/ask-read-file");
     send();
 
-    // The execute_sandbox_script tool call renders its dyad-script card in the
+    // The execute_sandbox_script tool call renders its nextbillion-script card in the
     // DOM — the same surface the e2e asserted.
     await waitFor(
-      () => expect(screen.getByTestId("dyad-script-card")).toBeTruthy(),
+      () => expect(screen.getByTestId("nextbillion-script-card")).toBeTruthy(),
       { timeout: 20_000 },
     );
     // The card header shows the script description, and the agent's final
@@ -119,7 +119,7 @@ describe("local-agent ask mode (integration)", () => {
 
     // Completed sandbox-script XML (duration varies, so match loosely).
     expect(content).toMatch(
-      /<dyad-script description="Check App\.tsx length" state="finished" truncated="false" execution-ms="\d+">/,
+      /<nextbillion-script description="Check App\.tsx length" state="finished" truncated="false" execution-ms="\d+">/,
     );
     // The script output is App.tsx's length — verify against the real file.
     const appTsxLength = fs.readFileSync(
@@ -127,7 +127,7 @@ describe("local-agent ask mode (integration)", () => {
       "utf8",
     ).length;
     const payloadMatch = content.match(
-      /<dyad-script [^>]*>([\s\S]*?)<\/dyad-script>/,
+      /<nextbillion-script [^>]*>([\s\S]*?)<\/nextbillion-script>/,
     );
     expect(payloadMatch).not.toBeNull();
     expect(payloadMatch![1]).toContain(String(appTsxLength));
@@ -162,7 +162,7 @@ describe("local-agent ask mode (integration)", () => {
 
     // The dump-path marker streams back and renders as the assistant message.
     await waitFor(
-      () => expect(screen.getByText(/dyad-dump-path/)).toBeTruthy(),
+      () => expect(screen.getByText(/nextbillion-dump-path/)).toBeTruthy(),
       { timeout: 20_000 },
     );
 
@@ -174,7 +174,7 @@ describe("local-agent ask mode (integration)", () => {
     ).toHaveLength(0);
 
     const req = harness.getServerDump({ type: "request" });
-    expect(req.parsed.headers.authorization).toBe("Bearer testdyadkey");
+    expect(req.parsed.headers.authorization).toBe("Bearer testnextbillionkey");
     expect(req.parsed.body.model).toBe("[[MODEL]]");
 
     const tools = (req.parsed.body.tools ?? []) as Array<{
@@ -240,7 +240,7 @@ describe("local-agent ask mode (integration)", () => {
     send();
 
     await waitFor(
-      () => expect(screen.getByText(/dyad-dump-path/)).toBeTruthy(),
+      () => expect(screen.getByText(/nextbillion-dump-path/)).toBeTruthy(),
       { timeout: 20_000 },
     );
     await streamEnd;

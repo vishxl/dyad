@@ -5,7 +5,10 @@ import { db } from "@/db";
 import { chats } from "@/db/schema";
 import type { DistributedMachineDefinition } from "@/distributed_machines/definition";
 import { REMOTE_MACHINE_PROTOCOL_VERSION } from "@/distributed_machines/remote_protocol";
-import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
+import {
+  NextBillionError,
+  NextBillionErrorKind,
+} from "@/errors/nextbillion_error";
 import {
   cancelActiveStreamsForChat,
   clearPendingActorStreamCancellation,
@@ -65,7 +68,10 @@ async function requireExistingChat(chatId: number): Promise<number> {
     .where(eq(chats.id, chatId))
     .get();
   if (!chat) {
-    throw new DyadError(`Chat not found: ${chatId}`, DyadErrorKind.Auth);
+    throw new NextBillionError(
+      `Chat not found: ${chatId}`,
+      NextBillionErrorKind.Auth,
+    );
   }
   return chat.appId;
 }
@@ -233,9 +239,9 @@ function createCommandRunner(
           }
           const invocationRef = command.intent.invocationRef;
           if (!invocationRef) {
-            throw new DyadError(
+            throw new NextBillionError(
               "Chat submission is missing an invocation identity",
-              DyadErrorKind.Validation,
+              NextBillionErrorKind.Validation,
             );
           }
           const endpoint = chatExecutionEndpoint(
@@ -740,40 +746,40 @@ export const chatStreamDefinition = {
         ? "allow-stale"
         : "reject-stale",
     authorizeSubscribe: async ({ key }) => {
-      assertChatActorAdmissionOpen(key.chatId, DyadErrorKind.Auth);
+      assertChatActorAdmissionOpen(key.chatId, NextBillionErrorKind.Auth);
       await requireExistingChat(key.chatId);
-      assertChatActorAdmissionOpen(key.chatId, DyadErrorKind.Auth);
+      assertChatActorAdmissionOpen(key.chatId, NextBillionErrorKind.Auth);
     },
     authorizeDispatch: async ({ sender, key, event, currentState }) => {
-      assertChatActorAdmissionOpen(key.chatId, DyadErrorKind.Auth);
+      assertChatActorAdmissionOpen(key.chatId, NextBillionErrorKind.Auth);
       const appId = await requireExistingChat(key.chatId);
-      assertChatActorAdmissionOpen(key.chatId, DyadErrorKind.Auth);
+      assertChatActorAdmissionOpen(key.chatId, NextBillionErrorKind.Auth);
       if (event.type === "SUBMIT") {
         if (event.intent.chatId !== key.chatId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Chat intent does not belong to the routed chat",
-            DyadErrorKind.Auth,
+            NextBillionErrorKind.Auth,
           );
         }
         if (event.intent.appId !== undefined && event.intent.appId !== appId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Chat intent app does not own the routed chat",
-            DyadErrorKind.Auth,
+            NextBillionErrorKind.Auth,
           );
         }
         if (
           event.intent.originWindowSessionId &&
           event.intent.originWindowSessionId !== sender.windowSessionId
         ) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Chat intent origin does not match the sender",
-            DyadErrorKind.Auth,
+            NextBillionErrorKind.Auth,
           );
         }
         if (event.intent.owner || event.intent.userInputRequestId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Main-owned follow-up identity cannot be submitted by a renderer",
-            DyadErrorKind.Auth,
+            NextBillionErrorKind.Auth,
           );
         }
         if (
@@ -781,18 +787,18 @@ export const chatStreamDefinition = {
           currentState &&
           event.observedStopPolicyVersion > currentState.stopPolicyVersion
         ) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Chat submission observed an unknown Stop policy version",
-            DyadErrorKind.Auth,
+            NextBillionErrorKind.Auth,
           );
         }
         event.intent.originWindowSessionId = sender.windowSessionId;
       }
       if (event.type === "CANCEL") {
         if (event.invocationRef.entityKey !== key.chatId) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Cancellation does not belong to the routed chat",
-            DyadErrorKind.Auth,
+            NextBillionErrorKind.Auth,
           );
         }
         if (
@@ -800,9 +806,9 @@ export const chatStreamDefinition = {
           currentState &&
           event.observedStopPolicyVersion > currentState.stopPolicyVersion
         ) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Chat cancellation observed an unknown Stop policy version",
-            DyadErrorKind.Auth,
+            NextBillionErrorKind.Auth,
           );
         }
         if (
@@ -811,9 +817,9 @@ export const chatStreamDefinition = {
             currentState.active.invocationRef.operationId !==
               event.invocationRef.operationId)
         ) {
-          throw new DyadError(
+          throw new NextBillionError(
             "Cancellation does not target the active chat stream",
-            DyadErrorKind.Auth,
+            NextBillionErrorKind.Auth,
           );
         }
       }
