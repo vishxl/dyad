@@ -18,6 +18,7 @@ import {
   isFreeProModel,
 } from "@/lib/freeProModel";
 import { FREE_AGENT_QUOTA_LIMIT } from "@/lib/free_agent_quota_limit";
+import { isHostedPreviewDeployment } from "@/app_run/public_preview_url";
 
 export function DefaultChatModeSelector() {
   const { settings, updateSettings, envVars } = useSettings();
@@ -41,6 +42,7 @@ export function DefaultChatModeSelector() {
   }
 
   const isProEnabled = isDyadProEnabled(settings);
+  const hideLegacyModes = isHostedPreviewDeployment();
   const isDyadFreeSelected = isFreeProModel(settings.selectedModel);
   const effectiveDefault = getEffectiveDefaultChatMode(settings, envVars);
 
@@ -56,7 +58,7 @@ export function DefaultChatModeSelector() {
       case "build":
         return "Build";
       case "local-agent":
-        return isProEnabled ? "Agent" : "Basic Agent";
+        return isProEnabled ? "Agent" : "Agentic Mode";
       case "ask":
         return "Ask";
       case "plan":
@@ -87,7 +89,7 @@ export function DefaultChatModeSelector() {
           <SelectItem value="local-agent">
             <div className="flex flex-col items-start">
               <span className="font-medium">
-                {isProEnabled ? "Agent" : "Basic Agent"}
+                {isProEnabled ? "Agent" : "Agentic Mode"}
               </span>
               <span className="text-xs text-muted-foreground">
                 {isProEnabled
@@ -98,16 +100,18 @@ export function DefaultChatModeSelector() {
               </span>
             </div>
           </SelectItem>
-          <SelectItem value="build" disabled={isDyadFreeSelected}>
-            <div className="flex flex-col items-start">
-              <span className="font-medium">Build</span>
-              <span className="text-xs text-muted-foreground">
-                {isDyadFreeSelected
-                  ? "Use Agent with Dyad Free"
-                  : "Generate and edit code"}
-              </span>
-            </div>
-          </SelectItem>
+          {!hideLegacyModes && (
+            <SelectItem value="build" disabled={isDyadFreeSelected}>
+              <div className="flex flex-col items-start">
+                <span className="font-medium">Build</span>
+                <span className="text-xs text-muted-foreground">
+                  {isDyadFreeSelected
+                    ? "Use Agent with Dyad Free"
+                    : "Generate and edit code"}
+                </span>
+              </div>
+            </SelectItem>
+          )}
         </SelectContent>
       </Select>
     </SettingField>

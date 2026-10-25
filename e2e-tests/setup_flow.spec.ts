@@ -101,7 +101,7 @@ testSetup.describe("Setup Flow", () => {
   );
 
   testSetup(
-    "OpenRouter API key setup switches the pending first prompt from Build to Basic Agent",
+    "OpenRouter API key setup switches the pending first prompt from Build to Agentic Mode",
     async ({ po }) => {
       await seedFakeModelSelection(po);
       await expectInitialBuildMode(po);
@@ -132,7 +132,7 @@ testSetup.describe("Setup Flow", () => {
       });
       await expect(po.page.getByRole("dialog")).not.toBeVisible();
       await expectSelectedApp(po);
-      await expectLocalAgentMode(po, "Basic Agent");
+      await expectLocalAgentMode(po, "Agentic Mode");
     },
   );
 
@@ -362,7 +362,7 @@ async function restoreLocalAgentDefault(po: PageObject) {
 
 async function expectLocalAgentMode(
   po: PageObject,
-  expectedDisplayName: "Basic Agent" | "Agent",
+  expectedDisplayName: "Agentic Mode" | "Agent",
 ) {
   await expect(po.page.getByTestId("chat-mode-selector")).toContainText(
     expectedDisplayName,

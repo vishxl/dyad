@@ -157,7 +157,7 @@ export function ChatErrorBox({
 
     return (
       <ChatErrorContainer onDismiss={onDismiss}>
-        You have used all {messagesLimit} free Basic Agent messages for today.
+        You have used all {messagesLimit} free Agentic Mode messages for today.
         {resetText} This message was not sent. Upgrade to Dyad Pro for unlimited
         Agent access
         {onSwitchToBuildMode

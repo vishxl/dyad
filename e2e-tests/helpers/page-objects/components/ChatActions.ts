@@ -234,7 +234,7 @@ export class ChatActions {
       ask: "Ask Ask",
       agent: "Build with MCP",
       "local-agent": "Agent v2",
-      "basic-agent": "Basic Agent", // For free users
+      "basic-agent": "Agentic Mode", // For free users
       plan: "Plan.*Design before you build",
     };
     const optionName = mapping[mode];
@@ -243,7 +243,7 @@ export class ChatActions {
       ask: /Chat mode: Ask/,
       agent: /Chat mode: Build/,
       "local-agent": /Chat mode: Agent/,
-      "basic-agent": /Chat mode: Basic Agent/,
+      "basic-agent": /Chat mode: Agentic Mode/,
       plan: /Chat mode: Plan/,
     };
     const storedMode = mode === "basic-agent" ? "local-agent" : mode;

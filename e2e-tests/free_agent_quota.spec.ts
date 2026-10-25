@@ -2,9 +2,9 @@ import { testSkipIfWindows, Timeout } from "./helpers/test_helper";
 import { expect } from "@playwright/test";
 
 /**
- * E2E test for Basic Agent mode quota (free users).
+ * E2E test for Agentic Mode mode quota (free users).
  *
- * Basic Agent mode is available to non-Pro users with a 20-message-per-window limit.
+ * Agentic Mode mode is available to non-Pro users with a 20-message-per-window limit.
  * This test verifies mode availability, quota tracking, quota errors, and mode switching.
  */
 
@@ -15,10 +15,10 @@ testSkipIfWindows(
     await po.setUp({ autoApprove: true });
     await po.importApp("minimal");
 
-    // 1. Verify Basic Agent mode is available (not Agent v2 which is Pro-only)
+    // 1. Verify Agentic Mode mode is available (not Agent v2 which is Pro-only)
     await po.page.getByTestId("chat-mode-selector").click();
     await expect(
-      po.page.getByRole("option", { name: /Basic Agent/ }),
+      po.page.getByRole("option", { name: /Agentic Mode/ }),
     ).toBeVisible();
     await expect(
       po.page.getByRole("option", { name: /Agent v2/ }),
@@ -26,14 +26,14 @@ testSkipIfWindows(
 
     // 2. Verify quota display is present (may not be 20/20 if AI_RULES.md generation consumed quota)
     await expect(
-      po.page.getByRole("option", { name: /Basic Agent.*\d+\/20 remaining/ }),
+      po.page.getByRole("option", { name: /Agentic Mode.*\d+\/20 remaining/ }),
     ).toBeVisible();
     await po.page.keyboard.press("Escape");
 
-    // 3. Select Basic Agent mode and verify it's selected
+    // 3. Select Agentic Mode mode and verify it's selected
     await po.chatActions.selectChatMode("basic-agent");
     await expect(po.page.getByTestId("chat-mode-selector")).toContainText(
-      "Basic Agent",
+      "Agentic Mode",
     );
 
     // 4. Send 20 messages to exhaust quota (this will exhaust quota even if some was already used)
@@ -56,7 +56,7 @@ testSkipIfWindows(
       po.page.getByRole("button", { name: "Switch to Build mode" }),
     ).toBeVisible();
 
-    // 6. A 21st message stays in Basic Agent and surfaces the quota error
+    // 6. A 21st message stays in Agentic Mode and surfaces the quota error
     // instead of silently running through Build mode.
     await po.sendPrompt("tc=local-agent/simple-response message 21");
     const quotaError = po.page.getByTestId("chat-error-box");
@@ -64,7 +64,7 @@ testSkipIfWindows(
       timeout: Timeout.MEDIUM,
     });
     await expect(quotaError).toContainText(
-      "You have used all 20 free Basic Agent messages for today",
+      "You have used all 20 free Agentic Mode messages for today",
     );
     await expect(quotaError).toContainText("Your quota resets at");
     await expect(quotaError.getByText("Upgrade to Dyad Pro")).toBeVisible();
@@ -72,7 +72,7 @@ testSkipIfWindows(
       quotaError.getByRole("button", { name: "Switch to Build" }),
     ).toBeVisible();
     await expect(po.page.getByTestId("chat-mode-selector")).toContainText(
-      "Basic Agent",
+      "Agentic Mode",
     );
     await expect(
       po.page
@@ -119,10 +119,10 @@ testSkipIfWindows(
     await po.setUp({ autoApprove: true });
     await po.importApp("minimal");
 
-    // 1. Select Basic Agent mode and send messages to use some quota
+    // 1. Select Agentic Mode mode and send messages to use some quota
     await po.chatActions.selectChatMode("basic-agent");
     await expect(po.page.getByTestId("chat-mode-selector")).toContainText(
-      "Basic Agent",
+      "Agentic Mode",
     );
 
     // Send 3 messages to use some quota
@@ -134,7 +134,7 @@ testSkipIfWindows(
     // 2. Verify quota decreased (exact count may vary due to setup messages)
     await po.page.getByTestId("chat-mode-selector").click();
     const basicAgentOption = po.page.getByRole("option", {
-      name: /Basic Agent/,
+      name: /Agentic Mode/,
     });
     await expect(basicAgentOption).toContainText(/\/20 remaining/);
     await expect(basicAgentOption).not.toContainText("20/20");
@@ -163,15 +163,15 @@ testSkipIfWindows(
     // 5. Verify quota has reset to 20/20 remaining
     await po.page.getByTestId("chat-mode-selector").click();
     await expect(
-      po.page.getByRole("option", { name: /Basic Agent.*20\/20 remaining/ }),
+      po.page.getByRole("option", { name: /Agentic Mode.*20\/20 remaining/ }),
     ).toBeVisible();
     await po.page.keyboard.press("Escape");
 
-    // 6. Verify we can send messages again in Basic Agent mode (proves reset worked)
+    // 6. Verify we can send messages again in Agentic Mode mode (proves reset worked)
     await po.chatActions.selectChatMode("basic-agent");
     await po.sendPrompt("tc=local-agent/simple-response post-reset message");
     await po.chatActions.waitForChatCompletion();
-    // Successfully sending a message in Basic Agent mode after reset proves the quota was reset
+    // Successfully sending a message in Agentic Mode mode after reset proves the quota was reset
     // and is usable again. No need to verify the exact quota count as that would require
     // waiting for React Query cache to become stale again.
   },

@@ -17,6 +17,7 @@ import { isDyadProEnabled } from "@/lib/schemas";
 import { getChatModeDisplayName } from "@/lib/chatModeToast";
 import { cn } from "@/lib/utils";
 import { detectIsMac } from "@/hooks/useChatModeToggle";
+import { isHostedPreviewDeployment } from "@/app_run/public_preview_url";
 import { useRouterState } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { useSetAtom } from "jotai";
@@ -26,7 +27,6 @@ import { useEffect } from "react";
 import {
   FREE_PRO_MODEL_FALLBACK_CHAT_MODE,
   isFreeProBuildModeCombination,
-  isFreeProModel,
 } from "@/lib/freeProModel";
 
 export function ChatModeSelector() {
@@ -42,8 +42,6 @@ export function ChatModeSelector() {
   const isSubscription = selectedModel?.provider === "claude-code";
   const { messagesRemaining, messagesLimit, isQuotaExceeded } =
     useFreeAgentQuota();
-  const isDyadFreeSelected = isFreeProModel(selectedModel);
-  const buildUnavailableForDyadFree = isDyadFreeSelected;
 
   useEffect(() => {
     if (
@@ -94,6 +92,9 @@ export function ChatModeSelector() {
     }
   };
   const isMac = detectIsMac();
+  // Hosted deployments hide the legacy Build/Ask entry paths; chats already in
+  // those modes keep working and the trigger still shows the active mode.
+  const hideLegacyModes = isHostedPreviewDeployment();
 
   return (
     <div className="flex items-center gap-1.5">
@@ -164,7 +165,7 @@ export function ChatModeSelector() {
               <div className="flex flex-col items-start">
                 <div className="flex items-center gap-1.5">
                   <Bot size={14} className="text-muted-foreground" />
-                  <span className="font-medium">Basic Agent</span>
+                  <span className="font-medium">Agentic Mode</span>
                   <span className="text-xs text-muted-foreground">
                     {`(${isQuotaExceeded ? "0" : messagesRemaining}/${messagesLimit} remaining for today)`}
                   </span>
@@ -177,30 +178,32 @@ export function ChatModeSelector() {
               </div>
             </SelectItem>
           )}
-          <SelectItem value="build" disabled={buildUnavailableForDyadFree}>
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-1.5">
-                <Hammer size={14} className="text-muted-foreground" />
-                <span className="font-medium">Build</span>
+          {!hideLegacyModes && (
+            <SelectItem value="build">
+              <div className="flex flex-col items-start">
+                <div className="flex items-center gap-1.5">
+                  <Hammer size={14} className="text-muted-foreground" />
+                  <span className="font-medium">Build</span>
+                </div>
+                <span className="text-xs text-muted-foreground ml-[22px]">
+                  Generate and edit code
+                </span>
               </div>
-              <span className="text-xs text-muted-foreground ml-[22px]">
-                {buildUnavailableForDyadFree
-                  ? "Use Agent, Ask, or Plan with Dyad Free"
-                  : "Generate and edit code"}
-              </span>
-            </div>
-          </SelectItem>
-          <SelectItem value="ask">
-            <div className="flex flex-col items-start">
-              <div className="flex items-center gap-1.5">
-                <MessageCircle size={14} className="text-purple-500" />
-                <span className="font-medium">Ask</span>
+            </SelectItem>
+          )}
+          {!hideLegacyModes && (
+            <SelectItem value="ask">
+              <div className="flex flex-col items-start">
+                <div className="flex items-center gap-1.5">
+                  <MessageCircle size={14} className="text-purple-500" />
+                  <span className="font-medium">Ask</span>
+                </div>
+                <span className="text-xs text-muted-foreground ml-[22px]">
+                  Ask questions about the app
+                </span>
               </div>
-              <span className="text-xs text-muted-foreground ml-[22px]">
-                Ask questions about the app
-              </span>
-            </div>
-          </SelectItem>
+            </SelectItem>
+          )}
         </SelectContent>
       </Select>
     </div>

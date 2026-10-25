@@ -19,6 +19,7 @@ import {
   CONTEXT_PACK_IDS,
   type ContextPackId,
 } from "@/prompts/context_packs/registry";
+import { isHostedPreviewDeployment } from "@/app_run/public_preview_url";
 
 // Per-chat atoms implemented with maps keyed by chatId
 export const chatMessagesByIdAtom = atom<Map<number, Message[]>>(new Map());
@@ -134,20 +135,10 @@ export const chatTabSessionStorageAtom = atomWithStorage<ChatTabSession>(
 /** Vendor context packs toggled on globally; injected into every new stream's system prompt.
  * The toggle is per-browser localStorage, so in hosted deployments a teammate's fresh
  * browser would silently send no packs and generated apps would miss vendor context.
- * Default all packs ON when VITE_PREVIEW_URL_TEMPLATE is set (hosted mode);
- * desktop stays default-off. Same env access pattern as public_preview_url.ts. */
-function defaultContextPacks(): ContextPackId[] {
-  const hosted =
-    typeof process !== "undefined" && process.env
-      ? process.env.VITE_PREVIEW_URL_TEMPLATE
-      : (import.meta as { env?: Record<string, string | undefined> }).env
-          ?.VITE_PREVIEW_URL_TEMPLATE;
-  return hosted ? [...CONTEXT_PACK_IDS] : [];
-}
-
+ * Default all packs ON in hosted deployments; desktop stays default-off. */
 export const contextPacksAtom = atomWithStorage<ContextPackId[]>(
   "dyad-context-packs",
-  defaultContextPacks(),
+  isHostedPreviewDeployment() ? [...CONTEXT_PACK_IDS] : [],
 );
 
 export const initializeChatTabSessionStorageAtom = atom(null, (_get, set) => {

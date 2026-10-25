@@ -12,15 +12,19 @@ import { useRouterState } from "@tanstack/react-router";
 import { useSetAtom } from "jotai";
 import { hasManuallySelectedChatModeAtom } from "@/atoms/chatAtoms";
 import { isFreeProModel } from "@/lib/freeProModel";
+import { isHostedPreviewDeployment } from "@/app_run/public_preview_url";
 
 export function getNextAvailableChatMode({
   currentMode,
   canUseBasicAgent,
   canUseBuild,
+  skipLegacyModes = false,
 }: {
   currentMode: ChatMode;
   canUseBasicAgent: boolean;
   canUseBuild: boolean;
+  /** Hosted deployments hide Build/Ask; the cycle must skip them too. */
+  skipLegacyModes?: boolean;
 }): ChatMode {
   const modes = ChatModeSchema.options;
   const currentIndex = modes.indexOf(currentMode);
@@ -29,6 +33,12 @@ export function getNextAvailableChatMode({
     const candidate = modes[(currentIndex + offset) % modes.length];
     if (candidate === "local-agent" && !canUseBasicAgent) continue;
     if (candidate === "build" && !canUseBuild) continue;
+    if (
+      skipLegacyModes &&
+      (candidate === "build" || candidate === "ask") &&
+      candidate !== currentMode
+    )
+      continue;
     return candidate;
   }
 
@@ -71,6 +81,7 @@ export function useChatModeToggle() {
       currentMode,
       canUseBasicAgent: isDyadProEnabled(settings) || !isQuotaExceeded,
       canUseBuild: !isFreeProModel(selectedModel),
+      skipLegacyModes: isHostedPreviewDeployment(),
     });
 
     if (routeChatId == null) {

@@ -15,16 +15,28 @@
 const PREVIEW_ORIGIN_RE =
   /^http:\/\/(?:[\w-]+\.localhost|localhost|127\.0\.0\.1):(\d+)(?=\/|$)/;
 
-export function toPublicPreviewUrl(appUrl: string): string {
-  // Read process.env when available (main process + Vitest, so vi.stubEnv
-  // works); fall back to import.meta.env in the browser where `process`
-  // doesn't exist. Defensive access keeps non-Vite consumers working
-  // (same pattern as src/ipc/contracts/core.ts).
+// Read process.env when available (main process + Vitest, so vi.stubEnv
+// works); fall back to import.meta.env in the browser where `process`
+// doesn't exist. Defensive access keeps non-Vite consumers working
+// (same pattern as src/ipc/contracts/core.ts).
+function previewUrlTemplate(): string | undefined {
   const template =
     typeof process !== "undefined" && process.env
       ? process.env.VITE_PREVIEW_URL_TEMPLATE
       : (import.meta as { env?: Record<string, string | undefined> }).env
           ?.VITE_PREVIEW_URL_TEMPLATE;
+  return template || undefined;
+}
+
+/** True when the UI runs in a hosted deployment (VITE_PREVIEW_URL_TEMPLATE
+ * set). Gates hosted-only UI changes (e.g. context-pack defaults, trimming
+ * mode options) so desktop/dev behavior stays identical. */
+export function isHostedPreviewDeployment(): boolean {
+  return previewUrlTemplate() != null;
+}
+
+export function toPublicPreviewUrl(appUrl: string): string {
+  const template = previewUrlTemplate();
   if (!template) {
     return appUrl;
   }
