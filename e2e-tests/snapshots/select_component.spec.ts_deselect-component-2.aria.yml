@@ -1,6 +1,6 @@
 - text: Selected Components (1)
 - button "Clear all"
 - img
-- text: h1 src/pages/Index.tsx:9
+- text: h1 src/pages/Index.tsx:6
 - button "Deselect component":
   - img

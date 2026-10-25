@@ -40,16 +40,18 @@ testSkipIfWindows("select multiple components", async ({ po }) => {
   await po.previewPanel.ensurePreviewPanelOpen();
   await po.previewPanel.clickPreviewPickElement();
 
+  // Select the paragraph first: the visual-editing toolbar that opens under a
+  // selection would otherwise sit on top of the paragraph.
   await po.previewPanel
     .getPreviewIframeElement()
     .contentFrame()
-    .getByRole("heading", { name: "Welcome to Your Blank App" })
+    .getByText("Start building your amazing project here!")
     .click();
 
   await po.previewPanel
     .getPreviewIframeElement()
     .contentFrame()
-    .getByText("Start building your amazing project here!")
+    .getByRole("heading", { name: "Welcome to Your Blank App" })
     .click();
 
   await po.previewPanel.snapshotPreview();
@@ -105,16 +107,18 @@ testSkipIfWindows(
     await po.previewPanel.ensurePreviewPanelOpen();
     await po.previewPanel.clickPreviewPickElement();
 
+    // Select the paragraph first: the visual-editing toolbar that opens under a
+    // selection would otherwise sit on top of the paragraph.
     await po.previewPanel
       .getPreviewIframeElement()
       .contentFrame()
-      .getByRole("heading", { name: "Welcome to Your Blank App" })
+      .getByText("Start building your amazing project here!")
       .click();
 
     await po.previewPanel
       .getPreviewIframeElement()
       .contentFrame()
-      .getByText("Start building your amazing project here!")
+      .getByRole("heading", { name: "Welcome to Your Blank App" })
       .click();
 
     await po.previewPanel.snapshotSelectedComponentsDisplay();

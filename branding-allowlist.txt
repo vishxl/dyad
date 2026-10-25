@@ -87,3 +87,8 @@ src/ipc/services/claude_code/text.test.ts
 src/main/safe_storage_legacy.test.ts  # legacy keychain identity of the pre-rebrand app name
 src/__tests__/generate_release_provenance_script.test.ts :: dyad  # upstream repo coordinates fixture
 src/__tests__/prepare_release_tag_script.test.ts :: dyad  # upstream repo coordinates fixture
+
+# --- Build output ---
+build:assets/index-*.js :: dyad  # renderer compat shims: legacy localStorage keys and <dyad-*> tag normalizer
+build:headless-server.cjs :: dyad  # server-only bundle (never served to browsers): external hosts, wire ids, compat shims
+build:headless-server.cjs.map :: dyad  # server-only source map

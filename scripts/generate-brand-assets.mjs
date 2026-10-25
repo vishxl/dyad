@@ -165,3 +165,6 @@ write(
   "scaffold/public/favicon.ico",
   await icoFor([16, 32, 48], { fraction: 0.94 }),
 );
+
+// E2E fixture used as a generic image attachment.
+write("e2e-tests/fixtures/images/logo.png", await icon(16, { fraction: 0.94 }));

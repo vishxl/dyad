@@ -1,0 +1,119 @@
+# Rebrand report: Dyad -> NextBillion
+
+Branch `rebrand/nextbillion` (from `rebrand/nextbuild` @ d9b9f2be). Product name NextBillion, slug `nextbillion`, env prefix `NEXTBILLION_`.
+The earlier audit in `context/BRANDING_AUDIT.md` was written for the name "NextBuild"; this brief supersedes it (`src/brand.ts` was rewritten accordingly).
+
+## 1. What changed per phase
+
+| Phase                           | Commit        | Summary                                                                                                                                                                                                                                                                              |
+| ------------------------------- | ------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 0 Discovery + baseline          | d7a8f2fa      | `STACK_SUMMARY.md`, `BRANDING_INVENTORY.md`, baseline of every check (below)                                                                                                                                                                                                         |
+| 2/3 Links, CTAs, external hosts | d1854145      | Removed every user-visible dyad link/CTA (section 4). All external hosts now come from one module, `src/external_endpoints.ts`, overridable with `NEXTBILLION_*_URL` env vars. Template repo URLs moved server-side. Logo generator + new brand assets. `scripts/check-branding.mjs` |
+| 2/5 Rename + compat             | 6dca50d7      | Token-aware codemod over 1,330 files (110 file renames), then hand-written compatibility for data written before the rebrand (section 3). Scaffold vendors its component tagger. `package.json` identity                                                                             |
+| 4/6 follow-ups                  | later commits | Renderer no longer receives external hosts (OAuth login URL built server-side), logo fixture, e2e snapshots, report                                                                                                                                                                  |
+
+The codemod was a dry-run-reviewed script (not committed; scratch under `.claude/tmp`) with explicit protect lists for external hosts, repo slugs, engine wire ids and npm packages. It was applied once, so the "internal identifier" rename (Bucket D) is **not** a separate commit: file/identifier renames and string renames are interleaved in `6dca50d7`. Revert granularity is therefore "all of the rename" or nothing.
+
+## 2. Stack
+
+See `STACK_SUMMARY.md`. Hosted web app = Vite dev server + headless Node server behind Caddy/oauth2-proxy; the Electron shell is still in the tree and still builds.
+
+## 3. Compatibility shims and migrations (all idempotent, covered by tests)
+
+| Legacy data                                                                                  | Shim                                                                                                                                                                                                                                        | Where                                                                                                                                                              |
+| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `DYAD_*` env vars (live VM `deploy/env`)                                                     | copied to `NEXTBILLION_*` when the new name is unset; first import of every entry point                                                                                                                                                     | `src/brand.ts` `applyLegacyEnv`, `src/legacy_env_bootstrap.ts`, `src/main_bootstrap.ts`, `scripts/lib/legacy-env.mjs` (scripts, vite/forge config, preview router) |
+| Stored chat content: `<dyad-*>` tags, `dyad-media://` URLs, `.dyad/` paths                   | one-time SQL rewrite of `messages.content`, `messages.ai_messages_json`, `agent_messages.content`, `agent_activities.presentation_xml`; DB file copied to `sqlite.db.pre-nextbillion-tags.bak` first; recorded in `_nextbillion_migrations` | `src/db/legacy_tag_migration.ts` (run from `initializeDatabase`)                                                                                                   |
+| Old tags arriving later (model output, imports)                                              | `normalizeLegacyTags` at the markdown parser and `processFullResponseActions`; Claude Code text filter escapes both dialects                                                                                                                | `src/lib/legacy_tags.ts`                                                                                                                                           |
+| Per-app `<app>/.dyad/` folder                                                                | moved to `.nextbillion/` at startup, `.gitignore` entry added                                                                                                                                                                               | `src/legacy_app_folder_migration.ts`                                                                                                                               |
+| Default apps folder `~/dyad-apps`                                                            | still used if it exists and `~/nextbillion-apps` does not                                                                                                                                                                                   | `src/paths/paths.ts`                                                                                                                                               |
+| Electron userData `.../dyad`                                                                 | kept when the new directory does not exist                                                                                                                                                                                                  | `src/main.ts`                                                                                                                                                      |
+| `chats.execution_backend = 'dyad'` rows and SQL default                                      | column type maps `'dyad'` <-> `'nextbillion'`; no schema change                                                                                                                                                                             | `src/db/schema.ts`                                                                                                                                                 |
+| Settings keys `enableDyadPro`, `dyadProBudget`                                               | renamed before the zod parse (zod would strip them)                                                                                                                                                                                         | `src/lib/legacy_settings.ts`                                                                                                                                       |
+| localStorage keys (context packs, terminal font, telemetry consent/id, pro status, dedupe)   | copied to new keys before first render, old keys left                                                                                                                                                                                       | `src/lib/legacy_local_storage.ts`, `src/legacy_storage_bootstrap.ts`                                                                                               |
+| RPC header `x-dyad-rpc-token`                                                                | accepted by the server alongside the new header                                                                                                                                                                                             | `src/server/index.ts`                                                                                                                                              |
+| `dyad://` deep links / OS scheme                                                             | still registered and handled                                                                                                                                                                                                                | `src/main.ts`, `forge.config.ts`                                                                                                                                   |
+| pnpm-workspace markers `# dyad-default-allow-builds*`, `# dyad-auto-denied` in existing apps | recognised and rewritten to the new markers                                                                                                                                                                                                 | `src/ipc/utils/socket_firewall.ts`                                                                                                                                 |
+| Generated Playwright files ("Generated by Dyad")                                             | still detected as generated                                                                                                                                                                                                                 | `src/ipc/utils/playwright_bootstrap.ts`                                                                                                                            |
+| Apps tagged by the old component tagger (`data-dyad-id/name`)                                | attributes mirrored onto the new names in the preview shim                                                                                                                                                                                  | `worker/nextbillion-shim.js`                                                                                                                                       |
+| macOS Keychain identity `dyad Safe Storage`                                                  | stays in the legacy-recovery list                                                                                                                                                                                                           | `src/main/safe_storage_legacy.ts`                                                                                                                                  |
+
+Verified end to end: a database, `~/dyad-apps/<app>/.dyad/media`, `user-settings.json` with `enableDyadPro`, and `DYAD_*` env created by the **baseline** server were opened by the new stack. Result: tags rewritten (0 `<dyad-` left), app folder moved and gitignored, backup written, `~/dyad-apps` reused, legacy env honoured, old localStorage copied, and the old chat rendered its file card and status card with no raw tags (screenshot checked).
+
+## 4. Links / CTAs removed
+
+- Chat error box: "Access with/Upgrade to Dyad Pro", rate-limit Upgrade + Troubleshooting buttons, "Get more AI credits", "Read docs", billing action button
+- Free agent quota banner Upgrade; Pro-locked visual editor upsell and locked mic buttons (chat + home input); whole `PromoMessage` (social + Pro promos); annotator "Get Dyad Pro"; security panel docs button; package-manager docs URL
+- Help feature entirely (Help dialog, help bot, issue/bug report form, screenshot tools, sidebar Help button + footer, crash-report and "Report Bug" buttons)
+- `ProBanner`, Pro trial dialog, setup-banner trial/video links, "Unlock Pro modes", Upgrade buttons in home, runtime selector and model picker (locked-model dialog now only offers "Add API key")
+- Release notes dialog (iframed dyad.sh), "Download Stable" toast action, GitHub troubleshooting link, telemetry "Learn more", portal Docs, Capacitor help, template "View on GitHub", subscription banner action button
+- App upgrade `manualUpgradeUrl` docs links, release-notes fetch, settings-restore docs action, supabase error docs sentence, optional `websiteUrl` of the auto provider
+- Desktop: auto-update (no feed is contacted any more, `enableAutoUpdate` is now a no-op), `publisher-github` and Squirrel `iconUrl` in `forge.config.ts`
+- Scaffold "Made with Dyad" badge (component, import, fixtures, prompts); README hero image and all links in README/CONTRIBUTING/SECURITY/docs; `repository` and `staging:engine` in `package.json`
+- Orphaned i18n keys removed from all 6 locales (parity gate passes)
+
+## 5. Where `nextbillion.ai` is used
+
+Only `src/brand.ts` (`NEXTBILLION_WEBSITE_URL`), consumed by `OPENROUTER_APP_REFERER` (the app-attribution header OpenRouter expects to identify the caller). No `homepage`, meta, footer or UI link uses it. `@nextbillion.ai` in `deploy/` is the Google sign-in domain restriction, not a URL.
+
+## 6. Remaining occurrences of "dyad" (full list with reasons: `branding-allowlist.txt`)
+
+**Bucket C, external (cannot be renamed without breaking things)**
+
+- `src/external_endpoints.ts`: `api./engine./academy./oauth./supabase-oauth./helpchat.dyad.sh` and three `github.com/dyad-sh/*` template repos. To remove: host your own gateway and set `NEXTBILLION_API_BASE_URL`, `NEXTBILLION_ENGINE_URL`, ... or fork the template repos and edit the three URLs. Not importable from the renderer; verified absent from the production renderer bundle.
+- Engine wire protocol: model ids `dyad/auto/*`, `dyad/theme-generator/*`, `dyad/help-bot/default`, `dyad/image-gen`, `dyad/transcribe`, `gatewayPrefix: "dyad/"`, header `X-Dyad-Request-Id`, `X-Dyad-Free-Quota-Key`, body field `dyad_options`. Server-side only except that `gatewayPrefix: "dyad/"` is part of the provider data returned to the browser by `get-language-model-providers` (network-visible). To remove: a gateway that accepts new names.
+- npm: `@dyad-sh/supabase-management-js` (server only), `@dyad-sh/react-vite-component-tagger` and `@dyad-sh/nextjs-webpack-component-tagger` (only for old apps being upgraded and for the Next.js template).
+- Next.js / Vite+Nitro / Portal templates are still cloned from `dyad-sh/*` and carry their own branding (e.g. a "Made with Dyad" component). Fork and rebrand them, then edit `TEMPLATE_REPOS`. The default React template is local and clean.
+- `packages/@dyad-sh/*` (upstream tagger sources, unused at runtime), `benchmarks/` (talks to the upstream engine).
+
+**Compat shims**: the table in section 3. The renderer production bundle still contains the legacy localStorage key names and the tag normalizer (`dyad`), by design.
+
+**Not served to clients, left as is**: `LICENSE`, `NOTICE`, `plans/`, `context/`, `.github/`, `.claude/`, `drizzle/` (immutable migration history), upstream release/triage scripts, developer docs that name the upstream repo (`AGENTS.md`, `rules/`, `docs/`).
+
+**Hosted VM host-level names (manual, see risks)**: Linux user `dyad`, `/opt/dyad`, unit file names `dyad-web.service` etc. in `deploy/`.
+
+## 7. Telemetry
+
+The renderer still initialises PostHog with the original project's key and host (`src/renderer.tsx`). It is opt-in (consent banner) and the key is opaque, so it was left alone per the brief, but events go to the original project's analytics. Replace the key or remove the init before sharing widely.
+
+## 8. Logo
+
+`assets/brand/logo-source.png` (192 px symbol, transparent) is the single source. `node scripts/generate-brand-assets.mjs` regenerates: `assets/icon/logo.{png,ico,icns}` (macOS tile), `assets/logo.png` (title bar), `public/favicon.ico` + `apple-touch-icon.png` (hosted UI had no favicon; `index.html` now links them), `scaffold/public/favicon.ico` (+ link in scaffold `index.html`), `e2e-tests/fixtures/images/logo.png`. Old `assets/logo.svg` deleted. The source is only 192 px, so the 512/1024 outputs are upscaled and slightly soft; supply a vector or 1024 px original for crisp icons. Mark is purple/blue and has low contrast on the dark title bar; checked visually only in light theme and the dark e2e preview.
+
+## 9. Baseline vs final
+
+| Check                                                                                             | Baseline (d9b9f2be)                                                                                           | Final                                                         |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| `npm run ts`                                                                                      | pass                                                                                                          | pass                                                          |
+| `npx oxlint`                                                                                      | 0 errors                                                                                                      | 0 errors                                                      |
+| `npx oxfmt --check`                                                                               | pass                                                                                                          | pass                                                          |
+| headless server build                                                                             | pass                                                                                                          | pass                                                          |
+| `npm test`                                                                                        | 4 files / 39 tests failed (grep.spec 34, local_agent_grep 2, default_chat_mode 2, ChatErrorBox 1), 9,875 pass | FINAL_TEST                                                    |
+| `npm run build` (packaged app, `NextBillion.app`)                                                 | pass                                                                                                          | pass                                                          |
+| Playwright subset (main, tags parsing, local_agent_basic, edit_code, chat_mode, import: 11 tests) | 9 pass, 2 fail (`import app with AI rules`, `blueprint name conflict`)                                        | 10 pass, 1 fail (`blueprint name conflict`, same as baseline) |
+| Playwright `select_component` (6 tests)                                                           | `:4`, `:37`, `:72`, `:100` pass; `:171` (Next.js, clones from GitHub) fails                                   | FINAL_E2E                                                     |
+| `capacitor`                                                                                       | fails                                                                                                         | not re-run (fails at baseline)                                |
+| `check-branding` (tracked files + renderer production build + server bundle)                      | n/a                                                                                                           | OK                                                            |
+
+Not run: the other ~125 Playwright specs, the Windows/Linux builds, `npm run package` signing.
+
+## 10. Assumptions and judgement calls
+
+- Both the hosted web app and the Electron build are kept working.
+- "NextBillion Pro" naming kept for the Pro concept; only links/CTAs removed.
+- Git author for commits made on a user's behalf: `NextBillion <noreply@localhost>` (no invented address).
+- `deploy/` keeps host-level names; client-visible parts changed (oauth2 cookie `_nextbillion_oauth2`, env template names, comments). The oauth2-proxy unit accepts either hostname variable.
+- Engine wire ids were not renamed (they are a protocol with a server we do not run).
+- `select_component` e2e specs select the paragraph first because the removed badge was the second target and the Pro visual-editing toolbar covers the paragraph when the heading is selected first; snapshots re-baselined (pure removal of the badge, reviewed).
+- Four engine snapshots also picked up an unrelated upstream change (planning questionnaire max 3 -> 5 options) that was already stale before this work.
+- Five orphaned snapshots that referenced the removed badge or old tagger were deleted (no test referenced them).
+
+## 11. Risks to check by hand
+
+1. **Hosted VM cutover.** `deploy/env` may still define `DYAD_*` (works through the alias). The oauth2 cookie renamed: every teammate signs in once more. The VM path `/opt/dyad/app` and the user `dyad` still appear in Vite dev-server source maps, stack traces in RPC error bodies and `list-apps` paths (`~/dyad-apps/...`). Removing them needs a host rename: stop services, `usermod -l nextbillion dyad`, `mv /opt/dyad /opt/nextbillion`, `mv ~/dyad-apps ~/nextbillion-apps`, update the units/Caddy/env, reload. Not done in place because it moves live data.
+2. **The hosted UI is still served by the unminified Vite dev server**, so every compat string and file name under `src/` is readable in DevTools. Serving a production build (`vite build`) removes file names and most identifiers.
+3. **Electron:** new `productName` changes the macOS Keychain identity (recovery list kept) and the bundle id; userData and apps-dir fallbacks are in place but were not exercised on a packaged install. Linux `.desktop`/mime registration only knows `nextbillion://`.
+4. **Package renames:** run `npm install` after pulling (the local native package is now `nextbillion-keychain-reader`; lockfile regenerated, scaffold `pnpm-lock.yaml` regenerated).
+5. **Old apps** still import `@dyad-sh/react-vite-component-tagger`; the "upgrade app" flow installs that published package into old projects.
+6. `src/main/linux_protocol_registration.ts`, Coolify key comments and some e2e specs (`safe_storage_keychain_identity`, macOS only, opt-in) were renamed mechanically and could not be run here.
+7. Model behaviour: prompts now say NextBillion and use `<nextbillion-*>` tags; a full generation round trip against a real model was not run.

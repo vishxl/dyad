@@ -3,6 +3,4 @@
 - region "Notifications alt+T"
 - heading "Welcome to Your Blank App" [level=1]
 - paragraph: Start building your amazing project here!
-- link "Made with NextBillion":
-  - /url: https://www.dyad.sh/
 - text: h1 src/pages/Index.tsx

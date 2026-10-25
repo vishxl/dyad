@@ -1,4 +1,6 @@
 import { isExternalServiceHost } from "../../external_endpoints";
+import { buildOAuthLoginUrl } from "../../connection_flow/oauth_deep_link";
+import type { ConnectionFlowInvocationRef } from "../../connection_flow/state";
 import { app, shell } from "electron";
 import log from "electron-log";
 import path from "node:path";
@@ -51,7 +53,7 @@ const ALLOWED_MEDIA_EXTENSIONS = new Set([
 ]);
 
 export function registerShellHandlers() {
-  handle("open-external-url", async (_event, url: string) => {
+  const openExternalUrl = async (url: string) => {
     if (!url) {
       throw new NextBillionError(
         "No URL provided.",
@@ -80,7 +82,27 @@ export function registerShellHandlers() {
     }
     await shell.openExternal(url);
     logger.debug("Opened external URL:", url);
+  };
+
+  handle("open-external-url", async (_event, url: string) => {
+    await openExternalUrl(url);
   });
+
+  handle(
+    "open-oauth-login",
+    async (
+      _event,
+      {
+        provider,
+        invocationRef,
+      }: {
+        provider: "neon" | "supabase";
+        invocationRef: ConnectionFlowInvocationRef;
+      },
+    ) => {
+      await openExternalUrl(buildOAuthLoginUrl(provider, invocationRef));
+    },
+  );
 
   handle("show-item-in-folder", async (_event, fullPath: string) => {
     // Validate that a path was provided

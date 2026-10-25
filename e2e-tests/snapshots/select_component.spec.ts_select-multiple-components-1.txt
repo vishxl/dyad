@@ -4,7 +4,18 @@ message: [dump] make both smaller
 
 Selected components:
 
-1. Component: h1 (file: src/pages/Index.tsx)
+1. Component: p (file: src/pages/Index.tsx)
+
+Snippet:
+```
+        <h1 className="text-4xl font-bold mb-4">Welcome to Your Blank App</h1>
+        <p className="text-xl text-gray-600"> // <-- EDIT HERE
+          Start building your amazing project here!
+        </p>
+      </div>
+```
+
+2. Component: h1 (file: src/pages/Index.tsx)
 
 Snippet:
 ```
@@ -13,17 +24,6 @@ Snippet:
         <p className="text-xl text-gray-600">
           Start building your amazing project here!
         </p>
-```
-
-2. Component: a (file: src/components/made-with-nextbillion.tsx)
-
-Snippet:
-```
-    <div className="p-4 text-center">
-      <a // <-- EDIT HERE
-        href="https://www.dyad.sh/"
-        target="_blank"
-        rel="noopener noreferrer"
 ```
 
 <system-reminder>Previous assistant message created no commit. Repository commit before that message: [[GIT_COMMIT]].</system-reminder>

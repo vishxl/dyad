@@ -5,7 +5,6 @@ import {
   startConnectionFlow,
   useConnectionFlow,
 } from "@/hooks/useConnectionFlow";
-import { buildOAuthLoginUrl } from "@/connection_flow/oauth_deep_link";
 import { useTranslation } from "react-i18next";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -147,9 +146,10 @@ export function NeonConnector({ appId }: { appId: number }) {
         if (settings?.isTestMode) {
           await ipc.neon.fakeConnect();
         } else {
-          await ipc.system.openExternalUrl(
-            buildOAuthLoginUrl("neon", invocationRef),
-          );
+          await ipc.system.openOAuthLogin({
+            provider: "neon",
+            invocationRef,
+          });
         }
       } catch (error) {
         await cancelConnectionFlow("neon", invocationRef);

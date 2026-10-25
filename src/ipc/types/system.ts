@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ConnectionFlowInvocationRefSchema } from "./connection_flow";
 import {
   defineContract,
   defineEvent,
@@ -338,6 +339,16 @@ export const systemContracts = {
   openExternalUrl: defineContract({
     channel: "open-external-url",
     input: z.string(),
+    output: z.void(),
+  }),
+
+  // The login URL is built in the main process so external hosts never reach the renderer.
+  openOAuthLogin: defineContract({
+    channel: "open-oauth-login",
+    input: z.object({
+      provider: z.enum(["neon", "supabase"]),
+      invocationRef: ConnectionFlowInvocationRefSchema,
+    }),
     output: z.void(),
   }),
 

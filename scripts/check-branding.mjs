@@ -47,6 +47,7 @@ for (const raw of fs
 }
 
 function violations(rel, text, kind) {
+  if (!NAME.test(text)) return [];
   const applicable = rules[kind].filter((r) => r.glob.test(rel));
   if (applicable.some((r) => !r.re)) return [];
   const out = [];

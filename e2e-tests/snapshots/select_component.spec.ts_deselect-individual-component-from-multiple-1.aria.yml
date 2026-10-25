@@ -1,10 +1,6 @@
-- text: Selected Components (2)
+- text: Selected Components (1)
 - button "Clear all"
 - img
-- text: h1 src/pages/Index.tsx:9
-- button "Deselect component":
-  - img
-- img
-- text: a src/components/made-with-nextbillion.tsx:4
+- text: h1 src/pages/Index.tsx:6
 - button "Deselect component":
   - img

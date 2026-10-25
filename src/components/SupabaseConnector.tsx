@@ -5,7 +5,6 @@ import {
   startConnectionFlow,
   useConnectionFlow,
 } from "@/hooks/useConnectionFlow";
-import { buildOAuthLoginUrl } from "@/connection_flow/oauth_deep_link";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 
@@ -351,9 +350,10 @@ export function SupabaseConnector({ appId }: { appId: number }) {
             fakeProjectId: "fake-project-id",
           });
         } else {
-          await ipc.system.openExternalUrl(
-            buildOAuthLoginUrl("supabase", invocationRef),
-          );
+          await ipc.system.openOAuthLogin({
+            provider: "supabase",
+            invocationRef,
+          });
         }
       } catch (error) {
         await cancelConnectionFlow("supabase", invocationRef);

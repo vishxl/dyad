@@ -1,7 +1,5 @@
 === src/pages/Index.tsx ===
 // Update this page (the content is just a fallback if you fail to update the page)
-import { MadeWithNextBillion } from "@/components/made-with-nextbillion";
-
 const Index = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100">
@@ -10,7 +8,6 @@ const Index = () => {
                 <p className="text-xl text-gray-600">Start building your amazing project here!
                             </p>
             </div>
-            <MadeWithNextBillion />
         </div>
     );
 };
