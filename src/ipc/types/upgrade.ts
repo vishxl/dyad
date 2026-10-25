@@ -9,7 +9,6 @@ export const AppUpgradeSchema = z.object({
   id: z.string(),
   title: z.string(),
   description: z.string(),
-  manualUpgradeUrl: z.string(),
   isNeeded: z.boolean(),
 });
 

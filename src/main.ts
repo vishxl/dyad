@@ -1,7 +1,6 @@
 import { stopClaudeProcesses } from "./ipc/services/claude_code/runtime";
 import {
   app,
-  autoUpdater,
   BrowserWindow,
   dialog,
   Menu,
@@ -18,7 +17,6 @@ import { promisify } from "node:util";
 import { registerIpcHandlers } from "./ipc/ipc_host";
 import { shutdownObservability } from "./observability/langfuse";
 import dotenv from "dotenv";
-import { updateElectronApp, UpdateSourceType } from "update-electron-app";
 import log from "electron-log";
 import {
   getSettingsFilePath,
@@ -37,7 +35,6 @@ import {
   recoveryNeedsKeychainUnlock,
   retryRecoveryWithKeychainUnlock,
 } from "./main/safe_storage_legacy";
-import { recordUpdaterError } from "./main/updater_state";
 import {
   sendTelemetryEvent,
   sendTelemetryEventToWindow,
@@ -626,32 +623,6 @@ export async function onReady() {
     managed_node_installed: !!managedNodeVersion,
     managed_node_version: managedNodeVersion,
   });
-
-  logger.info("Auto-update enabled=", settings.enableAutoUpdate);
-  if (settings.enableAutoUpdate) {
-    // Technically we could just pass the releaseChannel directly to the host,
-    // but this is more explicit and falls back to stable if there's an unknown
-    // release channel.
-    const postfix = settings.releaseChannel === "beta" ? "beta" : "stable";
-    const host = `https://api.dyad.sh/v1/update/${postfix}`;
-    logger.info("Auto-update release channel=", postfix);
-    // update-electron-app logs updater errors at info level, which the
-    // warn-filtered bug-report logs drop — leaving only the orphaned stack
-    // trace tail. Log at error level and record for debug bundles.
-    autoUpdater.on("error", (error) => {
-      logger.error("Auto-updater error:", error);
-      recordUpdaterError(error);
-    });
-    updateElectronApp({
-      logger,
-      updateInterval: "60 minutes",
-      updateSource: {
-        type: UpdateSourceType.ElectronPublicUpdateService,
-        repo: "dyad-sh/dyad",
-        host,
-      },
-    }); // additional configuration options available
-  }
 }
 
 function scheduleSafeStorageKeychainUnlockRetryAfterRendererLoad(): void {

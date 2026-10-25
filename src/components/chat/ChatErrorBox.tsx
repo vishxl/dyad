@@ -6,14 +6,7 @@ import { ipc } from "@/ipc/types";
 import { useFreeAgentQuota } from "@/hooks/useFreeAgentQuota";
 import { useFreeModelQuota } from "@/hooks/useFreeModelQuota";
 import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
-import { AI_STREAMING_ERROR_MESSAGE_PREFIX } from "@/shared/texts";
-import {
-  X,
-  ExternalLink as ExternalLinkIcon,
-  CircleArrowUp,
-  MessageSquarePlus,
-  ArrowRight,
-} from "lucide-react";
+import { X, MessageSquarePlus, ArrowRight } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import {
@@ -67,8 +60,6 @@ export function ChatErrorBox({
         onDismiss={onDismiss}
         title={billingError.title}
         message={billingError.description}
-        action={billingError.action}
-        href={billingError.url}
       />
     );
   }
@@ -76,47 +67,7 @@ export function ChatErrorBox({
   if (error.includes("doesn't have a free quota tier")) {
     return (
       <ChatErrorContainer onDismiss={onDismiss}>
-        {error}
-        <span className="ml-1">
-          <ExternalLink
-            href="https://dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=free-quota-error"
-            variant="primary"
-          >
-            Access with Dyad Pro
-          </ExternalLink>
-        </span>{" "}
-        or switch to another model.
-      </ChatErrorContainer>
-    );
-  }
-
-  // Important, this needs to come after the "free quota tier" check
-  // because it also includes this URL in the error message
-  //
-  // Sometimes Dyad Pro can return rate limit errors and we do not want to
-  // show the upgrade to Dyad Pro link in that case because they are
-  // already on the Dyad Pro plan.
-  if (
-    !isDyadProEnabled &&
-    (error.includes("Resource has been exhausted") ||
-      error.includes("https://ai.google.dev/gemini-api/docs/rate-limits") ||
-      error.includes("Provider returned error"))
-  ) {
-    return (
-      <ChatErrorContainer onDismiss={onDismiss}>
-        {error}
-        <div className="mt-2 space-y-2 space-x-2">
-          <ExternalLink
-            href="https://dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=rate-limit-error"
-            variant="primary"
-          >
-            Upgrade to Dyad Pro
-          </ExternalLink>
-
-          <ExternalLink href="https://dyad.sh/docs/help/ai-rate-limit">
-            Troubleshooting guide
-          </ExternalLink>
-        </div>
+        {error} Switch to another model.
       </ChatErrorContainer>
     );
   }
@@ -131,8 +82,6 @@ export function ChatErrorBox({
             ? `Switch to the Free model for ${freeModelMessagesLimit} free messages per day, or add credits to continue.`
             : "Add credits to continue."
         }
-        action={SUBSCRIPTION_BILLING_ERRORS.OUT_OF_CREDITS.action}
-        href={SUBSCRIPTION_BILLING_ERRORS.OUT_OF_CREDITS.url}
       />
     );
   }
@@ -140,7 +89,6 @@ export function ChatErrorBox({
   //
   // We are matching "Fallbacks=[{" and not just "Fallbacks=" because the fallback
   // model itself can error and we want to include the fallback model error in the error message.
-  // Example: https://github.com/dyad-sh/dyad/issues/1849#issuecomment-3590685911
   if (error.includes(fallbackPrefix)) {
     error = normalizedError;
   }
@@ -158,19 +106,12 @@ export function ChatErrorBox({
     return (
       <ChatErrorContainer onDismiss={onDismiss}>
         You have used all {messagesLimit} free Agentic Mode messages for today.
-        {resetText} This message was not sent. Upgrade to Dyad Pro for unlimited
-        Agent access
+        {resetText} This message was not sent.
         {onSwitchToBuildMode
-          ? ", or switch this chat to Build mode and send it again."
-          : ". To use Build mode, first choose a model other than Dyad Free, then send it again."}
-        <div className="mt-2 flex flex-wrap gap-2">
-          <ExternalLink
-            href="https://dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=free-agent-quota-exceeded"
-            variant="primary"
-          >
-            Upgrade to Dyad Pro
-          </ExternalLink>
-          {onSwitchToBuildMode && (
+          ? " Switch this chat to Build mode and send it again."
+          : " To use Build mode, first choose a model other than Dyad Free, then send it again."}
+        {onSwitchToBuildMode && (
+          <div className="mt-2 flex flex-wrap gap-2">
             <Button
               type="button"
               variant="outline"
@@ -181,8 +122,8 @@ export function ChatErrorBox({
               Switch to Build
               <ArrowRight size={16} />
             </Button>
-          )}
-        </div>
+          </div>
+        )}
       </ChatErrorContainer>
     );
   }
@@ -201,13 +142,7 @@ export function ChatErrorBox({
         <span>
           You have reached the {freeModelMessagesLimit}-message Dyad Free model
           limit.
-          {resetText} Switch to paid models.{" "}
-          <ExternalLink
-            href="https://academy.dyad.sh/subscription?utm_source=dyad-app&utm_medium=app&utm_campaign=exceeded-budget-error"
-            variant="primary"
-          >
-            Get more AI credits
-          </ExternalLink>
+          {resetText} Switch to paid models.
         </span>
       </ChatErrorContainer>
     );
@@ -219,16 +154,6 @@ export function ChatErrorBox({
         <ErrorMarkdown>{error}</ErrorMarkdown>
       </div>
       <div className="mt-2 space-y-2 space-x-2">
-        {!isDyadProEnabled &&
-          error.includes(AI_STREAMING_ERROR_MESSAGE_PREFIX) &&
-          !error.includes("TypeError: terminated") && (
-            <ExternalLink
-              href="https://dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=general-error"
-              variant="primary"
-            >
-              Upgrade to Dyad Pro
-            </ExternalLink>
-          )}
         {isDyadProEnabled && onStartNewChat && (
           <Tooltip>
             <TooltipTrigger
@@ -243,9 +168,6 @@ export function ChatErrorBox({
             </TooltipContent>
           </Tooltip>
         )}
-        <ExternalLink href="https://www.dyad.sh/docs/faq">
-          Read docs
-        </ExternalLink>
       </div>
     </ChatErrorContainer>
   );
@@ -274,42 +196,6 @@ function parseFreeAgentQuotaError(
     // Fall through to the legacy string marker check below.
   }
   return error.includes("FREE_AGENT_QUOTA_EXCEEDED") ? {} : null;
-}
-
-function ExternalLink({
-  href,
-  children,
-  variant = "secondary",
-  icon,
-}: {
-  href: string;
-  children: React.ReactNode;
-  variant?: "primary" | "secondary";
-  icon?: React.ReactNode;
-}) {
-  const baseClasses =
-    "cursor-pointer inline-flex items-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium shadow-sm focus:outline-none focus:ring-2";
-  const primaryClasses =
-    "bg-blue-600 text-white hover:bg-blue-700 focus:ring-blue-500";
-  const secondaryClasses =
-    "bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100 hover:border-blue-300 focus:ring-blue-200";
-  const iconElement =
-    icon ??
-    (variant === "primary" ? (
-      <CircleArrowUp size={18} />
-    ) : (
-      <ExternalLinkIcon size={14} />
-    ));
-
-  return (
-    <a
-      className={`${baseClasses} ${variant === "primary" ? primaryClasses : secondaryClasses}`}
-      onClick={() => ipc.system.openExternalUrl(href)}
-    >
-      <span>{children}</span>
-      {iconElement}
-    </a>
-  );
 }
 
 function ChatErrorContainer({
@@ -373,14 +259,10 @@ function BillingNotice({
   onDismiss,
   title,
   message,
-  action,
-  href,
 }: {
   onDismiss: () => void;
   title: string;
   message: string;
-  action: string;
-  href: string;
 }) {
   return (
     <div className="relative mx-4 mt-2 rounded-lg border border-sky-200/60 bg-sky-50 p-4 text-sky-900 dark:border-sky-800/60 dark:bg-sky-950/40 dark:text-sky-100">
@@ -400,15 +282,6 @@ function BillingNotice({
           {message}
         </p>
       </div>
-      <Button
-        type="button"
-        size="sm"
-        onClick={() => ipc.system.openExternalUrl(href)}
-        className="mt-3 bg-blue-600 text-white shadow-none hover:bg-blue-700"
-      >
-        {action}
-        <ExternalLinkIcon className="size-3.5" />
-      </Button>
     </div>
   );
 }

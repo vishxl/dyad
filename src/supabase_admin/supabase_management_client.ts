@@ -1,3 +1,4 @@
+import { supabaseOauthBaseUrl } from "../external_endpoints";
 import crypto from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
@@ -277,7 +278,7 @@ async function refreshSupabaseTokenOnce(): Promise<void> {
   try {
     // Make request to Supabase refresh endpoint
     const response = await fetch(
-      "https://supabase-oauth.dyad.sh/api/connect-supabase/refresh",
+      `${supabaseOauthBaseUrl()}/api/connect-supabase/refresh`,
       {
         method: "POST",
         headers: {
@@ -425,7 +426,7 @@ async function refreshSupabaseTokenForOrganization(
 
   try {
     const response = await fetch(
-      "https://supabase-oauth.dyad.sh/api/connect-supabase/refresh",
+      `${supabaseOauthBaseUrl()}/api/connect-supabase/refresh`,
       {
         method: "POST",
         headers: {

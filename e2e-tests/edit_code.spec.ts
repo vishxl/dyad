@@ -29,7 +29,7 @@ async function expectFileContent(
 
 test("edit code", async ({ po }) => {
   await po.setUp({ autoApprove: true });
-  const editedFilePath = path.join("src", "components", "made-with-dyad.tsx");
+  const editedFilePath = path.join("src", "pages", "NotFound.tsx");
   await po.sendPrompt("foo");
   const appPath = await po.appManagement.getCurrentAppPath();
 
@@ -42,12 +42,8 @@ test("edit code", async ({ po }) => {
     timeout: Timeout.LONG,
   });
 
-  await selectFileAndWaitForEditor(
-    po.page,
-    "made-with-dyad.tsx",
-    editedFilePath,
-  );
-  await replaceEditorContent(po.page, "export const MadeWithDyad = ;");
+  await selectFileAndWaitForEditor(po.page, "NotFound.tsx", editedFilePath);
+  await replaceEditorContent(po.page, "export const EditedFile = ;");
 
   // Save the file
   await po.page.getByTestId("save-file-button").click();
@@ -57,22 +53,18 @@ test("edit code", async ({ po }) => {
   await expectFileContent(
     appPath,
     editedFilePath,
-    "export const MadeWithDyad = ;",
+    "export const EditedFile = ;",
   );
   const editedFile = fs.readFileSync(
     path.join(appPath, editedFilePath),
     "utf8",
   );
-  expect(editedFile).toContain("export const MadeWithDyad = ;");
+  expect(editedFile).toContain("export const EditedFile = ;");
 });
 
 test("edit code edits the right file during rapid switches", async ({ po }) => {
   await po.setUp({ autoApprove: true });
-  const firstOpenedFilePath = path.join(
-    "src",
-    "components",
-    "made-with-dyad.tsx",
-  );
+  const firstOpenedFilePath = path.join("src", "pages", "NotFound.tsx");
   const robotsFilePath = path.join("public", "robots.txt");
   await po.sendPrompt("foo");
   const appPath = await po.appManagement.getCurrentAppPath();
@@ -90,11 +82,11 @@ test("edit code edits the right file during rapid switches", async ({ po }) => {
 
   await selectFileAndWaitForEditor(
     po.page,
-    "made-with-dyad.tsx",
+    "NotFound.tsx",
     firstOpenedFilePath,
   );
   for (const round of [1, 2, 3]) {
-    firstFileEdit = `export const MadeWithDyad = "round-${round}";\n`;
+    firstFileEdit = `export const EditedFile = "round-${round}";\n`;
     updatedRobotsFile = `User-agent: *\nDisallow: /round-${round}\n`;
 
     await replaceEditorContent(po.page, firstFileEdit);
@@ -102,7 +94,7 @@ test("edit code edits the right file during rapid switches", async ({ po }) => {
     await replaceEditorContent(po.page, updatedRobotsFile);
     await selectFileAndWaitForEditor(
       po.page,
-      "made-with-dyad.tsx",
+      "NotFound.tsx",
       firstOpenedFilePath,
     );
   }

@@ -1,3 +1,4 @@
+import { oauthBaseUrl } from "../external_endpoints";
 import { withLock } from "../ipc/utils/lock_utils";
 import { readSettings, writeSettings } from "../main/settings";
 import { Api, createApiClient } from "@neondatabase/api-client";
@@ -51,7 +52,7 @@ async function refreshNeonTokenOnce(): Promise<void> {
     // token refreshes (e.g. running several in-app tests back-to-back) backs
     // off on 429 instead of failing the whole flow.
     const response = await fetchWithRetry(
-      "https://oauth.dyad.sh/api/integrations/neon/refresh",
+      `${oauthBaseUrl()}/api/integrations/neon/refresh`,
       {
         method: "POST",
         headers: {

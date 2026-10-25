@@ -71,34 +71,11 @@ interface LinkedGitHubRepo {
   repo: string;
 }
 
-function GitHubTroubleshootingLink({ className = "" }: { className?: string }) {
-  return (
-    <a
-      href="https://www.dyad.sh/docs/integrations/github#troubleshooting"
-      onClick={(event) => {
-        event.preventDefault();
-        ipc.system.openExternalUrl(
-          "https://www.dyad.sh/docs/integrations/github#troubleshooting",
-        );
-      }}
-      className={`cursor-pointer text-blue-600 hover:underline dark:text-blue-400 ${className}`}
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      See troubleshooting guide
-    </a>
-  );
-}
-
 function GitHubOperationError({ message }: { message: string }) {
   const showDetails = isDetailedGithubOpsErrorMessage(message);
 
   if (!showDetails) {
-    return (
-      <p className="text-red-600">
-        {message} <GitHubTroubleshootingLink />
-      </p>
-    );
+    return <p className="text-red-600">{message}</p>;
   }
 
   return (
@@ -117,7 +94,6 @@ function GitHubOperationError({ message }: { message: string }) {
       >
         {message}
       </div>
-      <GitHubTroubleshootingLink className="mt-2 inline-block text-sm" />
     </div>
   );
 }

@@ -2,16 +2,16 @@ import { test } from "./helpers/test_helper";
 import { expect } from "@playwright/test";
 import { Timeout } from "./helpers/constants";
 
-test("voice-to-text button shows lock on home page for non-pro users", async ({
+test("voice-to-text button is hidden on home page for non-pro users", async ({
   po,
 }) => {
   await po.setUp();
 
-  // On the home page, the locked mic button should be visible
-  const lockedMicButton = po.chatActions
+  // On the home page, no mic button (locked or otherwise) is offered
+  const micButton = po.chatActions
     .getHomeChatInputContainer()
-    .getByRole("button", { name: "Voice to text (Pro)" });
-  await expect(lockedMicButton).toBeVisible({ timeout: Timeout.SHORT });
+    .getByRole("button", { name: /Voice to text/ });
+  await expect(micButton).toHaveCount(0, { timeout: Timeout.SHORT });
 });
 
 test("voice-to-text button visible on home page for pro users", async ({

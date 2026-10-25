@@ -1,12 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "@tanstack/react-router";
-import {
-  CircleCheck,
-  ChevronRight,
-  GiftIcon,
-  Play,
-  Settings,
-} from "lucide-react";
+import { CircleCheck, ChevronRight, GiftIcon, Settings } from "lucide-react";
 import { useFirstPromptSaga } from "@/first_prompt/FirstPromptProvider";
 import { providerSettingsRoute } from "@/routes/settings/providers/$provider";
 import { SECTION_IDS } from "@/lib/settingsSearchIndex";
@@ -20,10 +14,7 @@ import { usePostHog } from "posthog-js/react";
 import { useLanguageModelProviders } from "@/hooks/useLanguageModelProviders";
 import { useScrollAndNavigateTo } from "@/hooks/useScrollAndNavigateTo";
 // @ts-ignore
-import logo from "../../assets/logo.svg";
-// @ts-ignore
 import openrouterLogo from "../../assets/ai-logos/openrouter-logo.png";
-import { SetupDyadProButton } from "./ProBanner";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { useSubscriptionAccount } from "@/hooks/useSubscriptionAccount";
 import { useSettings } from "@/hooks/useSettings";
@@ -78,13 +69,6 @@ export function SetupBanner({
       params: { provider: "openrouter" },
     });
   };
-  const handleDyadProSetupClick = () => {
-    posthog.capture("setup-flow:ai-provider-setup:dyad:click");
-    ipc.system.openExternalUrl(
-      "https://academy.dyad.sh/redirect-to-checkout?trialCode=7PRO30&utm_source=dyad-app&utm_medium=app&utm_campaign=setup-dialog-v2",
-    );
-  };
-
   const handleOtherProvidersClick = () => {
     posthog.capture("setup-flow:ai-provider-setup:other:click");
     settingsScrollAndNavigateTo(SECTION_IDS.providers);
@@ -141,29 +125,6 @@ export function SetupBanner({
             </p>
           )}
         </div>
-
-        <button
-          type="button"
-          onClick={handleDyadProSetupClick}
-          className="mt-5 flex w-full cursor-pointer items-center justify-between gap-4 rounded-lg border border-primary/45 bg-primary/8 p-4 text-left transition-colors hover:bg-primary/12 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40 dark:bg-primary/15 dark:hover:bg-primary/20"
-        >
-          <div className="flex min-w-0 items-center gap-3">
-            <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10">
-              <img src={logo} alt="Dyad Logo" className="size-6" />
-            </div>
-            <div className="min-w-0">
-              <h3 className="text-lg font-semibold text-primary">
-                Start free Dyad Pro trial
-              </h3>
-              <p className="mt-0.5 text-sm text-muted-foreground">
-                No API keys. Access leading models instantly.
-              </p>
-            </div>
-          </div>
-          <Button as="span" size="sm" className="shrink-0">
-            Start
-          </Button>
-        </button>
 
         <div className="mt-4">
           <p className="mb-2 text-sm font-medium text-muted-foreground">
@@ -242,27 +203,6 @@ export function SetupBanner({
                 subscription.data?.setupError}
             </p>
           )}
-        </div>
-
-        <div className="mt-4 flex w-full flex-col items-center justify-around gap-2 text-xs sm:flex-row">
-          <SetupDyadProButton />
-          <button
-            type="button"
-            onClick={() => {
-              ipc.system.openExternalUrl(
-                "https://www.youtube.com/watch?v=rgdNoHLaRN4",
-              );
-            }}
-            className="inline-flex cursor-pointer items-center gap-1.5 font-medium text-muted-foreground transition-colors hover:text-primary hover:underline"
-          >
-            <span className="inline-flex h-3.5 w-4 items-center justify-center rounded-[3px] bg-red-600 text-white">
-              <Play
-                aria-hidden="true"
-                className="ml-0.5 size-2 fill-current stroke-current"
-              />
-            </span>
-            Watch the walkthrough
-          </button>
         </div>
       </div>
     </>

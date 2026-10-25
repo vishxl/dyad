@@ -68,7 +68,9 @@ describe("subscription status banner (integration)", () => {
     });
     const banner = await screen.findByTestId("subscription-status-banner");
     expect(banner.dataset.alert).toBe("subscription_paused");
-    expect(banner.textContent).toContain("Resume subscription");
+    expect(banner.textContent).toContain(
+      "Your Dyad Pro subscription is paused.",
+    );
     expect(receivedAuthorization).toBe("Bearer integration-pro-key");
   });
 });

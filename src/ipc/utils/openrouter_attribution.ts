@@ -1,4 +1,6 @@
-export const OPENROUTER_APP_REFERER = "https://www.dyad.sh";
+import { NEXTBILLION_WEBSITE_URL } from "../../brand";
+
+export const OPENROUTER_APP_REFERER = NEXTBILLION_WEBSITE_URL;
 export const OPENROUTER_APP_TITLE = "Dyad";
 export const OPENROUTER_APP_CATEGORIES = "native-app-builder,programming-app";
 

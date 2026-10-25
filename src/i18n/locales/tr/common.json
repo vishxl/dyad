@@ -68,10 +68,6 @@
     "creditsLost_one": "{{credits}} kredi kaybedeceksiniz.",
     "creditsLost_other": "{{credits}} kredi kaybedeceksiniz.",
     "subscriptionPaused": "Dyad Pro aboneliğiniz duraklatıldı. Ek kredi almak için aboneliği sürdürün.",
-    "managePaymentMethods": "Ödeme yöntemini güncelle",
-    "manageSubscription": "Aboneliği yönet",
-    "resumeSubscription": "Aboneliği sürdür",
-    "openActionError": "Academy açılamadı. Lütfen tekrar deneyin.",
     "dismiss": "Faturalandırma bildirimini yoksay"
   }
 }

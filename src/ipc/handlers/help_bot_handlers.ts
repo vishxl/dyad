@@ -1,3 +1,4 @@
+import { helpchatBaseUrl } from "../../external_endpoints";
 import { app } from "electron";
 import { streamText, Tool } from "ai";
 import { readSettings } from "../../main/settings";
@@ -66,7 +67,7 @@ export function registerHelpBotHandlers() {
       const settings = await readSettings();
       const apiKey = settings.providerSettings?.["auto"]?.apiKey?.value;
       const provider = createOpenAI({
-        baseURL: "https://helpchat.dyad.sh/v1",
+        baseURL: helpchatBaseUrl(),
         apiKey,
         ...getTestFetchOption(),
       });

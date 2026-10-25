@@ -1,3 +1,4 @@
+import { apiBaseUrl } from "../../external_endpoints";
 import { db } from "../../db";
 import { messages } from "../../db/schema";
 import { eq } from "drizzle-orm";
@@ -37,7 +38,7 @@ async function getServerTime(): Promise<number> {
       SERVER_TIME_TIMEOUT_MS,
     );
 
-    const response = await fetch("https://api.dyad.sh/health", {
+    const response = await fetch(`${apiBaseUrl()}/health`, {
       method: "HEAD",
       signal: controller.signal,
     });

@@ -2,13 +2,14 @@ import {
   CONNECTION_FLOW_INVOCATION_KIND,
   type ConnectionFlowInvocationRef,
 } from "./state";
+import { oauthBaseUrl, supabaseOauthBaseUrl } from "../external_endpoints";
 
 export type DeepLinkOAuthProvider = "neon" | "supabase";
 
-const LOGIN_URLS: Record<DeepLinkOAuthProvider, string> = {
-  neon: "https://oauth.dyad.sh/api/integrations/neon/login",
-  supabase: "https://supabase-oauth.dyad.sh/api/connect-supabase/login",
-};
+const loginUrls = (): Record<DeepLinkOAuthProvider, string> => ({
+  neon: `${oauthBaseUrl()}/api/integrations/neon/login`,
+  supabase: `${supabaseOauthBaseUrl()}/api/connect-supabase/login`,
+});
 
 const OAUTH_STATE_PATTERN = /^[A-Za-z0-9:._~-]{1,200}$/;
 
@@ -23,7 +24,7 @@ export function buildOAuthLoginUrl(
     throw new Error(`OAuth invocation does not belong to ${provider}`);
   }
 
-  const url = new URL(LOGIN_URLS[provider]);
+  const url = new URL(loginUrls()[provider]);
   url.searchParams.set("state", invocationRef.operationId);
   return url.toString();
 }

@@ -2,9 +2,6 @@ I will intentionally add multiple errors to test the Fix All Errors button
 
 <dyad-write path="src/pages/Index.tsx" description="intentionally add first error">
 // Update this page (the content is just a fallback if you fail to update the page)
-
-import { MadeWithDyad } from "@/components/made-with-dyad";
-
 const Index = () => {
 throw new Error("First error in Index");
 return (
@@ -16,7 +13,6 @@ return (
 Start building your amazing project here!
 </p>
 </div>
-<MadeWithDyad />
 </div>
 );
 };

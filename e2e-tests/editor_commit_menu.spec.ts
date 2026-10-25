@@ -127,7 +127,7 @@ test("editor commit menu commits multiple staged files at once", async ({
     encoding: "utf-8",
   }).trim();
 
-  const madeWithDyadPath = path.join("src", "components", "made-with-dyad.tsx");
+  const notFoundFilePath = path.join("src", "pages", "NotFound.tsx");
   const robotsPath = path.join("public", "robots.txt");
 
   await po.previewPanel.clickTogglePreviewPanel();
@@ -137,20 +137,20 @@ test("editor commit menu commits multiple staged files at once", async ({
   ).toBeHidden({ timeout: Timeout.LONG });
 
   // Edit and save two files. Saving stages (does not commit) each file.
-  const madeWithDyadContent = 'export const MadeWithDyad = "commit-menu";\n';
+  const notFoundFileContent = 'export const EditedFile = "commit-menu";\n';
   const robotsContent = "User-agent: *\nDisallow: /commit-menu\n";
-  const madeWithDyadTreePath = madeWithDyadPath.replace(/\\/g, "/");
+  const notFoundFileTreePath = notFoundFilePath.replace(/\\/g, "/");
   const robotsTreePath = robotsPath.replace(/\\/g, "/");
   await editAndSaveFile(
     po.page,
-    "made-with-dyad.tsx",
-    madeWithDyadTreePath,
-    madeWithDyadContent,
+    "NotFound.tsx",
+    notFoundFileTreePath,
+    notFoundFileContent,
   );
   await editAndSaveFile(po.page, "robots.txt", robotsTreePath, robotsContent);
 
   // Collapsed or not, the ancestor folders advertise the buried changes.
-  await expect(treeDirRow(po.page, "src/components")).toHaveAttribute(
+  await expect(treeDirRow(po.page, "src/pages")).toHaveAttribute(
     "data-marker",
     "uncommitted",
   );
@@ -167,9 +167,7 @@ test("editor commit menu commits multiple staged files at once", async ({
   await po.page.getByTestId("staged-files-trigger").click();
   const stagedItems = po.page.getByTestId("staged-file-item");
   await expect(stagedItems).toHaveCount(2);
-  await expect(
-    stagedItems.filter({ hasText: "made-with-dyad.tsx" }),
-  ).toHaveCount(1);
+  await expect(stagedItems.filter({ hasText: "NotFound.tsx" })).toHaveCount(1);
   await expect(stagedItems.filter({ hasText: "robots.txt" })).toHaveCount(1);
 
   // Clicking a staged file opens its working-tree diff.
@@ -186,7 +184,7 @@ test("editor commit menu commits multiple staged files at once", async ({
   await expect(dialog).toBeVisible();
 
   const filesList = po.page.getByTestId("editor-commit-files-list");
-  await expect(filesList).toContainText("made-with-dyad.tsx");
+  await expect(filesList).toContainText("NotFound.tsx");
   await expect(filesList).toContainText("robots.txt");
 
   // The commit message is prefilled; replace it with a unique message.
@@ -224,9 +222,9 @@ test("editor commit menu commits multiple staged files at once", async ({
   // Committing clears every tree marker, including the folder rollups. Each row
   // is pinned down first so a missing row cannot satisfy the negated assertion.
   const clearedRows = [
-    treeRow(po.page, madeWithDyadTreePath),
+    treeRow(po.page, notFoundFileTreePath),
     treeRow(po.page, robotsTreePath),
-    treeDirRow(po.page, "src/components"),
+    treeDirRow(po.page, "src/pages"),
     treeDirRow(po.page, "src"),
     treeDirRow(po.page, "public"),
   ];
@@ -260,7 +258,7 @@ test("editor commit menu commits multiple staged files at once", async ({
     "git diff-tree --no-commit-id --name-only -r HEAD",
     { cwd: appPath, encoding: "utf-8" },
   ).trim();
-  expect(committedFiles).toContain(madeWithDyadPath.replace(/\\/g, "/"));
+  expect(committedFiles).toContain(notFoundFilePath.replace(/\\/g, "/"));
   expect(committedFiles).toContain(robotsPath.replace(/\\/g, "/"));
 
   // Working tree is clean again.

@@ -3,9 +3,7 @@ import { AlertTriangle, Clock3, Pause, X } from "lucide-react";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { usePostHog } from "posthog-js/react";
-import { useMutation } from "@tanstack/react-query";
-import { toast } from "sonner";
-import { ipc, type SubscriptionStatus } from "@/ipc/types";
+import type { SubscriptionStatus } from "@/ipc/types";
 import { useSubscriptionStatus } from "@/hooks/useSubscriptionStatus";
 import { useUserBudgetInfo } from "@/hooks/useUserBudgetInfo";
 import { Button } from "@/components/ui/button";
@@ -33,10 +31,6 @@ export function SubscriptionStatusBanner() {
     shownBillingAlertsAtom,
   );
   const previousAlert = useRef<SubscriptionStatus | null>(null);
-  const openBillingAction = useMutation({
-    mutationFn: (url: string) => ipc.system.openBillingAction(url),
-    onError: () => toast.error(t("billingNudge.openActionError")),
-  });
 
   useEffect(() => {
     if (status?.alert) {
@@ -112,11 +106,6 @@ export function SubscriptionStatusBanner() {
           .filter(Boolean)
           .join(" ")
       : t("billingNudge.subscriptionPaused");
-  const actionLabel = isPastDue
-    ? t("billingNudge.managePaymentMethods")
-    : isEnding
-      ? t("billingNudge.manageSubscription")
-      : t("billingNudge.resumeSubscription");
   const Icon = isPastDue ? AlertTriangle : isEnding ? Clock3 : Pause;
 
   return (
@@ -146,24 +135,6 @@ export function SubscriptionStatusBanner() {
       />
       <div className="flex min-w-0 flex-1 flex-wrap items-center gap-x-3 gap-y-2">
         <p className="min-w-0 max-w-[75ch] leading-5">{message}</p>
-        {status.actionUrl && (
-          <Button
-            type="button"
-            size="sm"
-            variant="default"
-            className="h-8 shrink-0"
-            disabled={openBillingAction.isPending}
-            onClick={() => {
-              posthog.capture("billing_nudge_clicked", {
-                alert: status.alert,
-                has_effective_at: status.effectiveAt !== null,
-              });
-              openBillingAction.mutate(status.actionUrl!);
-            }}
-          >
-            {actionLabel}
-          </Button>
-        )}
       </div>
       <Button
         type="button"

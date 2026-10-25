@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { useSetAtom } from "jotai";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -10,9 +9,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
-import { AlertTriangle, Bug } from "lucide-react";
-import { helpDialogAtom } from "@/atoms/helpDialogAtom";
+import { AlertTriangle } from "lucide-react";
 import { earlyForceCloseEvents } from "@/app_wiring/early_renderer_events";
 
 interface ForceClosePerformanceData {
@@ -29,33 +26,20 @@ interface ForceClosePerformanceData {
 // e.g. when the app restores a chat on startup.
 export function ForceCloseDialog() {
   const { t } = useTranslation(["home", "common"]);
-  const setHelpDialog = useSetAtom(helpDialogAtom);
   const [isOpen, setIsOpen] = useState(false);
   const [performanceData, setPerformanceData] = useState<
     ForceClosePerformanceData | undefined
   >(undefined);
-  // The chat that was streaming at crash time (from the crash sentinel). When
-  // present, we offer a one-click upload of that session.
-  const [activeChatId, setActiveChatId] = useState<number | undefined>(
-    undefined,
-  );
 
   useEffect(() => {
     const unsubscribe = earlyForceCloseEvents.subscribe((data) => {
       setPerformanceData(data.performanceData);
-      setActiveChatId(data.activeChatId);
       setIsOpen(true);
     });
     return () => unsubscribe();
   }, []);
 
   const onClose = () => setIsOpen(false);
-
-  const handleReportCrash = () => {
-    if (activeChatId == null) return;
-    onClose();
-    setHelpDialog({ open: true, uploadChatId: activeChatId });
-  };
 
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp).toLocaleString();
@@ -157,12 +141,6 @@ export function ForceCloseDialog() {
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>
-          {activeChatId != null && (
-            <Button variant="outline" onClick={handleReportCrash}>
-              <Bug className="h-4 w-4" />
-              {t("home:reportThisCrash")}
-            </Button>
-          )}
           <AlertDialogAction onClick={onClose}>
             {t("common:ok")}
           </AlertDialogAction>

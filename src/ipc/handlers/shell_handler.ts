@@ -1,3 +1,4 @@
+import { isExternalServiceHost } from "../../external_endpoints";
 import { app, shell } from "electron";
 import log from "electron-log";
 import path from "node:path";
@@ -15,7 +16,7 @@ const handle = createLoggedHandler(logger);
 function isDyadOAuthUrl(url: string): boolean {
   try {
     const host = new URL(url).hostname;
-    return host === "dyad.sh" || host.endsWith(".dyad.sh");
+    return isExternalServiceHost(host);
   } catch {
     return false;
   }

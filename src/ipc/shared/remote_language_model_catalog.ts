@@ -1,3 +1,4 @@
+import { apiBaseUrl } from "../../external_endpoints";
 import log from "electron-log";
 import { z } from "zod";
 import { DyadError, DyadErrorKind } from "@/errors/dyad_error";
@@ -40,7 +41,7 @@ function getRemoteLanguageModelCatalogUrl() {
     return `http://localhost:${process.env.FAKE_LLM_PORT}/api/language-model-catalog`;
   }
 
-  return "https://api.dyad.sh/v1/language-model-catalog";
+  return `${apiBaseUrl()}/v1/language-model-catalog`;
 }
 
 export type { ThemeGenerationModelOption };

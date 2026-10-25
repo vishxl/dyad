@@ -1,3 +1,4 @@
+import { apiBaseUrl } from "../../external_endpoints";
 import {
   DEFAULT_PTY_COMMAND_TIMEOUT_MS,
   PtyCommandExecutionError,
@@ -67,7 +68,7 @@ const DYAD_ALLOW_BUILDS_METADATA_PATTERN =
   /^#\s*(dyad-default-allow-builds-(?:schema|data-version|channel))=(.+)$/;
 const DYAD_ALLOW_BUILDS_REMOTE_URL =
   process.env.DYAD_DEFAULT_APPROVE_BUILDS_URL ??
-  "https://api.dyad.sh/v1/default-approve-builds.txt";
+  `${apiBaseUrl()}/v1/default-approve-builds.txt`;
 const DYAD_ALLOW_BUILDS_FETCH_TIMEOUT_MS = 5_000;
 export const DYAD_ALLOW_BUILDS_CACHE_TTL_MS = 60 * 60 * 1000;
 const DYAD_ALLOW_BUILDS_MAX_BYTES = 256 * 1024;

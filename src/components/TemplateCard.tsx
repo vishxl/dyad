@@ -1,6 +1,4 @@
 import React, { useState } from "react";
-import { ArrowLeft } from "lucide-react";
-import { ipc } from "@/ipc/types";
 import { useSettings } from "@/hooks/useSettings";
 import { CommunityCodeConsentDialog } from "./CommunityCodeConsentDialog";
 import type { Template } from "@/shared/templates";
@@ -54,13 +52,6 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
   const handleConsentCancel = () => {
     // Just close dialog, don't update settings or select template
     setShowConsentDialog(false);
-  };
-
-  const handleGithubClick = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (template.githubUrl) {
-      ipc.system.openExternalUrl(template.githubUrl);
-    }
   };
 
   return (
@@ -123,20 +114,6 @@ export const TemplateCard: React.FC<TemplateCardProps> = ({
           <p className="text-sm text-gray-500 dark:text-gray-400 mb-3 h-10 overflow-y-auto">
             {template.description}
           </p>
-          {template.githubUrl && (
-            <a
-              className={`inline-flex items-center text-sm font-medium transition-colors duration-200 ${
-                isSelected
-                  ? "text-blue-500 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-200"
-                  : "text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-              }`}
-              onClick={handleGithubClick}
-            >
-              View on GitHub{" "}
-              <ArrowLeft className="w-4 h-4 ml-1 transform rotate-180" />
-            </a>
-          )}
-
           <Button
             onClick={(e) => {
               e.stopPropagation();

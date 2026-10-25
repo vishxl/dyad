@@ -1,6 +1,6 @@
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 
-import { cleanup, screen } from "@testing-library/react";
+import { cleanup, screen, waitFor } from "@testing-library/react";
 
 import type { UserSettings } from "@/lib/schemas";
 import { writeSettings } from "@/main/settings";
@@ -57,7 +57,7 @@ describe("voice-to-text chat input controls (integration)", () => {
     expect((micButton as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it("shows the locked mic button for non-Pro users", async () => {
+  it("hides the mic button for non-Pro users", async () => {
     writeSettings({
       enableDyadPro: false,
       providerSettings: {},
@@ -65,8 +65,11 @@ describe("voice-to-text chat input controls (integration)", () => {
     const chatId = await harness.createChat();
     harness.mount({ chatId });
 
-    expect(
-      await screen.findByRole("button", { name: "Voice to text (Pro)" }),
-    ).toBeTruthy();
+    await screen.findByTestId("chat-input-container");
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("button", { name: /Voice to text/ }),
+      ).toBeNull(),
+    );
   });
 });

@@ -2,7 +2,6 @@ import {
   type LucideIcon,
   Home,
   Settings,
-  HelpCircle,
   Store,
   BookOpen,
   Blocks,
@@ -20,7 +19,6 @@ import { selectedChatIdAtom } from "@/atoms/chatAtoms";
 import {
   Sidebar,
   SidebarContent,
-  SidebarFooter,
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
@@ -30,7 +28,6 @@ import {
 import { cn } from "@/lib/utils";
 import { ChatList } from "./ChatList";
 import { AppList } from "./AppList";
-import { helpDialogAtom } from "@/atoms/helpDialogAtom";
 import { SettingsList } from "./SettingsList";
 import { LibraryList } from "./LibraryList";
 import {
@@ -158,7 +155,6 @@ export function AppSidebar() {
   const expandedByHover = useRef(false);
   const isPointerOverSidebar = useRef(false);
   const collapseTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const setHelpDialog = useSetAtom(helpDialogAtom);
   const [isDropdownOpen] = useAtom(dropdownOpenAtom);
   const selectedAppId = useAtomValue(selectedAppIdAtom);
   const setSelectedAppId = useSetAtom(selectedAppIdAtom);
@@ -312,19 +308,6 @@ export function AppSidebar() {
           </div>
         </div>
       </SidebarContent>
-
-      <SidebarFooter className="px-1 items-start">
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <AppSidebarRailButton
-              icon={HelpCircle}
-              label="Help"
-              isExpanded={state === "expanded"}
-              onClick={() => setHelpDialog({ open: true })}
-            />
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarFooter>
     </Sidebar>
   );
 }

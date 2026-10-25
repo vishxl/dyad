@@ -1,3 +1,4 @@
+import { academyBaseUrl } from "../../external_endpoints";
 import fetch from "node-fetch"; // Electron main process might need node-fetch
 import { shell } from "electron";
 import log from "electron-log";
@@ -71,7 +72,7 @@ function validateAudioTranscriptionRequest(input: TranscribeAudioParams) {
 function getSubscriptionStatusUrl() {
   return (
     process.env.DYAD_SUBSCRIPTION_STATUS_URL ??
-    "https://academy.dyad.sh/api/desktop/subscription-status"
+    `${academyBaseUrl()}/api/desktop/subscription-status`
   );
 }
 
@@ -104,7 +105,7 @@ export function parseBillingActionUrl(value: string) {
   }
   if (
     url.protocol !== "https:" ||
-    url.hostname !== "academy.dyad.sh" ||
+    url.hostname !== new URL(academyBaseUrl()).hostname ||
     url.username !== "" ||
     url.password !== "" ||
     url.port !== ""

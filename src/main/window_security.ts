@@ -4,10 +4,6 @@ import type {
   WindowOpenHandlerResponse,
 } from "electron";
 
-const RELEASE_NOTES_ORIGINS = new Set([
-  "https://dyad.sh",
-  "https://www.dyad.sh",
-]);
 const RESERVED_FRAME_NAMES = new Set([
   "_parent",
   "_self",
@@ -123,9 +119,6 @@ function isPreviewReferrer(
     return false;
   }
   const referrer = new URL(referrerUrl);
-  if (RELEASE_NOTES_ORIGINS.has(referrer.origin)) {
-    return false;
-  }
   if (devServerUrl) {
     try {
       if (referrer.origin === new URL(devServerUrl).origin) {

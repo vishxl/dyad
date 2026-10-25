@@ -1,3 +1,4 @@
+import { apiBaseUrl } from "../../external_endpoints";
 import log from "electron-log";
 import { z } from "zod";
 import {
@@ -21,7 +22,7 @@ function getRemoteMcpCatalogUrl() {
     return `http://localhost:${process.env.FAKE_LLM_PORT}/api/mcp-catalog`;
   }
 
-  return "https://api.dyad.sh/v1/mcp-catalog";
+  return `${apiBaseUrl()}/v1/mcp-catalog`;
 }
 
 // The envelope is parsed strictly but entries are validated one by

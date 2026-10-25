@@ -6,15 +6,11 @@ export const SUBSCRIPTION_BILLING_ERRORS = {
     description: "Add credits to continue using your subscription.",
     message:
       "You're out of Dyad credits. Add credits to continue using your subscription.",
-    action: "Get more credits",
-    url: "https://academy.dyad.sh/subscription",
   },
   KEY_REJECTED: {
     title: "Your Dyad Pro key was rejected",
-    description: "Get your current Pro key.",
-    message: "Your Dyad Pro key was rejected. Get your current Pro key.",
-    action: "Open membership portal",
-    url: "https://academy.dyad.sh",
+    description: "Check your Pro key in settings.",
+    message: "Your Dyad Pro key was rejected. Check your Pro key in settings.",
   },
 } as const;
 

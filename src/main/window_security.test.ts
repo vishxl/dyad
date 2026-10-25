@@ -144,10 +144,6 @@ describe("preview popup security", () => {
   it.each([
     ["the development renderer", "http://localhost:5173/settings"],
     ["a packaged renderer route", "file:///chat?chatId=42"],
-    [
-      "release notes",
-      "https://www.dyad.sh/docs/releases/0.30.0?hideHeader=true",
-    ],
     ["a missing referrer", ""],
   ])("denies popups referred by %s", (_label, referrerUrl) => {
     expect(

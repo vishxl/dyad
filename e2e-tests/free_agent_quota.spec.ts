@@ -51,7 +51,7 @@ testSkipIfWindows(
     );
     await expect(
       po.page.getByRole("button", { name: "Upgrade to Dyad Pro" }),
-    ).toBeVisible();
+    ).toHaveCount(0);
     await expect(
       po.page.getByRole("button", { name: "Switch to Build mode" }),
     ).toBeVisible();
@@ -67,7 +67,7 @@ testSkipIfWindows(
       "You have used all 20 free Agentic Mode messages for today",
     );
     await expect(quotaError).toContainText("Your quota resets at");
-    await expect(quotaError.getByText("Upgrade to Dyad Pro")).toBeVisible();
+    await expect(quotaError.getByText("Upgrade to Dyad Pro")).toHaveCount(0);
     await expect(
       quotaError.getByRole("button", { name: "Switch to Build" }),
     ).toBeVisible();

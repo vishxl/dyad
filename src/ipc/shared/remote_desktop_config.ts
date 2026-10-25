@@ -1,3 +1,4 @@
+import { apiBaseUrl } from "../../external_endpoints";
 import log from "electron-log";
 import { z } from "zod";
 
@@ -33,7 +34,7 @@ function getRemoteDesktopConfigUrl() {
     return process.env.DYAD_DESKTOP_CONFIG_URL;
   }
 
-  return "https://api.dyad.sh/v1/desktop-config";
+  return `${apiBaseUrl()}/v1/desktop-config`;
 }
 
 async function fetchRemoteDesktopConfig(): Promise<RemoteDesktopConfig | null> {

@@ -115,14 +115,7 @@ export function RuntimeModeSelector() {
       </SettingField>
       {showCloudSandboxOption && !hasCloudSandboxAccess && (
         <div className="text-sm text-muted-foreground bg-muted/40 p-2 rounded">
-          Cloud sandboxes are a Dyad Pro feature.{" "}
-          <button
-            type="button"
-            className="underline font-medium cursor-pointer text-primary"
-            onClick={() => ipc.system.openExternalUrl("https://dyad.sh/pro#ai")}
-          >
-            Upgrade to Pro
-          </button>
+          Cloud sandboxes are a Dyad Pro feature.
         </div>
       )}
       {isDockerMode && (

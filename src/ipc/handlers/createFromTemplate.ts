@@ -1,3 +1,4 @@
+import { templateRepoUrl } from "../../external_endpoints";
 import path from "path";
 import fs from "fs-extra";
 import { app } from "electron";
@@ -31,13 +32,14 @@ export async function createFromTemplate({
   }
 
   const template = await getTemplateOrThrow(templateId);
-  if (!template.githubUrl) {
+  const repoUrl = templateRepoUrl(templateId) ?? template.githubUrl;
+  if (!repoUrl) {
     throw new DyadError(
       `Template ${templateId} has no GitHub URL`,
       DyadErrorKind.External,
     );
   }
-  const repoCachePath = await cloneRepo(template.githubUrl);
+  const repoCachePath = await cloneRepo(repoUrl);
   await copyRepoToApp(repoCachePath, fullAppPath);
 }
 

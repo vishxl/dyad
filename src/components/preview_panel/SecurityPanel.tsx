@@ -15,13 +15,7 @@ import {
   DialogTitle,
   DialogClose,
 } from "@/components/ui/dialog";
-import {
-  Shield,
-  ChevronDown,
-  ExternalLink,
-  Pencil,
-  Wrench,
-} from "lucide-react";
+import { Shield, ChevronDown, Pencil, Wrench } from "lucide-react";
 import { getSeverityIcon, SeverityBadge } from "@/components/security/severity";
 import { useStreamChat } from "@/hooks/useStreamChat";
 import { showError } from "@/lib/toast";
@@ -270,26 +264,6 @@ function SecurityHeader({
           <h1 className="truncate text-lg font-semibold text-foreground">
             Security Review
           </h1>
-          <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="size-8 text-muted-foreground"
-                  aria-label="Open Security Review documentation"
-                  onClick={() =>
-                    ipc.system.openExternalUrl(
-                      "https://www.dyad.sh/docs/guides/security-review",
-                    )
-                  }
-                />
-              }
-            >
-              <ExternalLink className="size-4" />
-            </TooltipTrigger>
-            <TooltipContent>Open Security Review docs</TooltipContent>
-          </Tooltip>
         </div>
         <div className="ml-auto flex flex-wrap items-center justify-end gap-2">
           <Tooltip>

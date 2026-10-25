@@ -68,10 +68,6 @@
     "creditsLost_one": "You will lose {{credits}} credit.",
     "creditsLost_other": "You will lose {{credits}} credits.",
     "subscriptionPaused": "Your Dyad Pro subscription is paused. Resume it to receive additional credits.",
-    "managePaymentMethods": "Update payment method",
-    "manageSubscription": "Manage subscription",
-    "resumeSubscription": "Resume subscription",
-    "openActionError": "Could not open Academy. Please try again.",
     "dismiss": "Dismiss billing notice"
   }
 }

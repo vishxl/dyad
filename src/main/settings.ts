@@ -93,8 +93,6 @@ export const DEFAULT_SETTINGS: UserSettings = {
 const CRASH_SENTINEL_FILE = "session.lock";
 const RENDERER_CRASH_FILE = "renderer-crash.json";
 const SETTINGS_FILE = "user-settings.json";
-const RESTORE_SETTINGS_DOCS_URL =
-  "https://www.dyad.sh/docs/guides/migrate-restore#restoring-settings-from-backup";
 let initialLoadIsFirstSession = false;
 
 export function setInitialLoadIsFirstSession(value: boolean): void {
@@ -1055,10 +1053,6 @@ function readSettingsForWrite(filePath: string): {
     notifyRendererError({
       message:
         "Dyad could not read your existing settings file, so it fell back to default settings.",
-      action: {
-        label: "Read restore docs",
-        url: RESTORE_SETTINGS_DOCS_URL,
-      },
     });
     return { settings: DEFAULT_SETTINGS, wasUnreadable: true, preserved: [] };
   }

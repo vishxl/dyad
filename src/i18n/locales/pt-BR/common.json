@@ -68,10 +68,6 @@
     "creditsLost_one": "Você perderá {{credits}} crédito.",
     "creditsLost_other": "Você perderá {{credits}} créditos.",
     "subscriptionPaused": "Sua assinatura do Dyad Pro está pausada. Retome-a para receber créditos adicionais.",
-    "managePaymentMethods": "Atualizar forma de pagamento",
-    "manageSubscription": "Gerenciar assinatura",
-    "resumeSubscription": "Retomar assinatura",
-    "openActionError": "Não foi possível abrir a Academy. Tente novamente.",
     "dismiss": "Dispensar aviso de cobrança"
   }
 }

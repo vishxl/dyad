@@ -1,35 +1,12 @@
-// Single source of truth for the product's name and brand-derived identifiers.
-// Pure constants only (no node/electron imports) so main, the headless server
-// and the renderer can all import it. Legacy (pre-rebrand) names live in
-// BRAND.legacy and are used only by compatibility and migration code.
+// Single source of truth for the product name and the legacy (pre-rebrand)
+// identifiers that compatibility code still has to recognise. Pure constants
+// only (no node/electron imports) so main, the headless server and the
+// renderer can all import it.
 
 export const BRAND = {
-  name: "NextBuild",
-  slug: "nextbuild",
-  company: "NextBillion",
-  homepageUrl: "https://nextbillion.ai",
-
-  // Env vars: NEXTBUILD_*. Legacy DYAD_* values are copied by applyLegacyEnv().
-  envPrefix: "NEXTBUILD_",
-
-  // Custom URL schemes (registered in addition to the legacy ones).
-  protocolScheme: "nextbuild",
-  mediaProtocolScheme: "nextbuild-media",
-
-  // On-disk names.
-  appsDirName: "nextbuild-apps",
-  // Per-app internal folder, e.g. <app>/.nextbuild/media
-  appInternalDirName: ".nextbuild",
-
-  // Custom tag protocol used between the LLM and the app: <nextbuild-write>.
-  tagPrefix: "nextbuild-",
-
-  // HTTP header carrying the headless RPC token.
-  rpcTokenHeader: "x-nextbuild-rpc-token",
-
-  // Git identity for commits created on a user's behalf.
-  gitAuthorName: "NextBuild",
-  gitAuthorEmail: "noreply@nextbillion.ai",
+  name: "NextBillion",
+  slug: "nextbillion",
+  envPrefix: "NEXTBILLION_",
 
   legacy: {
     slug: "dyad",
@@ -40,20 +17,23 @@ export const BRAND = {
     appInternalDirName: ".dyad",
     tagPrefix: "dyad-",
     rpcTokenHeader: "x-dyad-rpc-token",
-    keychainService: "dyad Safe Storage",
-    keychainAccount: "dyad Key",
+    domIdAttribute: "data-dyad-id",
+    domNameAttribute: "data-dyad-name",
   },
 } as const;
 
-/** `NEXTBUILD_FOO` for `envName("FOO")`. */
+/** Only used where a site reference is structurally required (e.g. OpenRouter app attribution). */
+export const NEXTBILLION_WEBSITE_URL = "https://nextbillion.ai";
+
+/** `NEXTBILLION_FOO` for `envName("FOO")`. */
 export function envName(suffix: string): string {
   return `${BRAND.envPrefix}${suffix}`;
 }
 
 /**
- * Copies legacy DYAD_* variables to their NEXTBUILD_* names when the new name
- * is unset, so existing deployments (env files, systemd units, shells) keep
- * working. Call once, as early as possible in every process entry point.
+ * Copies legacy DYAD_* variables to their NEXTBILLION_* names when the new
+ * name is unset, so existing deployments (env files, systemd units, shells)
+ * keep working. Call once, as early as possible in every process entry point.
  */
 export function applyLegacyEnv(
   env: Record<string, string | undefined> = process.env,

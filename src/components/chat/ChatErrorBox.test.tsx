@@ -37,7 +37,7 @@ describe("ChatErrorBox Basic Agent quota error", () => {
     mocks.openExternalUrl.mockReset();
   });
 
-  it("offers upgrade and a non-retrying Build switch", () => {
+  it("offers a non-retrying Build switch", () => {
     const onDismiss = vi.fn();
     const onSwitchToBuildMode = vi.fn();
 
@@ -51,14 +51,11 @@ describe("ChatErrorBox Basic Agent quota error", () => {
     );
 
     expect(
-      screen.getByText(/used all 10 free Basic Agent messages/),
+      screen.getByText(/used all 10 free Agentic Mode messages/),
     ).toBeTruthy();
     expect(screen.getByText(/Your quota resets at/)).toBeTruthy();
 
-    fireEvent.click(screen.getByText("Upgrade to Dyad Pro"));
-    expect(mocks.openExternalUrl).toHaveBeenCalledWith(
-      "https://dyad.sh/pro?utm_source=dyad-app&utm_medium=app&utm_campaign=free-agent-quota-exceeded",
-    );
+    expect(screen.queryByText("Upgrade to Dyad Pro")).toBeNull();
 
     fireEvent.click(screen.getByRole("button", { name: "Switch to Build" }));
     expect(onSwitchToBuildMode).toHaveBeenCalledOnce();
@@ -103,21 +100,11 @@ describe("ChatErrorBox error presentation", () => {
 
 describe("ChatErrorBox subscription billing errors", () => {
   it.each([
-    [
-      "OUT_OF_CREDITS",
-      "Add credits to continue using your subscription.",
-      "Get more credits",
-      "https://academy.dyad.sh/subscription",
-    ],
-    [
-      "KEY_REJECTED",
-      "Get your current Pro key.",
-      "Open membership portal",
-      "https://academy.dyad.sh",
-    ],
+    ["OUT_OF_CREDITS", "Add credits to continue using your subscription."],
+    ["KEY_REJECTED", "Check your Pro key in settings."],
   ] as const)(
-    "offers the right recovery for %s",
-    (code, message, action, url) => {
+    "shows the right notice for %s, without an external link",
+    (code, message) => {
       mocks.openExternalUrl.mockReset();
       render(
         <ChatErrorBox
@@ -130,15 +117,14 @@ describe("ChatErrorBox subscription billing errors", () => {
       expect(screen.getByText(message)).toBeTruthy();
       expect(screen.queryByText("Start new chat")).toBeNull();
       expect(screen.queryByText("Read docs")).toBeNull();
-      fireEvent.click(screen.getByText(action));
-      expect(mocks.openExternalUrl).toHaveBeenCalledExactlyOnceWith(url);
+      expect(mocks.openExternalUrl).not.toHaveBeenCalled();
     },
   );
 });
 
 describe("ChatErrorBox exhausted credit notice", () => {
   it.each([false, true, null])(
-    "shows actionable credit recovery (trial: %s)",
+    "shows the credit notice without external links (trial: %s)",
     (isTrial) => {
       mocks.isTrial = isTrial;
       mocks.openExternalUrl.mockReset();
@@ -164,10 +150,9 @@ describe("ChatErrorBox exhausted credit notice", () => {
         ).toBeTruthy();
       }
       expect(screen.queryByText("Start new chat")).toBeNull();
-      fireEvent.click(screen.getByRole("button", { name: "Get more credits" }));
-      expect(mocks.openExternalUrl).toHaveBeenCalledExactlyOnceWith(
-        "https://academy.dyad.sh/subscription",
-      );
+      expect(
+        screen.queryByRole("button", { name: "Get more credits" }),
+      ).toBeNull();
       fireEvent.click(
         screen.getByRole("button", { name: "Dismiss billing notice" }),
       );
@@ -179,7 +164,7 @@ describe("ChatErrorBox exhausted credit notice", () => {
 
 describe("ChatErrorBox legacy rejected Pro key", () => {
   it.each([false, true])(
-    "offers the membership portal (Pro enabled: %s)",
+    "shows the rejected-key notice (Pro enabled: %s)",
     (isDyadProEnabled) => {
       mocks.openExternalUrl.mockReset();
       const onDismiss = vi.fn();
@@ -192,16 +177,13 @@ describe("ChatErrorBox legacy rejected Pro key", () => {
         />,
       );
       expect(screen.getByText("Your Dyad Pro key was rejected")).toBeTruthy();
-      expect(screen.getByText("Get your current Pro key.")).toBeTruthy();
+      expect(screen.getByText("Check your Pro key in settings.")).toBeTruthy();
       expect(screen.queryByText("Upgrade to Dyad Pro")).toBeNull();
       expect(screen.queryByText("Start new chat")).toBeNull();
       expect(screen.queryByText("Read docs")).toBeNull();
-      fireEvent.click(
-        screen.getByRole("button", { name: "Open membership portal" }),
-      );
-      expect(mocks.openExternalUrl).toHaveBeenCalledExactlyOnceWith(
-        "https://academy.dyad.sh",
-      );
+      expect(
+        screen.queryByRole("button", { name: "Open membership portal" }),
+      ).toBeNull();
       fireEvent.click(
         screen.getByRole("button", { name: "Dismiss billing notice" }),
       );
@@ -220,7 +202,5 @@ it("recognizes a legacy rejected key inside fallback details", () => {
       onDismiss={vi.fn()}
     />,
   );
-  expect(
-    screen.getByRole("button", { name: "Open membership portal" }),
-  ).toBeTruthy();
+  expect(screen.getByText("Your Dyad Pro key was rejected")).toBeTruthy();
 });

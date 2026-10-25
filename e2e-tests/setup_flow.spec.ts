@@ -20,9 +20,6 @@ testSetup.describe("Setup Flow", () => {
       dialog.getByText("Your prompt is saved — it'll send as soon as"),
     ).toBeVisible();
     await expect(
-      dialog.getByRole("button", { name: /Start free Dyad Pro trial/ }),
-    ).toBeVisible();
-    await expect(
       dialog.getByRole("button", { name: "ChatGPT subscription" }),
     ).toBeVisible();
     await expect(
@@ -30,11 +27,6 @@ testSetup.describe("Setup Flow", () => {
     ).toBeVisible();
     await expect(
       dialog.getByRole("button", { name: "Other providers" }),
-    ).toBeVisible();
-    await expect(
-      dialog.getByRole("button", {
-        name: "Already have Dyad Pro? Add your key",
-      }),
     ).toBeVisible();
   });
 

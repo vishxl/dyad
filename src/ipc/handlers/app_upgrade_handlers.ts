@@ -34,15 +34,12 @@ function getAvailableUpgrades(): Omit<AppUpgrade, "isNeeded">[] {
       title: "Enable select component to edit",
       description:
         "Installs the Dyad component tagger Vite plugin and its dependencies.",
-      manualUpgradeUrl: "https://dyad.sh/docs/upgrades/select-component",
     },
     {
       id: "capacitor",
       title: "Upgrade to hybrid mobile app with Capacitor",
       description:
         "Adds Capacitor to your app lets it run on iOS and Android in addition to the web.",
-      manualUpgradeUrl:
-        "https://dyad.sh/docs/guides/mobile-app#upgrade-your-app",
     },
     {
       id: "pnpm-version-migration",
@@ -51,7 +48,6 @@ function getAvailableUpgrades(): Omit<AppUpgrade, "isNeeded">[] {
         `This app has legacy pnpm metadata. Dyad already runs pnpm ${managedPnpmMajor}, ` +
         "which writes a lockfile format older pnpm versions can't read. This updates the " +
         `packageManager pin and the lockfile together so everything matches pnpm ${managedPnpmMajor}.`,
-      manualUpgradeUrl: "https://dyad.sh/docs/upgrades/pnpm-migration",
     },
   ];
 }

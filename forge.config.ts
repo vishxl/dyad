@@ -13,19 +13,8 @@ import { VitePlugin } from "@electron-forge/plugin-vite";
 import { FusesPlugin } from "@electron-forge/plugin-fuses";
 import { FuseV1Options, FuseVersion } from "@electron/fuses";
 import { AutoUnpackNativesPlugin } from "@electron-forge/plugin-auto-unpack-natives";
-import { readFileSync } from "fs";
-import { createRequire } from "module";
 
 console.log("AZURE_CODE_SIGNING_DLIB", process.env.AZURE_CODE_SIGNING_DLIB);
-
-const require = createRequire(import.meta.url);
-const { isPrereleaseVersion } =
-  require("./scripts/release-version-utils.js") as {
-    isPrereleaseVersion: (version: string) => boolean;
-  };
-const packageJson = JSON.parse(
-  readFileSync(new URL("./package.json", import.meta.url), "utf8"),
-) as { version: string };
 
 const pgRuntimeDependencies = [
   "pg",
@@ -234,13 +223,9 @@ const config: ForgeConfig = {
       isWindowsSigningEnabled
         ? {
             windowsSign,
-            iconUrl:
-              "https://raw.githubusercontent.com/dyad-sh/dyad/main/assets/icon/logo.ico",
             setupIcon: "./assets/icon/logo.ico",
           }
         : {
-            iconUrl:
-              "https://raw.githubusercontent.com/dyad-sh/dyad/main/assets/icon/logo.ico",
             setupIcon: "./assets/icon/logo.ico",
           },
     ),
@@ -260,20 +245,6 @@ const config: ForgeConfig = {
     new MakerAppImage({
       icon: "./assets/icon/logo.png",
     }),
-  ],
-  publishers: [
-    {
-      name: "@electron-forge/publisher-github",
-      config: {
-        repository: {
-          owner: "dyad-sh",
-          name: "dyad",
-        },
-        draft: true,
-        force: true,
-        prerelease: isPrereleaseVersion(packageJson.version),
-      },
-    },
   ],
   plugins: [
     new AutoUnpackNativesPlugin({}),

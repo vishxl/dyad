@@ -14,7 +14,7 @@ export async function getGitAuthor(): Promise<GitAuthor> {
       }
     : {
         name: "Dyad",
-        email: "git@dyad.sh",
+        email: "noreply@localhost",
       };
   return author;
 }

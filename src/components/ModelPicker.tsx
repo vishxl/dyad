@@ -49,7 +49,6 @@ import {
   CheckIcon,
   ChevronRightIcon,
   LockIcon,
-  SparklesIcon,
 } from "lucide-react";
 import { ProviderIcon } from "@/components/ProviderIcon";
 import { SubscriptionModelMenu } from "@/components/SubscriptionModelMenu";
@@ -104,9 +103,6 @@ const PRO_PILL_CLASS = cn(
   PILL_CLASS,
   "bg-gradient-to-r from-indigo-600 via-indigo-500 to-indigo-600 bg-[length:200%_100%] animate-[shimmer_5s_ease-in-out_infinite] text-white",
 );
-
-const DYAD_PRO_UPGRADE_BASE_URL =
-  "https://www.dyad.sh/pro?utm_source=dyad-app&utm_medium=app";
 
 const NAVIGATION_SUBMENU_HOVER_PROPS = {
   openOnHover: true,
@@ -840,31 +836,6 @@ export function ModelPicker() {
     });
     setOpen(false);
     setUnlockTarget({ providerId, model });
-  };
-
-  const handleUnlockAllClick = () => {
-    posthog.capture("model-picker:upgrade-click", {
-      source: "unlock-all-footer",
-    });
-    ipc.system.openExternalUrl(
-      `${DYAD_PRO_UPGRADE_BASE_URL}&utm_campaign=model-picker-unlock-all`,
-    );
-    setOpen(false);
-  };
-
-  const handleUnlockDialogUpgradeClick = () => {
-    if (!unlockTarget) {
-      return;
-    }
-    posthog.capture("model-picker:upgrade-click", {
-      source: "locked-model-dialog",
-      provider: unlockTarget.providerId,
-      model: unlockTarget.model.apiName,
-    });
-    ipc.system.openExternalUrl(
-      `${DYAD_PRO_UPGRADE_BASE_URL}&utm_campaign=model-picker-locked-model`,
-    );
-    setUnlockTarget(null);
   };
 
   const handleUnlockDialogOwnKeyClick = () => {
@@ -1614,28 +1585,8 @@ export function ModelPicker() {
           />
           <SubscriptionModelMenu>
             <DropdownMenuSeparator />
-            {/* Trial user upgrade banner */}
             {isTrial && (
               <>
-                <div className="px-2 py-3 bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-indigo-950/50 dark:to-sky-950/50">
-                  <p className="text-sm text-indigo-700 dark:text-indigo-300 mb-2">
-                    Upgrade from Dyad Pro trial to unlock more models.
-                  </p>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="cursor-pointer w-full bg-indigo-600 hover:bg-indigo-700 text-white hover:text-white border-indigo-600"
-                    onClick={() => {
-                      ipc.system.openExternalUrl(
-                        "https://academy.dyad.sh/subscription",
-                      );
-                      setOpen(false);
-                    }}
-                  >
-                    Upgrade to Dyad Pro
-                  </Button>
-                </div>
-                <DropdownMenuSeparator />
                 {/* Trial users only see the auto model */}
                 <DropdownMenuSub>
                   <DropdownMenuSubTrigger
@@ -1902,25 +1853,6 @@ export function ModelPicker() {
                 )}
               </>
             )}
-
-            {/* Upgrade footer for non-Pro users */}
-            {!isTrial && !dyadProEnabled && (
-              <>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem
-                  data-testid="model-picker-unlock-all"
-                  className="px-2 py-2 bg-gradient-to-r from-indigo-50 to-sky-50 dark:from-indigo-950/50 dark:to-sky-950/50 focus:from-indigo-100 focus:to-sky-100 dark:focus:from-indigo-950 dark:focus:to-sky-950"
-                  onClick={handleUnlockAllClick}
-                >
-                  <div className="flex items-center gap-2 w-full">
-                    <SparklesIcon className="size-3.5 text-indigo-600 dark:text-indigo-300 shrink-0" />
-                    <span className="text-[13px] font-medium text-indigo-700 dark:text-indigo-300">
-                      Unlock all models with Dyad Pro
-                    </span>
-                  </div>
-                </DropdownMenuItem>
-              </>
-            )}
           </SubscriptionModelMenu>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -1964,29 +1896,19 @@ export function ModelPicker() {
             <>
               <DialogHeader>
                 <DialogTitle>
-                  Unlock {unlockTarget?.model.displayName} with Dyad Pro
+                  Unlock {unlockTarget?.model.displayName}
                 </DialogTitle>
                 <DialogDescription>
-                  Dyad Pro gives you {unlockTarget?.model.displayName} and every
-                  other leading AI model with one subscription — no API keys
-                  needed.
+                  Add your own {unlockTargetProviderName} API key in provider
+                  settings to use {unlockTarget?.model.displayName}.
                 </DialogDescription>
               </DialogHeader>
-              <div className="flex flex-col gap-3">
-                <Button
-                  className="cursor-pointer w-full"
-                  onClick={handleUnlockDialogUpgradeClick}
-                >
-                  Get Dyad Pro
-                </Button>
-                <button
-                  type="button"
-                  className="cursor-pointer text-sm text-primary hover:underline underline-offset-4"
-                  onClick={handleUnlockDialogOwnKeyClick}
-                >
-                  Or use your own {unlockTargetProviderName} API key
-                </button>
-              </div>
+              <Button
+                className="cursor-pointer w-full"
+                onClick={handleUnlockDialogOwnKeyClick}
+              >
+                Add {unlockTargetProviderName} API key
+              </Button>
             </>
           )}
         </DialogContent>
