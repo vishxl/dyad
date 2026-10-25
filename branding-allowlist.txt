@@ -82,3 +82,8 @@ src/ipc/utils/git_utils.ts :: dyad-sh  # comment linking an upstream issue (main
 src/ipc/utils/linux_libcurl_shim.ts :: dyad-sh  # comment linking an upstream issue (main process only)
 src/utils/codebase.ts :: dyad-sh  # comment linking upstream issues (main process only)
 e2e-tests/** :: (dyad_options|dyad/|@dyad-sh|dyad-sh|dyad\.sh)  # tests of the engine wire protocol and external packages
+src/ipc/services/claude_code/text.ts  # escapes the pre-rebrand tag dialect in model text
+src/ipc/services/claude_code/text.test.ts
+src/main/safe_storage_legacy.test.ts  # legacy keychain identity of the pre-rebrand app name
+src/__tests__/generate_release_provenance_script.test.ts :: dyad  # upstream repo coordinates fixture
+src/__tests__/prepare_release_tag_script.test.ts :: dyad  # upstream repo coordinates fixture
