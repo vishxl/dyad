@@ -116,6 +116,100 @@ openviking read 'viking://user/default/memories/entities/application_builder_kno
 - `src/prompts/context_packs/openviking.ts`: policy = read-by-URI each message; retrieval = `POST /api/v1/search/find` (target_uri nextbillion-docs) plus `POST /api/v1/skills/find` merged first in the hit list. Fail-open everywhere.
 - `src/ipc/handlers/chat_stream_handlers.ts`: appends `packBlocks.policy + packBlocks.retrieval` to systemPrompt (main + plan-mode paths).
 
+## 12. Session-corpus ingest (engineering-sessions layer, added 2026-10-26)
+
+Additive layer built from `/Users/vishal/Downloads/NextBillion/Context_Layer/`
+(10 redacted Claude Code transcripts, 10 chat exports, 102 support tickets).
+Saved locally in `context/nextbillion-sessions/` — `digests/` (10 curated synthesis
+files) + `transcripts/` (17 full-fidelity verbatim transcripts) + `README.md`.
+Secret-scanned before save; real tokens replaced with `[REDACTED-*]`.
+
+```
+openviking add-resource context/nextbillion-sessions/index.md \
+  --to viking://resources/nextbillion-sessions \
+  --tags 'domain=nextbillion,source=engineering-sessions,type=index' --wait --timeout 600
+
+for f in context/nextbillion-sessions/digests/*.md; do
+  name=$(basename "$f" .md | sed 's/^cc-//; s/^nb-//; s/-distilled$//')
+  openviking add-resource "$f" --to "viking://resources/nextbillion-sessions/$name" \
+    --tags 'domain=nextbillion,source=engineering-sessions,type=session-digest' \
+    --wait --timeout 1800
+done
+
+for f in context/nextbillion-sessions/transcripts/*.md; do
+  name=$(basename "$f" .md | sed 's/^cc-//')
+  openviking add-resource "$f" --to "viking://resources/nextbillion-sessions/transcripts/$name" \
+    --tags 'domain=nextbillion,source=engineering-sessions,type=transcript' &
+done; wait
+```
+
+Gotchas learned the hard way:
+- CLI `--wait` on large files times out client-side ("Request Timeout" box) while the
+  server task still completes — verify with `openviking task list` / `ls` / `find`,
+  never trust the CLI box. For the 17 transcripts, drop `--wait` and let the
+  background queue run; check `task list` until 0 running / 0 errors.
+- Existing namespaces (`nextbillion-app-kb`, `nextbillion-docs`, `nextbillion-policy`)
+  are untouched — this layer is purely additive.
+
+Verification (2026-10-26 run): 28 resources completed, 0 errors; targeted
+`find` queries score 0.72–0.79.
+
+## 13. Learning passes + model upgrade
+
+Larger models for better learning — `~/.openviking/ov.conf`:
+
+```json
+"vlm":       { ..., "model": "google/gemini-2.5-pro" },
+"embedding": { "dense": { ..., "model": "openai/text-embedding-3-large", "dimension": 3072 } }
+```
+
+Restart `ov serve` after editing. **Then reindex the new corpus** so its vectors
+match the new query space:
+
+```
+openviking reindex 'viking://resources/nextbillion-sessions' --mode vectors_only --wait false
+```
+
+Learning passes (4 chat sessions asking the bot to read the corpus and extract
+durable lessons, e.g. "read viking://resources/nextbillion-sessions and store the
+durable engineering lessons as memories — coordinate rules, Cloud Run traps, truck
+parameters, HOS, clustering, ETA metrics"):
+
+```
+openviking chat "read viking://resources/nextbillion-sessions/... and extract + store durable lessons as memories"
+```
+
+**Critical gotcha:** chat-session memory writes are staged in the session's
+`memory_commit` dirs and do NOT reach `viking://user/default/memories` on their own.
+Consolidation (`openviking compile --to viking://user/default/memories --skill memory`)
+can fail with `MEMORY_CONSOLIDATION_FAILED ... parse_error` after 11 iterations —
+per-type compiles (`--to .../entities`, `--to .../events`) may still add 0. When that
+happens, the reliable durable channel is **direct `add-memory`**:
+
+```
+openviking add-memory '{"role":"user","content":"<lesson> (durable): ..."}'
+```
+
+The 2026-10-26 run stored all lessons this way; they land classified under
+`memories/events/<yyyy>/<mm>/<dd>/` and `memories/preferences/user/` +
+`memories/entities/application_builder_knowledge_base/`. Lesson families stored:
+coordinate-order rules, optimization-v2 id conventions, truck_size order/units,
+avoid-vs-exclude, honor_restrictions 422, HOS nesting/time minimums, clustering
+polyline5 pre-pass, Cloud Run sizing/deploy traps/413-gzip, Terraform env-var
+ownership + import, GCS SA permissions, token-rotation runbook, BFF auth pattern,
+MapLibre/deck.gl pitfalls, Orbis geocoding quirks, ETA MdAPE/P90 + harvest dedupe,
+support-ticket themes, OpenViking ingestion lessons themselves.
+
+## 14. Verify the session layer
+
+```
+openviking ls 'viking://resources/nextbillion-sessions'
+openviking task list                                          # 0 running, 0 errors
+curl -s -X POST http://127.0.0.1:1933/api/v1/search/find -H 'Content-Type: application/json' \
+  -d '{"query":"truck_size height width length order","limit":3}'   # docs + digest hits
+openviking ls 'viking://user/default/memories/preferences/user'     # lesson files present
+```
+
 ## `ov compile` scope
 
 Used exactly once in the whole flow: memory consolidation (step 6). Policy, skill, and corpus writes are raw HTTP/CLI operations, never compilation.
