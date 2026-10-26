@@ -143,4 +143,42 @@ describe("context pack scopes reach the live OpenViking store", () => {
       expect(block).toMatch(/truck|support-ticket/i);
     },
   );
+
+  it.skipIf(process.env.NEXTBILLION_SKIP_VIKING === "1")(
+    "the distilled ticket digest is retrievable, not just stored",
+    { timeout: 60_000 },
+    async () => {
+      if (!vikingUp) {
+        console.warn("OpenViking not reachable — canary skipped.");
+        return;
+      }
+      // History: the 74K monolithic digest was written into the store but
+      // never surfaced in find — its single embedding drowned among the
+      // store's small files, so it was dead weight despite "being ingested".
+      // The fix splits it into per-theme files under themes/ (small focused
+      // docs are what the index ranks). This canary queries the
+      // support-tickets scope directly and fails if the theme files stop
+      // surfacing, i.e. if a future re-ingest reverts to one big file.
+      const response = await fetch(`${OPENVIKING_URL}/api/v1/search/find`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query:
+            "support team triage routing-API issues biggest pain points severity frequency resolutions",
+          target_uri: "viking://resources/nextbillion-sessions/support-tickets",
+          limit: 6,
+          read_content: false,
+        }),
+        signal: AbortSignal.timeout(30_000),
+      });
+      const data = (await response.json()) as {
+        result?: { resources?: { uri?: string }[] };
+      };
+      const uris = (data.result?.resources ?? []).map((h) => h.uri ?? "");
+      expect(
+        uris.join("\n"),
+        "distilled ticket themes/ files no longer surface in the support-tickets scope — the KB update is dead weight again",
+      ).toMatch(/\/themes\//);
+    },
+  );
 });
