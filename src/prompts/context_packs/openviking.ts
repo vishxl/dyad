@@ -7,9 +7,10 @@ import { CONTEXT_PACKS, type ContextPackId } from "./registry";
  * store:
  * - policy: deterministic read-by-URI every message (routing table + mandatory
  *   rules that retrieval cannot guarantee, e.g. "never use competitor basemaps"),
- * - retrieval: per-message semantic find over the vendor's full docs corpus
- *   (resources + memories hits), plus a skills find (/api/v1/skills/find) —
- *   skills live outside resource URIs so the plain find never surfaces them.
+ * - retrieval: per-message semantic find over each of the pack's declared
+ *   scopes (registry `vikingScopes` — resources + memories hits, merged by
+ *   score), plus a skills find (/api/v1/skills/find) — skills live outside
+ *   resource URIs so the plain find never surfaces them.
  *
  * Fail-open: any failure (server down, timeout, error) logs and returns "" —
  * a chat must never hang or fail on the context database.
@@ -24,6 +25,7 @@ const MAX_HIT_CHARS = 2000;
 
 interface VikingFindHit {
   uri?: string;
+  score?: number;
   content?: string;
   content_text?: string;
   abstract?: string;
@@ -214,39 +216,73 @@ async function retrievePackBlock(
   id: ContextPackId,
   userPrompt: string,
 ): Promise<string> {
-  const vikingUri = CONTEXT_PACKS[id].vikingUri;
-  if (!vikingUri) return "";
+  const scopes = CONTEXT_PACKS[id].vikingScopes;
+  if (scopes.length === 0) return "";
   try {
-    const [response, skillHits] = await Promise.all([
-      fetch(`${OPENVIKING_URL}/api/v1/search/find`, {
-        method: "POST",
-        headers: authHeaders(),
-        body: JSON.stringify({
-          query: userPrompt,
-          target_uri: vikingUri,
-          limit: HITS_PER_PACK,
-          read_content: true,
+    const [scopeResponses, skillHits] = await Promise.all([
+      Promise.all(
+        scopes.map(async (scope) => {
+          try {
+            const response = await fetch(
+              `${OPENVIKING_URL}/api/v1/search/find`,
+              {
+                method: "POST",
+                headers: authHeaders(),
+                body: JSON.stringify({
+                  query: userPrompt,
+                  target_uri: scope,
+                  limit: HITS_PER_PACK,
+                  read_content: true,
+                }),
+                signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
+              },
+            );
+            if (!response.ok) {
+              log.warn(
+                `openviking find for ${id} scope ${scope} failed: HTTP ${response.status}`,
+              );
+              return null;
+            }
+            const data = (await response.json()) as VikingFindResponse;
+            if (data.status !== "ok") {
+              log.warn(
+                `openviking find for ${id} scope ${scope} errored: ${data.error?.message ?? "unknown"}`,
+              );
+              return null;
+            }
+            return [
+              ...(data.result?.resources ?? []),
+              ...(data.result?.memories ?? []),
+            ];
+          } catch (error) {
+            log.warn(
+              `openviking find for ${id} scope ${scope} failed (fail-open)`,
+              error,
+            );
+            return null;
+          }
         }),
-        signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
-      }),
+      ),
       findSkillHits(id, userPrompt),
     ]);
-    if (!response.ok) {
-      log.warn(`openviking find for ${id} failed: HTTP ${response.status}`);
-      return "";
+    // Merge across scopes, highest score first, deduped by URI. Score is
+    // comparable across scopes because every find runs the same query against
+    // the same embedding model — the scope only restricts the candidate set.
+    const byUri = new Map<string, VikingFindHit & { score?: number }>();
+    for (const hits of scopeResponses) {
+      if (!hits) continue;
+      for (const hit of hits) {
+        const key = hit.uri ?? JSON.stringify(hit).slice(0, 200);
+        const existing = byUri.get(key);
+        if (!existing || (hit.score ?? 0) > (existing.score ?? 0)) {
+          byUri.set(key, hit);
+        }
+      }
     }
-    const data = (await response.json()) as VikingFindResponse;
-    if (data.status !== "ok") {
-      log.warn(
-        `openviking find for ${id} errored: ${data.error?.message ?? "unknown"}`,
-      );
-      return "";
-    }
-    const hits = [
-      ...skillHits,
-      ...(data.result?.resources ?? []),
-      ...(data.result?.memories ?? []),
-    ];
+    const merged = [...byUri.values()].sort(
+      (a, b) => (b.score ?? 0) - (a.score ?? 0),
+    );
+    const hits = [...skillHits, ...merged.slice(0, HITS_PER_PACK)];
     const chunks = hits
       .map((hit) => {
         const content = (hit.content ?? hit.content_text ?? hit.abstract ?? "")

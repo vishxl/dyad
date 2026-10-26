@@ -4,6 +4,7 @@ import {
   getContextPackRetrievalBlock,
   getPolicyBlock,
 } from "./openviking";
+import { CONTEXT_PACKS } from "./registry";
 
 const okEnvelope = (resources: unknown[]) => ({
   ok: true,
@@ -17,6 +18,23 @@ const okRead = (content: string) => ({
   json: async () => ({ status: "ok", result: content }),
 });
 
+/** Stub fetch for the multi-scope fan-out: routes by URL, echoing each
+ * search/find's target_uri back in the hit so tests can assert per-scope
+ * fan-out. */
+function stubScopedFind(
+  hitsForScope: (targetUri: string) => unknown[],
+  policyContent = "# policy",
+) {
+  return vi.fn().mockImplementation((url: string | URL, init?: RequestInit) => {
+    const u = String(url);
+    if (u.includes("/search/find")) {
+      const target = JSON.parse(String(init?.body)).target_uri as string;
+      return Promise.resolve(okEnvelope(hitsForScope(target)));
+    }
+    return Promise.resolve(okRead(policyContent));
+  });
+}
+
 describe("getContextPackRetrievalBlock (OpenViking)", () => {
   afterEach(() => vi.unstubAllGlobals());
 
@@ -28,18 +46,12 @@ describe("getContextPackRetrievalBlock (OpenViking)", () => {
   it("wraps retrieved hits with the vendor tag", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockImplementation((url: string | URL) =>
-        String(url).includes("/search/find")
-          ? Promise.resolve(
-              okEnvelope([
-                {
-                  uri: "viking://resources/nextbillion-docs/optimization/x.md",
-                  content: "POST /optimization/v2 params...",
-                },
-              ]),
-            )
-          : Promise.resolve(okRead("# policy")),
-      ),
+      stubScopedFind(() => [
+        {
+          uri: "viking://resources/nextbillion-docs/optimization/x.md",
+          content: "POST /optimization/v2 params...",
+        },
+      ]),
     );
     const block = await getContextPackRetrievalBlock(
       ["nextbillion"],
@@ -47,6 +59,105 @@ describe("getContextPackRetrievalBlock (OpenViking)", () => {
     );
     expect(block).toContain('<context-retrieval vendor="NextBillion.ai">');
     expect(block).toContain("POST /optimization/v2");
+  });
+
+  it("fans out a find per declared scope and merges results", async () => {
+    const fetchMock = vi.fn(
+      stubScopedFind((target) =>
+        target.includes("nextbillion-docs")
+          ? [
+              {
+                uri: "viking://resources/nextbillion-docs/a.md",
+                score: 0.9,
+                content: "docs hit",
+              },
+            ]
+          : target.includes("support-tickets")
+            ? [
+                {
+                  uri: "viking://resources/nextbillion-sessions/support-tickets/b.md",
+                  score: 0.95,
+                  content: "ticket hit",
+                },
+              ]
+            : [],
+      ),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    const block = await getContextPackRetrievalBlock(["nextbillion"], "q");
+    // One find per declared scope
+    const findBodies = fetchMock.mock.calls
+      .map((c) => String(c[0]))
+      .filter((u) => u.includes("/search/find"))
+      .map(
+        (_, i) =>
+          JSON.parse(
+            fetchMock.mock.calls.filter((c) =>
+              String(c[0]).includes("/search/find"),
+            )[i][1].body,
+          ).target_uri,
+      );
+    expect(findBodies).toContain("viking://resources/nextbillion-docs");
+    expect(findBodies).toContain(
+      "viking://resources/nextbillion-sessions/support-tickets",
+    );
+    // Merged, score-ordered: the 0.95 ticket hit outranks the 0.9 docs hit
+    const ticketIdx = block.indexOf("ticket hit");
+    const docsIdx = block.indexOf("docs hit");
+    expect(ticketIdx).toBeGreaterThan(-1);
+    expect(docsIdx).toBeGreaterThan(-1);
+    expect(ticketIdx).toBeLessThan(docsIdx);
+  });
+
+  it("dedupes a hit returned by multiple scopes", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubScopedFind((target) =>
+        target.includes("nextbillion-docs")
+          ? [
+              {
+                uri: "viking://resources/nextbillion-docs/a.md",
+                score: 0.9,
+                content: "docs hit",
+              },
+            ]
+          : [],
+      ),
+    );
+    const block = await getContextPackRetrievalBlock(["nextbillion"], "q");
+    // Only the scopes returning this URI get it; no duplicate blocks
+    expect(block.split("docs hit").length - 1).toBe(
+      CONTEXT_PACKS.nextbillion.vikingScopes.filter((s) =>
+        s.includes("nextbillion-docs"),
+      ).length,
+    );
+  });
+
+  it("caps merged hits at HITS_PER_PACK", async () => {
+    vi.stubGlobal(
+      "fetch",
+      stubScopedFind((target) =>
+        target.includes("nextbillion-docs")
+          ? Array.from({ length: 6 }, (_, i) => ({
+              uri: `viking://resources/nextbillion-docs/d${i}.md`,
+              score: 0.9 - i * 0.01,
+              content: `docs hit ${i}`,
+            }))
+          : target.includes("support-tickets")
+            ? [
+                {
+                  uri: "viking://resources/nextbillion-sessions/support-tickets/top.md",
+                  score: 0.99,
+                  content: "top ticket hit",
+                },
+              ]
+            : [],
+      ),
+    );
+    const block = await getContextPackRetrievalBlock(["nextbillion"], "q");
+    expect(block).toContain("top ticket hit");
+    // 6 docs hits + 1 ticket = 7 raw; merged cap keeps the best 6 overall
+    expect(block.split("--- viking://resources/").length - 1).toBe(6);
   });
 
   it("fail-opens on HTTP error", async () => {

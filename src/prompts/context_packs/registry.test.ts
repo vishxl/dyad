@@ -7,15 +7,23 @@ describe("context pack registry", () => {
     expect(CONTEXT_PACKS.nextbillion.name).toBe("NextBillion.ai");
   });
 
-  it("uses viking:// URIs for retrieval-backed packs", () => {
+  it("declares viking:// scope URIs for retrieval-backed packs", () => {
     for (const id of CONTEXT_PACK_IDS) {
-      const uri = CONTEXT_PACKS[id].vikingUri;
-      if (uri) {
-        expect(uri).toMatch(/^viking:\/\/resources\//);
+      for (const scope of CONTEXT_PACKS[id].vikingScopes) {
+        expect(scope).toMatch(/^viking:\/\/resources\//);
       }
     }
-    expect(CONTEXT_PACKS.nextbillion.vikingUri).toBe(
+    // The migrated knowledge corpus must be within reach of the pack:
+    // vendor docs, the distilled application-domain KB, and the curated
+    // session layers. This failing means a subtree is dead weight again.
+    expect(CONTEXT_PACKS.nextbillion.vikingScopes).toContain(
       "viking://resources/nextbillion-docs",
+    );
+    expect(CONTEXT_PACKS.nextbillion.vikingScopes).toContain(
+      "viking://resources/nextbillion-app-kb",
+    );
+    expect(CONTEXT_PACKS.nextbillion.vikingScopes).toContain(
+      "viking://resources/nextbillion-sessions/support-tickets",
     );
   });
 

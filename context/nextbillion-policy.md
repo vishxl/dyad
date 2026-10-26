@@ -4,6 +4,12 @@ NextBillion.ai is a location-tech platform: geocoding, search, routing, distance
 
 Detailed per-API documentation (exact endpoints, all request/response fields and examples) is retrieved per message from the connected context database. Use this policy to pick the right API and follow the mandatory rules; rely on the retrieved details for field-level specifics.
 
+The retrieved context mixes three layers, and knowing which layer a hit comes from tells you how much to trust it:
+
+1. **Vendor docs** (`viking://resources/nextbillion-docs/...`) — the API reference. Authoritative for endpoints, parameters, and response shapes.
+2. **Application domain KB** (`viking://resources/nextbillion-app-kb/...`) — distilled domain knowledge: app archetypes, reusable patterns, and common failures with durable lessons. When a "common failures" hit matches your task, follow its lesson proactively.
+3. **Support-ticket and project lessons** (`viking://resources/nextbillion-sessions/support-tickets/...` and per-project subtrees like `route-planner-monorepo`, `truck-routing-hos-app`) — distilled from real support tickets and build sessions: recurring failure modes (parameter order, unit handling, coordinate conventions, restriction semantics) and the fixes that worked. If a retrieved ticket theme is relevant to what you are building, design around it from the start instead of rediscovering the failure.
+
 ## Which API when
 
 | Need                                               | API                                                   |

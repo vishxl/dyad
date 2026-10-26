@@ -1,0 +1,146 @@
+import { describe, expect, it, beforeAll } from "vitest";
+import { CONTEXT_PACKS, CONTEXT_PACK_IDS } from "./registry";
+import { getContextPackRetrievalBlock } from "./openviking";
+
+/**
+ * Canary integration test: every declared pack scope must actually return
+ * content through the real retrieval path (real OpenViking on 127.0.0.1:1933).
+ *
+ * Why this exists: a scope can be present in the registry while invisible to
+ * the agent — a subtree missing from the OpenViking store, a renamed path,
+ * a migration that never ran. Storage-level checks ("the files exist on
+ * disk") do not catch that; only a find through the same API the chat path
+ * calls does. Each scope therefore gets a canary: a query whose top hits can
+ * only come from that scope's own content.
+ *
+ * Requires a running OpenViking server (local dev or the deployed VM
+ * pattern: `openviking-server` on 127.0.0.1:1933). Skips when absent so the
+ * unit project stays green without one; run it before claiming any KB
+ * migration "verified".
+ */
+const OPENVIKING_URL =
+  process.env.NEXTBILLION_OPENVIKING_URL ?? "http://127.0.0.1:1933";
+
+async function openVikingAvailable(): Promise<boolean> {
+  try {
+    const response = await fetch(
+      `${OPENVIKING_URL}/api/v1/content/read?uri=${encodeURIComponent(
+        CONTEXT_PACKS.nextbillion.policyUri,
+      )}&raw=true`,
+      { signal: AbortSignal.timeout(2_000) },
+    );
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
+
+/** One canary per scope: a query + a substring only that scope's content has. */
+const SCOPE_CANARIES: Record<string, { query: string; mustContain: string }> = {
+  "viking://resources/nextbillion-docs": {
+    query: "how to configure the maps sdk",
+    mustContain: "maps",
+  },
+  "viking://resources/nextbillion-app-kb": {
+    query: "common failures and durable lessons",
+    mustContain: "failures",
+  },
+  "viking://resources/nextbillion-sessions/support-tickets": {
+    query: "support ticket themes truck size coordinate order",
+    mustContain: "support-ticket",
+  },
+  "viking://resources/nextbillion-sessions/route-planner-monorepo": {
+    query: "route planner monorepo architecture",
+    mustContain: "route-planner-monorepo",
+  },
+  "viking://resources/nextbillion-sessions/mock-datasets": {
+    query: "synthetic mock datasets postoffice",
+    mustContain: "mock-datasets",
+  },
+  "viking://resources/nextbillion-sessions/gcp-cloud-run-deploy": {
+    query: "cloud run deployment terraform",
+    mustContain: "gcp-cloud-run-deploy",
+  },
+  "viking://resources/nextbillion-sessions/nb-routing-playground": {
+    query: "routing playground markers reverse geocoding",
+    mustContain: "nb-routing-playground",
+  },
+  "viking://resources/nextbillion-sessions/eta-predictor-model": {
+    query: "eta predictor model training",
+    mustContain: "eta-predictor-model",
+  },
+  "viking://resources/nextbillion-sessions/nbai-bookmarks-extension": {
+    query: "bookmarks chrome extension clustering",
+    mustContain: "nbai-bookmarks-extension",
+  },
+  "viking://resources/nextbillion-sessions/truck-routing-hos-app": {
+    query: "truck routing hours of service hos",
+    mustContain: "truck-routing-hos-app",
+  },
+  "viking://resources/nextbillion-sessions/isochrone-geocode-demo": {
+    query: "isochrone geocode demo deploy",
+    mustContain: "isochrone-geocode-demo",
+  },
+};
+
+describe("context pack scopes reach the live OpenViking store", () => {
+  let vikingUp = false;
+  beforeAll(async () => {
+    vikingUp = await openVikingAvailable();
+  });
+
+  it.skipIf(process.env.NEXTBILLION_SKIP_VIKING === "1")(
+    "every canary is retrievable through the real find path",
+    { timeout: 120_000 },
+    async () => {
+      if (!vikingUp) {
+        console.warn(
+          "OpenViking not reachable — scope canaries skipped. Start openviking-server to verify KB reachability.",
+        );
+        return;
+      }
+      for (const id of CONTEXT_PACK_IDS) {
+        const scopes = CONTEXT_PACKS[id].vikingScopes;
+        if (scopes.length === 0) continue;
+        for (const scope of scopes) {
+          const canary = SCOPE_CANARIES[scope];
+          expect(
+            canary,
+            `no canary registered for scope ${scope} — add one to SCOPE_CANARIES when adding the scope to the registry`,
+          ).toBeDefined();
+          const block = await getContextPackRetrievalBlock([id], canary.query);
+          // The canary must surface its own scope's content: the merged
+          // retrieval block contains a hit URI under that scope.
+          expect(
+            block,
+            `scope ${scope} returned nothing — is the subtree ingested into OpenViking?`,
+          ).not.toBe("");
+          const uriMarker = scope.split("/").pop();
+          expect(
+            block,
+            `scope ${scope} did not surface its own content for the canary query — the subtree is likely missing from the store (dead scope)`,
+          ).toContain(uriMarker);
+        }
+      }
+    },
+  );
+
+  it.skipIf(process.env.NEXTBILLION_SKIP_VIKING === "1")(
+    "the distilled support-ticket themes surface end to end",
+    { timeout: 30_000 },
+    async () => {
+      if (!vikingUp) {
+        console.warn("OpenViking not reachable — canary skipped.");
+        return;
+      }
+      const block = await getContextPackRetrievalBlock(
+        ["nextbillion"],
+        "most common support ticket failure patterns and their resolutions",
+      );
+      // Themes that exist only in the migrated support-tickets subtree —
+      // not in vendor docs and not guessable. If these come back, the
+      // migrated corpus is genuinely reachable by the chat path.
+      expect(block).toMatch(/truck|support-ticket/i);
+    },
+  );
+});
