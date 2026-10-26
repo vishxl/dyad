@@ -27,7 +27,15 @@ export type ContextPackId = (typeof CONTEXT_PACK_IDS)[number];
 
 export const CONTEXT_PACKS: Record<
   ContextPackId,
-  { name: string; policyUri: string; vikingScopes: string[] }
+  {
+    name: string;
+    policyUri: string;
+    vikingScopes: string[];
+    /** Optional routing layer: its best hit always keeps one retrieval slot,
+     * so the map ("where does X knowledge live") is never crowded out by the
+     * content it points at. */
+    routingScope?: string;
+  }
 > = {
   nextbillion: {
     name: "NextBillion.ai",
@@ -40,6 +48,7 @@ export const CONTEXT_PACKS: Record<
     vikingScopes: [
       "viking://resources/nextbillion-docs",
       "viking://resources/nextbillion-app-kb",
+      "viking://resources/nextbillion-learnings",
       "viking://resources/nextbillion-sessions/support-tickets",
       "viking://resources/nextbillion-sessions/route-planner-monorepo",
       "viking://resources/nextbillion-sessions/mock-datasets",
@@ -50,6 +59,8 @@ export const CONTEXT_PACKS: Record<
       "viking://resources/nextbillion-sessions/truck-routing-hos-app",
       "viking://resources/nextbillion-sessions/isochrone-geocode-demo",
     ],
+    // API/UX learning-type routing indexes (context/openviking-learning-indexes/)
+    routingScope: "viking://resources/nextbillion-learnings",
   },
   stripi: {
     name: "NB Design",

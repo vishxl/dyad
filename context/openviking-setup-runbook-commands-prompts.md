@@ -313,6 +313,78 @@ Then re-run the retrieval suite (`openviking.scopes.integration.test.ts`)
 against both stores — local and VM drifted here: local passed while the VM
 failed, so verify each store independently.
 
+## 17. Learning-type split (API vs UX) — routing indexes
+
+The store is organized by SOURCE (docs / app-kb / sessions), not by LEARNING
+TYPE. The API-vs-UX split from the product instruction is a routing layer on
+top: two small index files in `context/openviking-learning-indexes/`
+(`api-learnings.md`, `ux-learnings.md`), ingested under a dedicated subtree:
+
+```
+POST /api/v1/content/write {"uri":"viking://resources/nextbillion-learnings/api-learnings.md","content":"...","wait":true}
+POST /api/v1/content/write {"uri":"viking://resources/nextbillion-learnings/ux-learnings.md","content":"...","wait":true}
+```
+
+- `api-learnings.md` routes API topics (data handling, use cases, common
+  errors) to docs + support-ticket themes + durable memories, and carries the
+  support-agent recipe: classify ticket → scoped find on support-tickets →
+  scoped find on docs → cite ticket IDs + docs URI. This is how a support
+  agent uses the KB directly, independently of the app builder.
+- `ux-learnings.md` routes UX-flow topics to the app-kb sections (§7
+  archetypes, §12 UI/UX conventions, §5 profiles, §6 industry) and holds the
+  extension slot for future "popular apps' workflows" ingests
+  (`viking://resources/nextbillion-learnings/popular-apps/<app>/`, per §16
+  physics). It is a placeholder until that ingest — no invented content.
+
+App wiring (learned the hard way — the index ranked 0.72–0.77 but lost the
+top-6 merge cut to the content it merely points at):
+- `registry.ts`: add `viking://resources/nextbillion-learnings` to
+  `vikingScopes` AND set `routingScope` — the routing scope's best hit keeps
+  ONE reserved retrieval slot per message, so the map always ships.
+- `openviking.ts` implements the reserved slot in `retrievePackBlock`.
+- Canaries: SCOPE_CANARIES entry + two prompt-matrix rows (API/UX) in
+  `openviking.scopes.integration.test.ts` — all green on local AND VM stores
+  (2026-10-26).
+
+## 18. Export the knowledge base (zip, like the 2026-10-21 export)
+
+Pure mirror of OpenViking's storage, by URI path — no sources, no wiring, no
+instructions. The server's agfs tree (`workspace: ./data` in ov.conf, relative
+to the server's cwd — `/Users/vishal/dyad/data/` for the local run) mirrors
+`viking://` URIs directly: `data/viking/default/resources/**` is
+`viking://resources/**`, `data/viking/default/user/default/memories/**` is
+`viking://user/default/memories/**`.
+
+```
+STAGE=/tmp/ov-export-stage
+rm -rf "$STAGE" && mkdir -p "$STAGE/nextbillion-openviking-export-<date>/openviking"
+cd "$STAGE/nextbillion-openviking-export-<date>"
+
+rsync -a --exclude '.DS_Store' /Users/vishal/dyad/data/viking/default/resources/ openviking/resources/
+rsync -a --exclude '.DS_Store' /Users/vishal/dyad/data/viking/default/user/default/memories/ openviking/user/default/memories/
+rsync -a --exclude '.DS_Store' /Users/vishal/dyad/data/viking/default/user/default/skills/ openviking/user/default/skills/
+```
+
+Then add a `MANIFEST.md` at the zip root: per-namespace context-file counts
+(`find <ns> -name '*.md' ! -name '.overview.md' ! -name '.abstract.md' | wc -l`),
+the delta vs the previous export, and the durable lesson families in memory.
+Zip and ship:
+
+```
+cd "$STAGE"
+zip -rq ~/Downloads/nextbillion-openviking-export-<date>.zip nextbillion-openviking-export-<date>
+```
+
+2026-10-26 run: 16MB, 12,288 files — resources (docs 2,253 · app-kb 41 ·
+sessions 6,215 · policy · stripi) + memories (54) + skill (nextbillion-map).
+Verified by spot-checking a new memory inside the finished zip before shipping.
+
+Gotchas: the `.overview.md`/`.abstract.md` stubs are part of the mirror
+(OpenViking's auto-generated navigation metadata — same as the 10-21 export,
+count context files excluding them); verify the zip AFTER cleanup mistakes —
+a staged tree deleted mid-flow produces a tiny broken zip (caught by listing
+the finished zip, rebuilt from scratch).
+
 ## `ov compile` scope
 
 Used exactly once in the whole flow: memory consolidation (step 6). Policy, skill, and corpus writes are raw HTTP/CLI operations, never compilation.

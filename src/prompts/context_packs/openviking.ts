@@ -320,7 +320,29 @@ async function retrievePackBlock(
     const merged = [...byUri.values()].sort(
       (a, b) => (b.score ?? 0) - (a.score ?? 0),
     );
-    const hits = [...skillHits, ...merged.slice(0, HITS_PER_PACK)];
+    // The routing scope (API/UX learning-type indexes) keeps one reserved
+    // slot: its hits would otherwise lose the top-6 cut to the content it
+    // merely points at, and the map is useless if it never ships with the
+    // message. Best score wins within the scope; absent = no slot used.
+    let routingHit: VikingFindHit | null = null;
+    const routingScope = CONTEXT_PACKS[id].routingScope;
+    if (routingScope) {
+      const best = scopeResponses
+        .flat()
+        .filter(
+          (h): h is VikingFindHit & { score?: number; uri?: string } =>
+            h !== null && (h.uri ?? "").startsWith(routingScope),
+        )
+        .sort((a, b) => (b.score ?? 0) - (a.score ?? 0))[0];
+      if (best) routingHit = best;
+    }
+    const hits = [
+      ...skillHits,
+      ...(routingHit ? [routingHit] : []),
+      ...merged
+        .filter((h) => h.uri !== routingHit?.uri)
+        .slice(0, HITS_PER_PACK),
+    ];
     const chunks = hits
       .map((hit) => {
         const content = (hit.content ?? hit.content_text ?? hit.abstract ?? "")

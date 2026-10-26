@@ -45,6 +45,10 @@ const SCOPE_CANARIES: Record<string, { query: string; mustContain: string }> = {
     query: "common failures and durable lessons",
     mustContain: "failures",
   },
+  "viking://resources/nextbillion-learnings": {
+    query: "API related learnings how to handle data and common API errors",
+    mustContain: "nextbillion-learnings",
+  },
   "viking://resources/nextbillion-sessions/support-tickets": {
     query: "support ticket themes truck size coordinate order",
     mustContain: "support-ticket",
@@ -309,6 +313,19 @@ describe("context pack scopes reach the live OpenViking store", () => {
           prompt:
             "what were the most common support issues and their root causes",
           mustContain: /support-ticket|themes\//i,
+        },
+        {
+          ingestion: "API-learnings routing index (support-agent recipe)",
+          prompt:
+            "how should a support agent use our knowledge base to answer a customer ticket about an API error",
+          mustContain: /api-learnings/i,
+        },
+        {
+          ingestion:
+            "UX-learnings routing index (app archetypes + conventions)",
+          prompt:
+            "where do I find the UI conventions and app archetypes past internal apps followed",
+          mustContain: /ux-learnings/i,
         },
         {
           ingestion: "durable memories (add-memory lessons)",
