@@ -163,7 +163,10 @@ describe("context pack scopes reach the live OpenViking store", () => {
         )}&raw=true`,
         { signal: AbortSignal.timeout(10_000) },
       );
-      const data = (await response.json()) as { status?: string; result?: string };
+      const data = (await response.json()) as {
+        status?: string;
+        result?: string;
+      };
       expect(
         data.status === "ok" && (data.result ?? "").length > 1000,
         "policy doc unreadable or empty through content/read — the per-message policy injection is dead",
@@ -218,6 +221,116 @@ describe("context pack scopes reach the live OpenViking store", () => {
         block,
         "add-memory lessons not in the retrieval block — the unscoped memory find was dropped or regressed",
       ).toMatch(/viking:\/\/user\/default\/memories\//);
+    },
+  );
+
+  it.skipIf(process.env.NEXTBILLION_SKIP_VIKING === "1")(
+    "real user prompts surface their ingestion end to end (prompt matrix)",
+    { timeout: 180_000 },
+    async () => {
+      if (!vikingUp) {
+        console.warn("OpenViking not reachable — prompt matrix skipped.");
+        return;
+      }
+      // The full prompt matrix: for EVERY ingestion (docs, app-kb, each
+      // session digest, tickets, memories), a prompt a teammate would really
+      // type — no scope names, no URI hints — and the assertion is that the
+      // merged retrieval block actually contains content only that ingestion
+      // holds (a fact/phrase not guessable from vendor docs). This is the
+      // test that would have caught both dead-weight failures: a monolith
+      // "ingested" but never ranking, and memories attached only to unscoped
+      // finds. Failure names the ingestion that went dead.
+      const matrix: {
+        ingestion: string;
+        prompt: string;
+        mustContain: RegExp;
+      }[] = [
+        {
+          ingestion: "vendor docs",
+          prompt:
+            "build a request to the route optimization API with flexible truck dimensions",
+          mustContain: /truck_size|route-optimization|Request_Body/i,
+        },
+        {
+          ingestion: "app KB (22 reference apps)",
+          prompt:
+            "what app archetypes and UI conventions did past internal apps follow for map apps",
+          mustContain: /archetype|Application_Domain_Knowledge_Base/i,
+        },
+        {
+          ingestion: "route-planner-monorepo digest",
+          prompt:
+            "how was the route planner monorepo structured and what stopped it working",
+          mustContain: /route-planner-monorepo|Approuting_facts/i,
+        },
+        {
+          ingestion: "mock-datasets digest",
+          prompt:
+            "generate synthetic delivery mock data for a UK post office dataset",
+          mustContain: /mock-datasets|Synthetic_data/i,
+        },
+        {
+          ingestion: "gcp-cloud-run-deploy digest",
+          prompt:
+            "deploy this app to GCP Cloud Run — what sizing and terraform traps should I avoid",
+          mustContain: /gcp-cloud-run-deploy|cloud_run_deploy_traps|Terraform/i,
+        },
+        {
+          ingestion: "nb-routing-playground digest",
+          prompt:
+            "set up a routing playground with map markers and reverse geocoding",
+          mustContain: /nb-routing-playground|reverse_geocod/i,
+        },
+        {
+          ingestion: "eta-predictor-model digest",
+          prompt:
+            "what accuracy did the ETA predictor reach and how were ETAs evaluated",
+          mustContain: /eta-predictor-model|MdAPE|P90/i,
+        },
+        {
+          ingestion: "nbai-bookmarks-extension digest",
+          prompt:
+            "build a chrome extension that clusters bookmarks intelligently",
+          mustContain: /nbai-bookmarks-extension|bookmark/i,
+        },
+        {
+          ingestion: "truck-routing-hos-app digest",
+          prompt:
+            "build a truck routing app that respects hours-of-service rules",
+          mustContain: /truck-routing-hos-app|Hours_Of_Service/i,
+        },
+        {
+          ingestion: "isochrone-geocode-demo digest",
+          prompt: "demo isochrones on a map with geocoded destinations",
+          mustContain: /isochrone-geocode-demo|isochrone/i,
+        },
+        {
+          ingestion: "support tickets (themes + 102 ticket records)",
+          prompt:
+            "what were the most common support issues and their root causes",
+          mustContain: /support-ticket|themes\//i,
+        },
+        {
+          ingestion: "durable memories (add-memory lessons)",
+          prompt:
+            "in what order must truck dimensions be sent and in which units",
+          mustContain: /user\/default\/memories\//,
+        },
+      ];
+      const failures: string[] = [];
+      for (const { ingestion, prompt, mustContain } of matrix) {
+        const block = await getContextPackRetrievalBlock(
+          ["nextbillion"],
+          prompt,
+        );
+        const ok = mustContain.test(block);
+        console.log(`${ok ? "PASS" : "FAIL"}  ${ingestion}  <- "${prompt}"`);
+        if (!ok) failures.push(ingestion);
+      }
+      expect(
+        failures,
+        `ingestions that did NOT surface through the real retrieval path for real user prompts: ${failures.join(", ")}`,
+      ).toEqual([]);
     },
   );
 

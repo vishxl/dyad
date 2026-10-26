@@ -296,6 +296,23 @@ returned a hit from that subtree. Below `--threshold` → exit 1. Run it after
 every bulk ingest against both local and VM stores; wire it into CI against a
 live store when one is available.
 
+### Legacy-resource gotcha (found 2026-10-26 via the prompt matrix)
+
+When a subtree was first ingested one way and later re-ingested another (e.g.
+the support-tickets monolith via `add-resource`, then re-split via the script),
+the OLD auto-chunked resource stays in the store alongside the new files and
+can still outrank them for some queries — the prompt-matrix canary caught
+exactly this on the VM. After changing HOW a subtree is ingested, remove the
+superseded resource:
+
+```
+ov rm --recursive --wait 'viking://resources/<subtree>/<legacy-resource>'
+```
+
+Then re-run the retrieval suite (`openviking.scopes.integration.test.ts`)
+against both stores — local and VM drifted here: local passed while the VM
+failed, so verify each store independently.
+
 ## `ov compile` scope
 
 Used exactly once in the whole flow: memory consolidation (step 6). Policy, skill, and corpus writes are raw HTTP/CLI operations, never compilation.
