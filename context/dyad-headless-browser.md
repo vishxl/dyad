@@ -542,3 +542,14 @@ User tested a generated app: it rendered CARTO basemaps ("API KEY REQUIRED" tile
 ### Follow-up 3: context layer packaged as standalone repo (2026-10-21)
 
 `/Users/vishal/openviking_nb` — everything needed to recreate the layer on a fresh OpenViking install: policy source, 282-file docs corpus + concatenated copy, app-KB source, distilled index, map skill, runbook (`openviking-setup-runbook-commands-prompts.md`), ingest script. Recreate = follow the runbook top to bottom; `ov compile` used exactly once (memory consolidation, step 6). Verified live in OpenViking: policy read returns the strengthened mandatory Map-display section (maplibre-gl + NB style.json, Vite `optimizeDeps: { exclude: ["maplibre-gl"] }`, CARTO/OSM/Mapbox ban).
+
+### Follow-up 4: headless chat dispatch protocol gotchas (2026-10-26)
+
+Driving a chat turn end-to-end via RPC (no browser) — `create-chat` → `distributed-machine:subscribe` → `distributed-machine:dispatch` with a `SUBMIT` event. Four traps, each of which silently swallows the turn:
+
+1. **`create-chat` envelope shape**: response is `{"ok":true,"value":<chatId>}` — the chatId is `value`, not `result.chatId`.
+2. **New chats have no mode/model**: a chat created via RPC has `chat_mode = NULL`; the SUBMIT applies but the turn never starts (state goes `errored` with "Chat turn intent not found"). Fix: copy `chat_mode` + `model_selection` from a working chat's row in `sqlite.db` `chats` table before dispatching.
+3. **payloadHash serialization**: the server recomputes the hash by re-serializing the *parsed* intent with `JSON.stringify`. JS `JSON.stringify` **omits `undefined` fields** — so the hash input must omit missing keys entirely (`json.dumps(..., separators=(",", ":"))` after filtering out `None`s). Sending explicit `null`s, or using Python's default spaced separators, guarantees "Chat turn payload hash does not match its immutable payload". Correct order (from `serializeImmutableChatTurnPayload`): schemaVersion, intentId, chatId, appId, invocationRef, prompt, redo, attachments, selectedComponents, requestedChatMode, contextPacks, userInputRequestId, planAcceptInNewChat, owner.
+4. **Rejections are silent in logs**: a rejected dispatch still returns `{"kind":"applied"}`. Read the machine state to see what actually happened: `subscribe` → `encodedState.lastAcceptance.acceptance` + `.error`, and `phase` (`idle` = turn finished, `errored` = rejected/failed).
+
+Diagnostics: main.log `context pack injected for chat N: ... (policy X + retrieved Y chars)` confirms the KB injection; `local_agent_handler Projected next request for chat N` confirms the turn is streaming. Local-agent chats write their messages into the `messages` table on turn completion (streaming state is not persisted row-by-row).
