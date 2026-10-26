@@ -212,6 +212,40 @@ async function findSkillHits(
   }
 }
 
+/** Memories (viking://user/default/memories — durable add-memory lessons)
+ * surface only on unscoped finds: OpenViking fills result.memories on a plain
+ * search/find but not when target_uri restricts to a resource scope. One
+ * unscoped find per pack, memories merged into the same by-URI dedupe. */
+async function findMemoryHits(userPrompt: string): Promise<VikingFindHit[]> {
+  try {
+    const response = await fetch(`${OPENVIKING_URL}/api/v1/search/find`, {
+      method: "POST",
+      headers: authHeaders(),
+      body: JSON.stringify({
+        query: userPrompt,
+        limit: HITS_PER_PACK,
+        read_content: true,
+      }),
+      signal: AbortSignal.timeout(FIND_TIMEOUT_MS),
+    });
+    if (!response.ok) {
+      log.warn(`openviking memory find failed: HTTP ${response.status}`);
+      return [];
+    }
+    const data = (await response.json()) as VikingFindResponse;
+    if (data.status !== "ok") {
+      log.warn(
+        `openviking memory find errored: ${data.error?.message ?? "unknown"}`,
+      );
+      return [];
+    }
+    return data.result?.memories ?? [];
+  } catch (error) {
+    log.warn(`openviking memory find failed (fail-open)`, error);
+    return [];
+  }
+}
+
 async function retrievePackBlock(
   id: ContextPackId,
   userPrompt: string,
@@ -219,7 +253,10 @@ async function retrievePackBlock(
   const scopes = CONTEXT_PACKS[id].vikingScopes;
   if (scopes.length === 0) return "";
   try {
-    const [scopeResponses, skillHits] = await Promise.all([
+    const [scopeResponses, memoryHits, skillHits] = await Promise.all([
+      // Scoped finds return only result.resources — OpenViking attaches
+      // result.memories solely to unscoped finds, so memories (durable
+      // add-memory lessons) need one unscoped find per pack to be reachable.
       Promise.all(
         scopes.map(async (scope) => {
           try {
@@ -263,13 +300,14 @@ async function retrievePackBlock(
           }
         }),
       ),
+      findMemoryHits(userPrompt),
       findSkillHits(id, userPrompt),
     ]);
     // Merge across scopes, highest score first, deduped by URI. Score is
     // comparable across scopes because every find runs the same query against
     // the same embedding model — the scope only restricts the candidate set.
     const byUri = new Map<string, VikingFindHit & { score?: number }>();
-    for (const hits of scopeResponses) {
+    for (const hits of [...scopeResponses, memoryHits]) {
       if (!hits) continue;
       for (const hit of hits) {
         const key = hit.uri ?? JSON.stringify(hit).slice(0, 200);

@@ -145,6 +145,31 @@ describe("context pack scopes reach the live OpenViking store", () => {
   );
 
   it.skipIf(process.env.NEXTBILLION_SKIP_VIKING === "1")(
+    "add-memory lessons reach the builder (memories ride only unscoped finds)",
+    { timeout: 30_000 },
+    async () => {
+      if (!vikingUp) {
+        console.warn("OpenViking not reachable — canary skipped.");
+        return;
+      }
+      // History: durable lessons stored via add-memory (runbook §13) land in
+      // viking://user/default/memories, which OpenViking attaches to a find
+      // response ONLY on unscoped finds — a target_uri-scoped find returns
+      // resources but never memories. retrievePackBlock therefore runs one
+      // unscoped find per pack and merges result.memories in. This canary
+      // fails if that merge regresses and the lessons go dead-weight again.
+      const block = await getContextPackRetrievalBlock(
+        ["nextbillion"],
+        "what truck_size parameter order and units must the routing request use",
+      );
+      expect(
+        block,
+        "add-memory lessons not in the retrieval block — the unscoped memory find was dropped or regressed",
+      ).toMatch(/viking:\/\/user\/default\/memories\//);
+    },
+  );
+
+  it.skipIf(process.env.NEXTBILLION_SKIP_VIKING === "1")(
     "the distilled ticket digest is retrievable, not just stored",
     { timeout: 60_000 },
     async () => {
