@@ -145,6 +145,58 @@ describe("context pack scopes reach the live OpenViking store", () => {
   );
 
   it.skipIf(process.env.NEXTBILLION_SKIP_VIKING === "1")(
+    "the policy doc is readable through the real read path",
+    { timeout: 15_000 },
+    async () => {
+      if (!vikingUp) {
+        console.warn("OpenViking not reachable — canary skipped.");
+        return;
+      }
+      // History: each retired dead-weight failure (ticket monolith, scoped
+      // finds never returning memories) was claimed "verified" with a
+      // storage-level check. The rule now: EVERY access path the builder
+      // uses gets a canary through the real path — policy read, scoped
+      // resources, memories, skills — so none of them depends on honesty.
+      const response = await fetch(
+        `${OPENVIKING_URL}/api/v1/content/read?uri=${encodeURIComponent(
+          CONTEXT_PACKS.nextbillion.policyUri,
+        )}&raw=true`,
+        { signal: AbortSignal.timeout(10_000) },
+      );
+      const data = (await response.json()) as { status?: string; result?: string };
+      expect(
+        data.status === "ok" && (data.result ?? "").length > 1000,
+        "policy doc unreadable or empty through content/read — the per-message policy injection is dead",
+      ).toBe(true);
+    },
+  );
+
+  it.skipIf(process.env.NEXTBILLION_SKIP_VIKING === "1")(
+    "the map skill surfaces through the real skills find path",
+    { timeout: 15_000 },
+    async () => {
+      if (!vikingUp) {
+        console.warn("OpenViking not reachable — canary skipped.");
+        return;
+      }
+      const response = await fetch(`${OPENVIKING_URL}/api/v1/skills/find`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          query: "render a dark map with markers and routes",
+          limit: 3,
+        }),
+        signal: AbortSignal.timeout(10_000),
+      });
+      const text = await response.text();
+      expect(
+        text,
+        "nextbillion-map skill no longer surfaces via /api/v1/skills/find — skill retrieval is dead",
+      ).toContain("nextbillion-map");
+    },
+  );
+
+  it.skipIf(process.env.NEXTBILLION_SKIP_VIKING === "1")(
     "add-memory lessons reach the builder (memories ride only unscoped finds)",
     { timeout: 30_000 },
     async () => {
