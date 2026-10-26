@@ -224,10 +224,14 @@ node scripts/ingest-support-tickets-kb.mjs http://127.0.0.1:1933 \
   context/nextbillion-sessions/digests/nb-support-tickets-distilled.md
 ```
 
-Splits on `## ` headings into `viking://resources/nextbillion-sessions/support-tickets/themes/<n-name>.md`
-(10 themes + index + overview; skips the raw "Full ticket records" dumps, which
-already exist as per-cluster files). Retries 409 CONFLICT (an interrupted run
-leaves the resource locked until OpenViking's busy timeout passes).
+Splits each `## ` theme into a small **lessons** file (`support-tickets/themes/<n-name>.md`)
+and a **ticket-records** file (`support-tickets/tickets/<n-name>.md`, the verbatim
+`#### Ticket` threads), then writes `themes/INDEX.md` enumerating every lessons +
+tickets file by URI with the ticket IDs each holds. The index is the
+discoverability layer — retrieval only surfaces a handful of URIs per message, so
+agents follow the index to pull the rest. Skips nothing: all 102 tickets land in
+the tickets/ files. Retries 409 CONFLICT (an interrupted run leaves the resource
+locked until OpenViking's busy timeout passes).
 
 Re-run it any time the digest changes — idempotent `content/write` replace. For
 the VM, scp the script + digest there and run against its local endpoint.
