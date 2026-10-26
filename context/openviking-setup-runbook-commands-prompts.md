@@ -192,7 +192,14 @@ openviking add-memory '{"role":"user","content":"<lesson> (durable): ..."}'
 
 The 2026-10-26 run stored all lessons this way; they land classified under
 `memories/events/<yyyy>/<mm>/<dd>/` and `memories/preferences/user/` +
-`memories/entities/application_builder_knowledge_base/`. Lesson families stored:
+`memories/entities/application_builder_knowledge_base/`.
+
+**Reachability gotcha:** OpenViking attaches `result.memories` to a `search/find`
+response ONLY on unscoped finds — a `target_uri`-scoped find returns resources
+but never memories. The builder's fan-out is scoped, so `retrievePackBlock`
+(`src/prompts/context_packs/openviking.ts`) runs one extra unscoped find per
+pack and merges `result.memories` into the same score-ranked hit list. Canaries
+for this live in `openviking.scopes.integration.test.ts`. Lesson families stored:
 coordinate-order rules, optimization-v2 id conventions, truck_size order/units,
 avoid-vs-exclude, honor_restrictions 422, HOS nesting/time minimums, clustering
 polyline5 pre-pass, Cloud Run sizing/deploy traps/413-gzip, Terraform env-var
