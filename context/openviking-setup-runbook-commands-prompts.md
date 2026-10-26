@@ -248,6 +248,54 @@ routing-API issues biggest pain points" must return `themes/` hits (canary test
 `openviking.scopes.integration.test.ts > the distilled ticket digest is
 retrievable, not just stored` enforces this against a live store).
 
+## 16. Scaling to bulk data (millions of records) — the general pipeline
+
+§15's split script was the first cut of a pattern; its parser is tied to that one
+digest's markdown shape and its hand-authored distillation does not scale. The
+dataset-independent physics learned on 2026-10-26 is what generalizes:
+
+1. **Small files win retrieval; one big file is dead weight** (proven twice:
+   the 74K ticket monolith, then 23K combined theme files). At scale, emit
+   records MECHANICALLY as small files (~10–50 records per file), names
+   derived from record IDs — humans never touch per-record content. A
+   per-record distillation pass (OpenViking learning pass over the raw layer,
+   §13 pattern) is optional curation, never an ingest prerequisite.
+2. **Bulk ingest uses the resource path, not per-file writes.** Per-file
+   `content/write` takes 40–60s of semantic indexing and caps at ~hundreds of
+   files. For 10⁴⁺ records: shape the export into a directory tree of small
+   md files, then `add-resource` / `temp_upload` (§3/§12) — its auto-chunker
+   produces the small files AND auto-generates the `.overview.md`/
+   `.abstract.md` per directory, which is the machine-generated
+   discoverability layer (no hand-written INDEX needed).
+3. **One ingest at a time per store**; drop `--wait`, poll `task list`.
+4. **Verification at scale is statistical sampling, not per-record canaries.**
+   One canary per record is impossible at 10⁶. Instead: sample N record IDs,
+   query a verbatim span from each through the builder's REAL retrieval path
+   (`scripts/kb-retrieval-sample.mjs`), and fail below a hit-rate threshold.
+   This is the check that would have caught the monolith automatically.
+
+What does NOT generalize and must never come back:
+- hand-authoring distillations as the ingest input (the 102-ticket digest was
+  that — it was the overfitting point);
+- per-batch parser tuning (each new export shape gets ONE generic
+  export→small-files converter; the file layout + verification stays fixed);
+- storage-level verification (`ls`, read-by-URI) reported as "verified".
+
+### `scripts/kb-retrieval-sample.mjs` — statistical retrievability check
+
+```
+node scripts/kb-retrieval-sample.mjs http://127.0.0.1:1933 \
+  viking://resources/nextbillion-sessions/support-tickets \
+  context/nextbillion-sessions/digests/nb-support-tickets-distilled.md \
+  [--sample 12] [--threshold 0.8]
+```
+
+Picks N random verbatim spans from the source corpus, queries each through
+`POST /api/v1/search/find` scoped to the subtree, and reports what fraction
+returned a hit from that subtree. Below `--threshold` → exit 1. Run it after
+every bulk ingest against both local and VM stores; wire it into CI against a
+live store when one is available.
+
 ## `ov compile` scope
 
 Used exactly once in the whole flow: memory consolidation (step 6). Policy, skill, and corpus writes are raw HTTP/CLI operations, never compilation.
