@@ -210,6 +210,33 @@ curl -s -X POST http://127.0.0.1:1933/api/v1/search/find -H 'Content-Type: appli
 openviking ls 'viking://user/default/memories/preferences/user'     # lesson files present
 ```
 
+## 15. Support-ticket distilled knowledge — ingest as per-theme files
+
+The distilled support-ticket digest (`context/nextbillion-sessions/digests/nb-support-tickets-distilled.md`,
+~74K) MUST be ingested via the split script, never as one file. A monolithic write
+stores fine but never surfaces in semantic find — its single embedding drowns
+among the store's small `.overview.md`/`.abstract.md` files, so the content is
+dead weight despite "being ingested" (verified 2026-10-26: verbatim-phrase find
+never returned it; read-by-URI worked).
+
+```
+node scripts/ingest-support-tickets-kb.mjs http://127.0.0.1:1933 \
+  context/nextbillion-sessions/digests/nb-support-tickets-distilled.md
+```
+
+Splits on `## ` headings into `viking://resources/nextbillion-sessions/support-tickets/themes/<n-name>.md`
+(10 themes + index + overview; skips the raw "Full ticket records" dumps, which
+already exist as per-cluster files). Retries 409 CONFLICT (an interrupted run
+leaves the resource locked until OpenViking's busy timeout passes).
+
+Re-run it any time the digest changes — idempotent `content/write` replace. For
+the VM, scp the script + digest there and run against its local endpoint.
+
+Verification: `find` scoped to `.../support-tickets` for "support team triage
+routing-API issues biggest pain points" must return `themes/` hits (canary test
+`openviking.scopes.integration.test.ts > the distilled ticket digest is
+retrievable, not just stored` enforces this against a live store).
+
 ## `ov compile` scope
 
 Used exactly once in the whole flow: memory consolidation (step 6). Policy, skill, and corpus writes are raw HTTP/CLI operations, never compilation.
